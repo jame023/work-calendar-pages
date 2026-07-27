@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ระบบขอลาพนักงาน</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      :root {
+        --navy:#16324f;
+        --blue:#1f6feb;
+        --green:#16864b;
+        --amber:#a96400;
+        --red:#bd2c24;
+        --purple:#6842a0;
+        --border:#d7dee7;
+      }
+      * { box-sizing:border-box; }
+      body {
+        margin:0;
+        background:#f3f6fa;
+        color:#17202b;
+        font-family:system-ui,"Segoe UI",sans-serif;
+      }
+      button,input,select,textarea { font:inherit; }
+      button { cursor:pointer; }
+      .page { width:min(1050px,100%); margin:auto; padding:16px; }
+      .header,.card {
+        border:1px solid var(--border);
+        border-radius:16px;
+        background:#fff;
+        box-shadow:0 8px 24px rgb(22 50 79 / 8%);
+      }
+      .header { padding:18px; }
+      h1,h2,h3,p { margin-top:0; }
+      h1 { margin-bottom:6px; font-size:clamp(24px,6vw,32px); }
+      h2 { margin-bottom:14px; font-size:21px; }
+      h3 { margin-bottom:8px; font-size:17px; }
+      .muted { margin-bottom:0; color:#627083; }
+      .status { margin-top:14px; border-radius:12px; padding:12px 14px; }
+      .info { background:#e9f2ff; color:#144f98; }
+      .success { background:#e5f6ed; color:var(--green); }
+      .error { background:#fdecea; color:var(--red); }
+      #app { display:none; }
+      .card { margin-top:14px; padding:18px; }
+      .form-grid {
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:12px;
+      }
+      label { display:block; color:var(--navy); font-weight:700; }
+      input,select,textarea {
+        width:100%;
+        margin-top:7px;
+        border:1px solid var(--border);
+        border-radius:10px;
+        padding:10px 12px;
+        background:#fff;
+      }
+      input,select { min-height:48px; }
+      textarea { min-height:96px; resize:vertical; }
+      .full-width { grid-column:1 / -1; }
+      .actions { display:flex; gap:10px; margin-top:14px; }
+      .primary,.secondary,.approve,.reject {
+        min-height:48px;
+        border:0;
+        border-radius:10px;
+        padding:10px 14px;
+        font-weight:800;
+      }
+      .primary { background:var(--blue); color:#fff; }
+      .secondary { background:#e8eef6; color:var(--navy); }
+      .approve { background:var(--green); color:#fff; }
+      .reject { background:var(--red); color:#fff; }
+      button:disabled { cursor:not-allowed; opacity:.55; }
+      .manager-card { display:none; }
+      .manager-card.show { display:block; }
+      .request-list { display:grid; gap:10px; }
+      .request-card {
+        border:1px solid var(--border);
+        border-left:5px solid var(--blue);
+        border-radius:12px;
+        padding:13px;
+        background:#fff;
+      }
+      .request-card.pending { border-left-color:var(--amber); }
+      .request-card.approved { border-left-color:var(--green); }
+      .request-card.rejected { border-left-color:var(--red); }
+      .request-meta {
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:7px;
+        margin-top:9px;
+      }
+      .request-meta div {
+        border-radius:8px;
+        padding:8px;
+        background:#f5f7fa;
+      }
+      .request-meta small { display:block; color:#6a7789; }
+      .decision-actions { display:flex; gap:8px; margin-top:10px; }
+      .decision-actions button { flex:1; }
+      .calendar-toolbar {
+        display:grid;
+        grid-template-columns:minmax(180px,1fr) auto;
+        gap:10px;
+        align-items:end;
+      }
+      .weekdays,.calendar-grid {
+        display:grid;
+        grid-template-columns:repeat(7,minmax(0,1fr));
+        gap:6px;
+      }
+      .weekdays { margin-top:14px; }
+      .weekdays div {
+        padding:6px 2px;
+        color:#627083;
+        text-align:center;
+        font-size:13px;
+        font-weight:800;
+      }
+      .day {
+        min-height:115px;
+        border:1px solid var(--border);
+        border-radius:10px;
+        padding:7px;
+        background:#fafbfd;
+      }
+      .empty-day { min-height:1px; }
+      .day-number { color:var(--navy); font-weight:850; }
+      .leave-event {
+        margin-top:5px;
+        border-radius:7px;
+        padding:5px;
+        background:#eee8f8;
+        color:var(--purple);
+        font-size:11px;
+        line-height:1.3;
+      }
+      .empty-message {
+        margin:0;
+        border-radius:10px;
+        padding:14px;
+        background:#f5f7fa;
+        color:#627083;
+        text-align:center;
+      }
+      .backend-frame {
+        position:fixed;
+        left:-10px;
+        bottom:-10px;
+        width:1px;
+        height:1px;
+        border:0;
+        opacity:.01;
+        pointer-events:none;
+      }
+      @media(max-width:700px) {
+        .page { padding:10px; }
+        .header,.card { padding:14px; border-radius:12px; }
+        .form-grid,.calendar-toolbar { grid-template-columns:1fr; }
+        .request-meta { grid-template-columns:1fr 1fr; }
+        .actions,.decision-actions { flex-direction:column; }
+        .actions button { width:100%; }
+        .weekdays,.calendar-grid { gap:3px; }
+        .day { min-height:88px; padding:4px; }
+        .day-number { font-size:13px; }
+        .leave-event { padding:3px; font-size:9px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="header">
+        <h1>ระบบขอลาพนักงาน</h1>
+        <p class="muted" id="profileText">กำลังตรวจสอบบัญชี LINE…</p>
+      </section>
+
+      <div class="status info" id="statusBox">กำลังเชื่อมต่อระบบ…</div>
+
+      <div id="app">
+        <section class="card">
+          <h2>ส่งคำขอลา</h2>
+          <form id="leaveForm">
+            <div class="form-grid">
+              <label>
+                วันที่ลา
+                <input id="leaveDate" type="date" required>
+              </label>
+              <label>
+                ประเภทการลา
+                <select id="leaveType" required></select>
+              </label>
+              <label>
+                จำนวนวัน
+                <select id="leaveDays" required>
+                  <option value="1">เต็มวัน</option>
+                  <option value="0.5">ครึ่งวัน</option>
+                </select>
+              </label>
+              <label class="full-width">
+                เหตุผล
+                <textarea id="leaveReason" maxlength="500" required
+                  placeholder="กรุณาระบุเหตุผลการลา"></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button class="primary" id="submitButton" type="submit">
+                ส่งคำขอให้ผู้บริหาร
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card manager-card" id="managerCard">
+          <h2>คำขอรออนุมัติ</h2>
+          <div class="request-list" id="pendingList"></div>
+        </section>
+
+        <section class="card">
+          <h2>ปฏิทินวันลาที่อนุมัติแล้ว</h2>
+          <div class="calendar-toolbar">
+            <label>
+              เลือกเดือน
+              <input id="monthInput" type="month">
+            </label>
+            <button class="secondary" id="loadButton" type="button">
+              โหลดปฏิทิน
+            </button>
+          </div>
+          <div class="weekdays">
+            <div>อา.</div><div>จ.</div><div>อ.</div><div>พ.</div>
+            <div>พฤ.</div><div>ศ.</div><div>ส.</div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </section>
+
+        <section class="card">
+          <h2>คำขอของฉัน</h2>
+          <div class="request-list" id="ownRequestList"></div>
+        </section>
+      </div>
+    </main>
+
+    <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
+
+    <script>
+      const BACKEND_URL = "https://script.google.com/macros/s/AKfycbxiAz92e8wj0NHOUUIGwTgq_gIBEQyDmIsH3oN-Ot-fK-eqTV2PTt_h_3ssizESf6Gj/exec";
+      const MESSAGE_SOURCE = "employee-leave-frontend";
+      const BRIDGE_SOURCE = "employee-leave-bridge";
+      const state = {
+        idToken:"",
+        role:"",
+        month:"",
+        calendar:[],
+        ownRequests:[],
+        pendingRequests:[]
+      };
+      const pendingCalls = new Map();
+      let bridgeWindow = null;
+      let bridgeLiffId = "";
+      let requestNumber = 0;
+      let resolveBridge;
+      const bridgeReady = new Promise(function(resolve) { resolveBridge = resolve; });
+      const elements = {};
+
+      [
+        "profileText","statusBox","app","leaveForm","leaveDate","leaveType",
+        "leaveDays","leaveReason","submitButton","managerCard","pendingList",
+        "monthInput","loadButton","calendarGrid","ownRequestList","backendFrame"
+      ].forEach(function(id) {
+        elements[id] = document.getElementById(id);
+      });
+
+      window.addEventListener("message", receiveBridgeMessage);
+      window.addEventListener("load", initialize);
+      elements.leaveForm.addEventListener("submit", submitLeave);
+      elements.loadButton.addEventListener("click", loadData);
+      elements.monthInput.addEventListener("change", loadData);
+
+      async function initialize() {
+        try {
+          setBusy(true);
+          if (BACKEND_URL.indexOf("PASTE_") === 0) {
+            throw new Error("ยังไม่ได้ใส่ Employee Leave Web App URL");
+          }
+          elements.backendFrame.src = BACKEND_URL;
+          await waitForBridge();
+          await liff.init({ liffId:bridgeLiffId, withLoginOnExternalBrowser:true });
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+          state.idToken = liff.getIDToken();
+          if (!state.idToken) throw new Error("LINE ไม่ได้ส่ง ID token");
+          elements.monthInput.value = currentMonthText();
+          elements.leaveDate.value = todayText();
+          await loadData();
+          elements.app.style.display = "block";
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function loadData() {
+        const month = elements.monthInput.value || currentMonthText();
+        setBusy(true);
+        showStatus("กำลังโหลดข้อมูลการลา…", "info");
+        try {
+          const result = await callBackend("getLeaveAppData", { month:month });
+          state.role = result.profile.role;
+          state.month = result.month;
+          state.calendar = result.calendar || [];
+          state.ownRequests = result.ownRequests || [];
+          state.pendingRequests = result.pendingRequests || [];
+          elements.profileText.textContent =
+            "เข้าสู่ระบบ: " + result.profile.employeeName +
+            (state.role === "manager" ? " · ผู้บริหาร" : " · พนักงาน");
+          fillLeaveTypes(result.leaveTypes || []);
+          renderAll();
+          showStatus("โหลดข้อมูลแล้ว", "success");
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function submitLeave(event) {
+        event.preventDefault();
+        const input = {
+          date:elements.leaveDate.value,
+          type:elements.leaveType.value,
+          days:Number(elements.leaveDays.value),
+          reason:elements.leaveReason.value
+        };
+        const confirmed = window.confirm(
+          "ยืนยันส่งคำขอลา?\n" +
+          input.date + " · " + input.type + " · " +
+          (input.days === 0.5 ? "ครึ่งวัน" : "เต็มวัน")
+        );
+        if (!confirmed) return;
+
+        setBusy(true);
+        showStatus("กำลังบันทึกและแจ้งผู้บริหาร…", "info");
+        try {
+          const result = await callBackend("submitLeaveRequest", input);
+          elements.leaveReason.value = "";
+          const notification = result.managerNotification || {};
+          if (notification.status === "error") {
+            showStatus(
+              "บันทึกคำขอแล้ว แต่แจ้งผู้บริหารไม่สำเร็จ: " + notification.error,
+              "error"
+            );
+          } else {
+            showStatus("ส่งคำขอและแจ้งผู้บริหารแล้ว", "success");
+          }
+          await loadData();
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function decideRequest(requestId, decision) {
+        const confirmed = window.confirm(
+          "ยืนยัน" + decision + "คำขอนี้?\n" +
+          "ระบบจะแจ้งผลให้พนักงานทาง LINE"
+        );
+        if (!confirmed) return;
+        setBusy(true);
+        showStatus("กำลังบันทึกผลและแจ้งพนักงาน…", "info");
+        try {
+          const result = await callBackend("decideLeaveRequest", {
+            requestId:requestId,
+            decision:decision
+          });
+          const notification = result.employeeNotification || {};
+          if (notification.status === "error") {
+            showStatus(
+              "บันทึกผลแล้ว แต่แจ้งพนักงานไม่สำเร็จ: " + notification.error,
+              "error"
+            );
+          } else {
+            showStatus("บันทึกผลและแจ้งพนักงานแล้ว", "success");
+          }
+          await loadData();
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      function renderAll() {
+        elements.managerCard.classList.toggle("show", state.role === "manager");
+        renderRequests(elements.pendingList, state.pendingRequests, true);
+        renderRequests(elements.ownRequestList, state.ownRequests, false);
+        renderCalendar();
+      }
+
+      function renderRequests(container, rows, showDecision) {
+        container.replaceChildren();
+        if (!rows.length) {
+          const empty = document.createElement("p");
+          empty.className = "empty-message";
+          empty.textContent = showDecision ? "ไม่มีคำขอรออนุมัติ" : "ยังไม่มีคำขอลา";
+          container.appendChild(empty);
+          return;
+        }
+        rows.forEach(function(row) {
+          const card = document.createElement("article");
+          card.className = "request-card " + statusClass(row.status);
+          const title = document.createElement("h3");
+          title.textContent = (showDecision ? row.employeeName + " · " : "") +
+            row.type;
+          card.appendChild(title);
+
+          const reason = document.createElement("p");
+          reason.textContent = row.reason || "ไม่มีเหตุผล";
+          card.appendChild(reason);
+
+          const meta = document.createElement("div");
+          meta.className = "request-meta";
+          [
+            ["วันที่", formatDisplayDate(row.date)],
+            ["จำนวน", row.days === 0.5 ? "ครึ่งวัน" : "เต็มวัน"],
+            ["สถานะ", row.status || "อนุมัติ"]
+          ].forEach(function(item) {
+            const box = document.createElement("div");
+            const label = document.createElement("small");
+            label.textContent = item[0];
+            box.appendChild(label);
+            box.appendChild(document.createTextNode(item[1]));
+            meta.appendChild(box);
+          });
+          card.appendChild(meta);
+
+          if (showDecision && row.requestId) {
+            const actions = document.createElement("div");
+            actions.className = "decision-actions";
+            const approve = document.createElement("button");
+            approve.type = "button";
+            approve.className = "approve";
+            approve.textContent = "อนุมัติ";
+            approve.addEventListener("click", function() {
+              decideRequest(row.requestId, "อนุมัติ");
+            });
+            const reject = document.createElement("button");
+            reject.type = "button";
+            reject.className = "reject";
+            reject.textContent = "ปฏิเสธ";
+            reject.addEventListener("click", function() {
+              decideRequest(row.requestId, "ปฏิเสธ");
+            });
+            actions.appendChild(approve);
+            actions.appendChild(reject);
+            card.appendChild(actions);
+          }
+          container.appendChild(card);
+        });
+      }
+
+      function renderCalendar() {
+        elements.calendarGrid.replaceChildren();
+        const parts = state.month.split("-").map(Number);
+        const daysInMonth = new Date(parts[0], parts[1], 0).getDate();
+        const firstDay = new Date(parts[0], parts[1] - 1, 1).getDay();
+        for (let index = 0; index < firstDay; index += 1) {
+          const spacer = document.createElement("div");
+          spacer.className = "empty-day";
+          elements.calendarGrid.appendChild(spacer);
+        }
+        for (let day = 1; day <= daysInMonth; day += 1) {
+          const isoDate = state.month + "-" + String(day).padStart(2, "0");
+          const box = document.createElement("div");
+          box.className = "day";
+          const number = document.createElement("div");
+          number.className = "day-number";
+          number.textContent = day;
+          box.appendChild(number);
+          state.calendar.filter(function(event) {
+            return event.date === isoDate;
+          }).forEach(function(event) {
+            const item = document.createElement("div");
+            item.className = "leave-event";
+            item.textContent = event.employeeName + " · " + event.type +
+              (event.days === 0.5 ? " ½ วัน" : "");
+            if (event.reason) item.title = event.reason;
+            box.appendChild(item);
+          });
+          elements.calendarGrid.appendChild(box);
+        }
+      }
+
+      function fillLeaveTypes(types) {
+        if (elements.leaveType.options.length) return;
+        types.forEach(function(type) {
+          const option = document.createElement("option");
+          option.value = type;
+          option.textContent = type;
+          elements.leaveType.appendChild(option);
+        });
+      }
+
+      function receiveBridgeMessage(event) {
+        const data = event.data;
+        if (!data || data.source !== BRIDGE_SOURCE) return;
+        if (data.type === "ready") {
+          bridgeWindow = event.source;
+          bridgeLiffId = String(data.liffId || "");
+          if (!bridgeLiffId) {
+            showStatus("Bridge ไม่ส่ง LIFF ID", "error");
+            return;
+          }
+          resolveBridge();
+          return;
+        }
+        if (data.type !== "response" || event.source !== bridgeWindow) return;
+        const request = pendingCalls.get(data.id);
+        if (!request) return;
+        clearTimeout(request.timer);
+        pendingCalls.delete(data.id);
+        data.ok ? request.resolve(data.result) :
+          request.reject(new Error(data.error));
+      }
+
+      function waitForBridge() {
+        return Promise.race([
+          bridgeReady,
+          new Promise(function(resolve, reject) {
+            setTimeout(function() {
+              reject(new Error("เชื่อมต่อ Apps Script ไม่สำเร็จ"));
+            }, 15000);
+          })
+        ]);
+      }
+
+      function callBackend(action, payload) {
+        return new Promise(function(resolve, reject) {
+          const id = "request-" + (++requestNumber);
+          const timer = setTimeout(function() {
+            pendingCalls.delete(id);
+            reject(new Error("Apps Script ตอบกลับช้าเกินกำหนด"));
+          }, 25000);
+          pendingCalls.set(id, { resolve:resolve, reject:reject, timer:timer });
+          bridgeWindow.postMessage({
+            source:MESSAGE_SOURCE,
+            id:id,
+            action:action,
+            idToken:state.idToken,
+            payload:payload || {}
+          }, "*");
+        });
+      }
+
+      function setBusy(busy) {
+        [
+          elements.leaveDate,elements.leaveType,elements.leaveDays,
+          elements.leaveReason,elements.submitButton,elements.monthInput,
+          elements.loadButton
+        ].forEach(function(element) { element.disabled = busy; });
+      }
+
+      function statusClass(status) {
+        if (status === "รออนุมัติ") return "pending";
+        if (status === "ปฏิเสธ") return "rejected";
+        return "approved";
+      }
+
+      function formatDisplayDate(isoDate) {
+        const parts = String(isoDate || "").split("-");
+        return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : "-";
+      }
+
+      function currentMonthText() {
+        const now = new Date();
+        return now.getFullYear() + "-" +
+          String(now.getMonth() + 1).padStart(2, "0");
+      }
+
+      function todayText() {
+        const now = new Date();
+        return now.getFullYear() + "-" +
+          String(now.getMonth() + 1).padStart(2, "0") + "-" +
+          String(now.getDate()).padStart(2, "0");
+      }
+
+      function showStatus(message, type) {
+        elements.statusBox.textContent = message;
+        elements.statusBox.className = "status " + type;
+      }
+
+      function messageOf(error) {
+        return error && error.message ? error.message : String(error);
+      }
+    </script>
+  </body>
+</html>
