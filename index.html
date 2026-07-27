@@ -71,6 +71,18 @@
       }
       .primary { background:var(--blue); color:#fff; }
       .secondary { background:#e8eef6; color:var(--navy); }
+      .send-button {
+        width:100%;
+        min-height:54px;
+        margin-top:16px;
+        border:0;
+        border-radius:10px;
+        padding:10px 14px;
+        background:var(--red);
+        color:#fff;
+        font-size:18px;
+        font-weight:800;
+      }
       button:disabled { cursor:not-allowed; opacity:.55; }
       .quick-actions {
         display:grid;
@@ -231,7 +243,12 @@
         <pre class="preview-message" id="previewMessage"></pre>
         <h2>รายชื่อผู้รับ</h2>
         <ul class="recipient-list" id="recipientList"></ul>
-        <p class="muted">ขั้นตอนนี้เป็น Preview เท่านั้น ระบบยังไม่ส่งข้อความ LINE</p>
+        <button class="send-button" id="sendButton" type="button" hidden>
+          ส่งแจ้งเตือนพนักงาน
+        </button>
+        <p class="muted" id="notificationNote">
+          ขั้นตอนนี้เป็น Preview เท่านั้น ระบบยังไม่ส่งข้อความ LINE
+        </p>
       </section>
     </main>
 
@@ -260,7 +277,8 @@
         "signedInName","statusBox","calendarCard","monthInput","loadButton",
         "sundayButton","weekendButton","fullMonthButton","fullCount","halfCount",
         "offCount","calendarGrid","saveButton","previewButton","notificationCard",
-        "recipientCount","previewMessage","recipientList","backendFrame"
+        "recipientCount","previewMessage","recipientList","sendButton",
+        "notificationNote","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
       });
@@ -274,6 +292,7 @@
       elements.fullMonthButton.addEventListener("click", setFullMonth);
       elements.saveButton.addEventListener("click", saveMonth);
       elements.previewButton.addEventListener("click", previewNotification);
+      elements.sendButton.addEventListener("click", sendNotification);
 
       async function initialize() {
         try {
@@ -423,6 +442,10 @@
             elements.recipientList.appendChild(item);
           });
           elements.notificationCard.classList.add("show");
+          elements.sendButton.hidden = result.recipientCount < 1;
+          elements.sendButton.disabled = false;
+          elements.notificationNote.textContent =
+            "ตรวจข้อความและรายชื่อก่อนกดส่ง ระบบจะขอยืนยันอีกครั้ง";
           showStatus(
             "สร้าง Preview แล้ว ระบบยังไม่ได้ส่งข้อความ LINE",
             "success"
@@ -431,6 +454,36 @@
             behavior:"smooth",
             block:"start"
           });
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function sendNotification() {
+        const recipientText = elements.recipientCount.textContent;
+        const confirmed = window.confirm(
+          "ยืนยันส่งข้อความตารางเดือน " + state.month + "?\n" +
+          recipientText + "\n\n" +
+          "เมื่อยืนยัน ระบบจะส่ง LINE จริงทันที"
+        );
+        if (!confirmed) return;
+
+        setBusy(true);
+        showStatus("กำลังส่งแจ้งเตือนพนักงานทาง LINE…", "info");
+        try {
+          const result = await callBackend("sendWorkCalendarNotification", {
+            month:state.month,
+            confirmation:"SEND_ACTIVE_EMPLOYEES"
+          });
+          elements.sendButton.hidden = true;
+          elements.notificationNote.textContent =
+            "ส่งข้อความสำเร็จแล้ว " + result.sentCount + " คน";
+          showStatus(
+            "ส่งแจ้งเตือน LINE สำเร็จ " + result.sentCount + " คน",
+            "success"
+          );
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
@@ -520,7 +573,7 @@
         [
           elements.monthInput,elements.loadButton,elements.sundayButton,
           elements.weekendButton,elements.fullMonthButton,elements.saveButton,
-          elements.previewButton
+          elements.previewButton,elements.sendButton
         ].forEach(function(element) {
           element.disabled = busy;
         });
