@@ -232,7 +232,9 @@
         <div class="save-bar">
           <div class="save-actions">
             <button class="primary" id="saveButton" type="button">บันทึกลง Work_Calendar</button>
-            <button class="secondary" id="previewButton" type="button">ดูตัวอย่างแจ้งเตือน</button>
+            <button class="secondary" id="previewButton" type="button">
+              ดูตัวอย่างวันที่เปลี่ยน
+            </button>
           </div>
         </div>
       </section>
@@ -247,7 +249,7 @@
           ส่งแจ้งเตือนพนักงาน
         </button>
         <p class="muted" id="notificationNote">
-          ขั้นตอนนี้เป็น Preview เท่านั้น ระบบยังไม่ส่งข้อความ LINE
+          แสดงเฉพาะวันที่เปลี่ยนจากการบันทึกล่าสุด ระบบยังไม่ส่งข้อความ LINE
         </p>
       </section>
     </main>
@@ -261,7 +263,8 @@
       const state = {
         idToken:"",
         month:"",
-        days:[]
+        days:[],
+        changeId:""
       };
       const pending = new Map();
       let bridgeWindow = null;
@@ -330,6 +333,8 @@
           const result = await callBackend("getWorkCalendarMonth", { month:month });
           state.month = result.month;
           state.days = result.days || [];
+          state.changeId = "";
+          elements.notificationCard.classList.remove("show");
           renderCalendar();
           showStatus("โหลดข้อมูลเดือนนี้แล้ว วันที่ไม่มีข้อมูลตั้งต้นเป็นเต็มวัน", "success");
         } catch (error) {
@@ -369,6 +374,7 @@
             button.textContent = status;
             button.addEventListener("click", function() {
               day.status = status;
+              state.changeId = "";
               renderCalendar();
             });
             buttons.appendChild(button);
@@ -382,6 +388,7 @@
       }
 
       function setWeekendStatuses(weekdays) {
+        state.changeId = "";
         state.days.forEach(function(day) {
           const weekday = new Date(day.date + "T00:00:00").getDay();
           if (weekdays.indexOf(weekday) !== -1) day.status = "หยุด";
@@ -390,6 +397,7 @@
       }
 
       function setFullMonth() {
+        state.changeId = "";
         state.days.forEach(function(day) { day.status = "เต็มวัน"; });
         renderCalendar();
       }
@@ -411,9 +419,15 @@
             month:state.month,
             days:state.days
           });
+          state.changeId = result.changeId || "";
+          elements.notificationCard.classList.remove("show");
           showStatus(
             "บันทึกแล้ว " + result.savedDays + " วัน · เต็มวัน " + result.fullDays +
-            " · ครึ่งวัน " + result.halfDays + " · หยุด " + result.holidays,
+            " · ครึ่งวัน " + result.halfDays + " · หยุด " + result.holidays +
+            " · เปลี่ยนจริง " + result.changedCount + " วัน" +
+            (result.changedCount
+              ? " · กดดูตัวอย่างเพื่อส่งเฉพาะวันที่เปลี่ยน"
+              : " · ไม่มีรายการต้องแจ้ง"),
             "success"
           );
         } catch (error) {
@@ -424,12 +438,15 @@
       }
 
       async function previewNotification() {
-        if (!state.month) return;
+        if (!state.changeId) {
+          showStatus("ยังไม่มีวันที่เปลี่ยนแปลง กรุณาแก้ไขและบันทึกก่อน", "error");
+          return;
+        }
         setBusy(true);
         showStatus("กำลังสร้างตัวอย่างข้อความและรายชื่อผู้รับ…", "info");
         try {
           const result = await callBackend("previewWorkCalendarNotification", {
-            month:state.month
+            changeId:state.changeId
           });
           elements.recipientCount.textContent =
             "ผู้รับ " + result.recipientCount + " คน";
@@ -464,7 +481,7 @@
       async function sendNotification() {
         const recipientText = elements.recipientCount.textContent;
         const confirmed = window.confirm(
-          "ยืนยันส่งข้อความตารางเดือน " + state.month + "?\n" +
+          "ยืนยันส่งเฉพาะวันที่เพิ่งเปลี่ยน?\n" +
           recipientText + "\n\n" +
           "เมื่อยืนยัน ระบบจะส่ง LINE จริงทันที"
         );
@@ -474,7 +491,7 @@
         showStatus("กำลังส่งแจ้งเตือนพนักงานทาง LINE…", "info");
         try {
           const result = await callBackend("sendWorkCalendarNotification", {
-            month:state.month,
+            changeId:state.changeId,
             confirmation:"SEND_ACTIVE_EMPLOYEES"
           });
           elements.sendButton.hidden = true;
