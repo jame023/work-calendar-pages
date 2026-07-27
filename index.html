@@ -139,7 +139,24 @@
         padding:12px 0 2px;
         background:linear-gradient(to bottom,transparent,#fff 24%);
       }
-      .save-bar button { width:100%; min-height:54px; font-size:18px; }
+      .save-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      .save-bar button { width:100%; min-height:54px; font-size:17px; }
+      .preview-message {
+        margin:12px 0;
+        border:1px solid var(--border);
+        border-radius:12px;
+        padding:14px;
+        background:#f7f9fc;
+        white-space:pre-wrap;
+        overflow-wrap:anywhere;
+        font-family:inherit;
+        line-height:1.55;
+      }
+      .recipient-list {
+        margin:0;
+        padding-left:22px;
+        columns:2;
+      }
       .backend-frame {
         position:fixed;
         left:-10px;
@@ -155,6 +172,8 @@
         .header,.card { border-radius:12px; padding:14px; }
         .toolbar { grid-template-columns:1fr; }
         .quick-actions { grid-template-columns:1fr; }
+        .save-actions { grid-template-columns:1fr; }
+        .recipient-list { columns:1; }
         .weekdays,.calendar-grid { gap:4px; }
         .day-card { min-height:86px; padding:5px; }
         .day-number { margin-bottom:4px; font-size:15px; }
@@ -199,8 +218,20 @@
         <div class="calendar-grid" id="calendarGrid"></div>
 
         <div class="save-bar">
-          <button class="primary" id="saveButton" type="button">บันทึกลง Work_Calendar</button>
+          <div class="save-actions">
+            <button class="primary" id="saveButton" type="button">บันทึกลง Work_Calendar</button>
+            <button class="secondary" id="previewButton" type="button">ดูตัวอย่างแจ้งเตือน</button>
+          </div>
         </div>
+      </section>
+
+      <section class="card" id="notificationCard">
+        <h2>ตัวอย่างข้อความแจ้งพนักงาน</h2>
+        <p class="muted" id="recipientCount">ผู้รับ 0 คน</p>
+        <pre class="preview-message" id="previewMessage"></pre>
+        <h2>รายชื่อผู้รับ</h2>
+        <ul class="recipient-list" id="recipientList"></ul>
+        <p class="muted">ขั้นตอนนี้เป็น Preview เท่านั้น ระบบยังไม่ส่งข้อความ LINE</p>
       </section>
     </main>
 
@@ -228,7 +259,8 @@
       [
         "signedInName","statusBox","calendarCard","monthInput","loadButton",
         "sundayButton","weekendButton","fullMonthButton","fullCount","halfCount",
-        "offCount","calendarGrid","saveButton","backendFrame"
+        "offCount","calendarGrid","saveButton","previewButton","notificationCard",
+        "recipientCount","previewMessage","recipientList","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
       });
@@ -241,6 +273,7 @@
       elements.weekendButton.addEventListener("click", function() { setWeekendStatuses([0, 6]); });
       elements.fullMonthButton.addEventListener("click", setFullMonth);
       elements.saveButton.addEventListener("click", saveMonth);
+      elements.previewButton.addEventListener("click", previewNotification);
 
       async function initialize() {
         try {
@@ -371,6 +404,40 @@
         }
       }
 
+      async function previewNotification() {
+        if (!state.month) return;
+        setBusy(true);
+        showStatus("กำลังสร้างตัวอย่างข้อความและรายชื่อผู้รับ…", "info");
+        try {
+          const result = await callBackend("previewWorkCalendarNotification", {
+            month:state.month
+          });
+          elements.recipientCount.textContent =
+            "ผู้รับ " + result.recipientCount + " คน";
+          elements.previewMessage.textContent = result.message || "";
+          elements.recipientList.replaceChildren();
+          (result.recipients || []).forEach(function(recipient) {
+            const item = document.createElement("li");
+            item.textContent = recipient.employeeName ||
+              recipient.lineDisplayName || "ไม่มีชื่อ";
+            elements.recipientList.appendChild(item);
+          });
+          elements.notificationCard.classList.add("show");
+          showStatus(
+            "สร้าง Preview แล้ว ระบบยังไม่ได้ส่งข้อความ LINE",
+            "success"
+          );
+          elements.notificationCard.scrollIntoView({
+            behavior:"smooth",
+            block:"start"
+          });
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
       function receiveBridgeMessage(event) {
         const data = event.data;
         if (!data || data.source !== BRIDGE_SOURCE) return;
@@ -452,7 +519,8 @@
       function setBusy(busy) {
         [
           elements.monthInput,elements.loadButton,elements.sundayButton,
-          elements.weekendButton,elements.fullMonthButton,elements.saveButton
+          elements.weekendButton,elements.fullMonthButton,elements.saveButton,
+          elements.previewButton
         ].forEach(function(element) {
           element.disabled = busy;
         });
