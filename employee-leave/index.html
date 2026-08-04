@@ -184,8 +184,12 @@
           <form id="leaveForm">
             <div class="form-grid">
               <label>
-                วันที่ลา
-                <input id="leaveDate" type="date" required>
+                วันเริ่มลา
+                <input id="leaveStartDate" type="date" required>
+              </label>
+              <label>
+                วันสิ้นสุด
+                <input id="leaveEndDate" type="date" required>
               </label>
               <label>
                 ประเภทการลา
@@ -265,7 +269,8 @@
       const elements = {};
 
       [
-        "profileText","statusBox","app","leaveForm","leaveDate","leaveType",
+        "profileText","statusBox","app","leaveForm","leaveStartDate",
+        "leaveEndDate","leaveType",
         "leaveDays","leaveReason","submitButton","managerCard","pendingList",
         "monthInput","loadButton","calendarGrid","ownRequestList","backendFrame"
       ].forEach(function(id) {
@@ -275,6 +280,8 @@
       window.addEventListener("message", receiveBridgeMessage);
       window.addEventListener("load", initialize);
       elements.leaveForm.addEventListener("submit", submitLeave);
+      elements.leaveStartDate.addEventListener("change", updateLeaveRangeRules);
+      elements.leaveDays.addEventListener("change", updateLeaveRangeRules);
       elements.loadButton.addEventListener("click", loadData);
       elements.monthInput.addEventListener("change", loadData);
 
@@ -294,7 +301,9 @@
           state.idToken = liff.getIDToken();
           if (!state.idToken) throw new Error("LINE ไม่ได้ส่ง ID token");
           elements.monthInput.value = currentMonthText();
-          elements.leaveDate.value = todayText();
+          elements.leaveStartDate.value = todayText();
+          elements.leaveEndDate.value = todayText();
+          updateLeaveRangeRules();
           await loadData();
           elements.app.style.display = "block";
         } catch (error) {
@@ -331,14 +340,16 @@
       async function submitLeave(event) {
         event.preventDefault();
         const input = {
-          date:elements.leaveDate.value,
+          startDate:elements.leaveStartDate.value,
+          endDate:elements.leaveEndDate.value,
           type:elements.leaveType.value,
           days:Number(elements.leaveDays.value),
           reason:elements.leaveReason.value
         };
         const confirmed = window.confirm(
           "ยืนยันส่งคำขอลา?\n" +
-          input.date + " · " + input.type + " · " +
+          formatDisplayDateRange(input.startDate, input.endDate) + " · " +
+          input.type + " · " +
           (input.days === 0.5 ? "ครึ่งวัน" : "เต็มวัน")
         );
         if (!confirmed) return;
@@ -426,8 +437,11 @@
           const meta = document.createElement("div");
           meta.className = "request-meta";
           [
-            ["วันที่", formatDisplayDate(row.date)],
-            ["จำนวน", row.days === 0.5 ? "ครึ่งวัน" : "เต็มวัน"],
+            ["วันที่", formatDisplayDateRange(
+              row.startDate || row.date,
+              row.endDate || row.date
+            )],
+            ["จำนวน", formatLeaveDayCount(row.days)],
             ["สถานะ", row.status || "อนุมัติ"]
           ].forEach(function(item) {
             const box = document.createElement("div");
@@ -559,10 +573,24 @@
 
       function setBusy(busy) {
         [
-          elements.leaveDate,elements.leaveType,elements.leaveDays,
+          elements.leaveStartDate,elements.leaveEndDate,
+          elements.leaveType,elements.leaveDays,
           elements.leaveReason,elements.submitButton,elements.monthInput,
           elements.loadButton
         ].forEach(function(element) { element.disabled = busy; });
+        if (!busy) updateLeaveRangeRules();
+      }
+
+      function updateLeaveRangeRules() {
+        const halfDay = Number(elements.leaveDays.value) === 0.5;
+        const startDate = elements.leaveStartDate.value;
+        if (halfDay && startDate) elements.leaveEndDate.value = startDate;
+        if (startDate && (!elements.leaveEndDate.value ||
+            elements.leaveEndDate.value < startDate)) {
+          elements.leaveEndDate.value = startDate;
+        }
+        elements.leaveEndDate.min = startDate || "";
+        elements.leaveEndDate.disabled = halfDay || elements.submitButton.disabled;
       }
 
       function statusClass(status) {
@@ -574,6 +602,19 @@
       function formatDisplayDate(isoDate) {
         const parts = String(isoDate || "").split("-");
         return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : "-";
+      }
+
+      function formatDisplayDateRange(startDate, endDate) {
+        const start = formatDisplayDate(startDate);
+        const end = formatDisplayDate(endDate);
+        return startDate === endDate ? start : start + " ถึง " + end;
+      }
+
+      function formatLeaveDayCount(days) {
+        const value = Number(days);
+        if (value === 0.5) return "ครึ่งวัน";
+        if (value === 1) return "เต็มวัน";
+        return value + " วัน";
       }
 
       function currentMonthText() {
