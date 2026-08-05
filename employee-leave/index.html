@@ -100,6 +100,36 @@
       .request-meta small { display:block; color:#6a7789; }
       .decision-actions { display:flex; gap:8px; margin-top:10px; }
       .decision-actions button { flex:1; }
+      .image-help { margin:7px 0 0; color:#627083; font-size:13px; font-weight:500; }
+      .image-preview-grid,.request-image-grid {
+        display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
+        gap:9px;
+        margin-top:10px;
+      }
+      .image-preview-item { position:relative; }
+      .image-preview-item img,.request-image-grid img {
+        display:block;
+        width:100%;
+        aspect-ratio:1;
+        border:1px solid var(--border);
+        border-radius:10px;
+        object-fit:cover;
+        background:#f5f7fa;
+      }
+      .remove-image {
+        position:absolute;
+        top:5px;
+        right:5px;
+        min-width:36px;
+        min-height:36px;
+        border:0;
+        border-radius:50%;
+        background:rgb(20 26 34 / 82%);
+        color:#fff;
+        font-weight:900;
+      }
+      .view-images { width:100%; margin-top:10px; }
       .calendar-toolbar {
         display:grid;
         grid-template-columns:minmax(180px,1fr) auto;
@@ -207,6 +237,13 @@
                 <textarea id="leaveReason" maxlength="500" required
                   placeholder="กรุณาระบุเหตุผลการลา"></textarea>
               </label>
+              <label class="full-width">
+                รูปประกอบ (ไม่บังคับ สูงสุด 5 รูป)
+                <input id="leaveImages" type="file" multiple
+                  accept="image/jpeg,image/png,image/webp">
+                <span class="image-help">รองรับ JPG, PNG และ WebP รูปละไม่เกิน 5 MB</span>
+                <span class="image-preview-grid" id="imagePreview"></span>
+              </label>
             </div>
             <div class="actions">
               <button class="primary" id="submitButton" type="submit">
@@ -261,6 +298,7 @@
         pendingRequests:[]
       };
       const pendingCalls = new Map();
+      const selectedImages = [];
       let bridgeWindow = null;
       let bridgeLiffId = "";
       let requestNumber = 0;
@@ -271,7 +309,7 @@
       [
         "profileText","statusBox","app","leaveForm","leaveStartDate",
         "leaveEndDate","leaveType",
-        "leaveDays","leaveReason","submitButton","managerCard","pendingList",
+        "leaveDays","leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
         "monthInput","loadButton","calendarGrid","ownRequestList","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
@@ -282,6 +320,7 @@
       elements.leaveForm.addEventListener("submit", submitLeave);
       elements.leaveStartDate.addEventListener("change", updateLeaveRangeRules);
       elements.leaveDays.addEventListener("change", updateLeaveRangeRules);
+      elements.leaveImages.addEventListener("change", selectLeaveImages);
       elements.loadButton.addEventListener("click", loadData);
       elements.monthInput.addEventListener("change", loadData);
 
@@ -344,7 +383,10 @@
           endDate:elements.leaveEndDate.value,
           type:elements.leaveType.value,
           days:Number(elements.leaveDays.value),
-          reason:elements.leaveReason.value
+          reason:elements.leaveReason.value,
+          images:selectedImages.map(function(image) {
+            return { name:image.name, mimeType:image.mimeType, base64:image.base64 };
+          })
         };
         const confirmed = window.confirm(
           "ยืนยันส่งคำขอลา?\n" +
@@ -359,6 +401,7 @@
         try {
           const result = await callBackend("submitLeaveRequest", input);
           elements.leaveReason.value = "";
+          clearSelectedImages();
           const notification = result.managerNotification || {};
           if (notification.status === "error") {
             showStatus(
@@ -377,6 +420,21 @@
       }
 
       async function decideRequest(requestId, decision) {
+        let rejectionReason = "";
+        if (decision === "ปฏิเสธ") {
+          rejectionReason = String(window.prompt(
+            "กรุณาระบุเหตุผลที่ไม่อนุมัติการลา",
+            ""
+          ) || "").trim();
+          if (!rejectionReason) {
+            showStatus("ต้องระบุเหตุผลก่อนปฏิเสธคำขอ", "error");
+            return;
+          }
+          if (rejectionReason.length > 500) {
+            showStatus("เหตุผลที่ไม่อนุมัติต้องไม่เกิน 500 ตัวอักษร", "error");
+            return;
+          }
+        }
         const confirmed = window.confirm(
           "ยืนยัน" + decision + "คำขอนี้?\n" +
           "ระบบจะแจ้งผลให้พนักงานทาง LINE"
@@ -387,7 +445,8 @@
         try {
           const result = await callBackend("decideLeaveRequest", {
             requestId:requestId,
-            decision:decision
+            decision:decision,
+            rejectionReason:rejectionReason
           });
           const notification = result.employeeNotification || {};
           if (notification.status === "error") {
@@ -434,6 +493,13 @@
           reason.textContent = row.reason || "ไม่มีเหตุผล";
           card.appendChild(reason);
 
+          if (row.status === "ปฏิเสธ" && row.rejectionReason) {
+            const rejection = document.createElement("p");
+            rejection.className = "status error";
+            rejection.textContent = "เหตุผลที่ไม่อนุมัติ: " + row.rejectionReason;
+            card.appendChild(rejection);
+          }
+
           const meta = document.createElement("div");
           meta.className = "request-meta";
           [
@@ -452,6 +518,27 @@
             meta.appendChild(box);
           });
           card.appendChild(meta);
+
+          if (row.imageCount) {
+            const imageNote = document.createElement("p");
+            imageNote.className = "image-help";
+            imageNote.textContent = "มีรูปแนบ " + row.imageCount + " รูป";
+            card.appendChild(imageNote);
+          }
+
+          if (showDecision && row.requestId && row.imageCount) {
+            const viewButton = document.createElement("button");
+            viewButton.type = "button";
+            viewButton.className = "secondary view-images";
+            viewButton.textContent = "ดูรูปแนบ (" + row.imageCount + ")";
+            const gallery = document.createElement("div");
+            gallery.className = "request-image-grid";
+            viewButton.addEventListener("click", function() {
+              loadRequestImages(row.requestId, viewButton, gallery);
+            });
+            card.appendChild(viewButton);
+            card.appendChild(gallery);
+          }
 
           if (showDecision && row.requestId) {
             const actions = document.createElement("div");
@@ -559,7 +646,7 @@
           const timer = setTimeout(function() {
             pendingCalls.delete(id);
             reject(new Error("Apps Script ตอบกลับช้าเกินกำหนด"));
-          }, 25000);
+          }, 60000);
           pendingCalls.set(id, { resolve:resolve, reject:reject, timer:timer });
           bridgeWindow.postMessage({
             source:MESSAGE_SOURCE,
@@ -575,7 +662,7 @@
         [
           elements.leaveStartDate,elements.leaveEndDate,
           elements.leaveType,elements.leaveDays,
-          elements.leaveReason,elements.submitButton,elements.monthInput,
+          elements.leaveReason,elements.leaveImages,elements.submitButton,elements.monthInput,
           elements.loadButton
         ].forEach(function(element) { element.disabled = busy; });
         if (!busy) updateLeaveRangeRules();
@@ -591,6 +678,151 @@
         }
         elements.leaveEndDate.min = startDate || "";
         elements.leaveEndDate.disabled = halfDay || elements.submitButton.disabled;
+      }
+
+      async function selectLeaveImages(event) {
+        const files = Array.from(event.target.files || []);
+        event.target.value = "";
+        if (selectedImages.length + files.length > 5) {
+          showStatus("แนบรูปได้สูงสุด 5 รูป", "error");
+          return;
+        }
+        setBusy(true);
+        showStatus("กำลังเตรียมรูป…", "info");
+        try {
+          for (const file of files) {
+            if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+              throw new Error("รองรับเฉพาะ JPG, PNG และ WebP");
+            }
+            if (file.size > 5 * 1024 * 1024) {
+              throw new Error("รูป " + file.name + " มีขนาดเกิน 5 MB");
+            }
+            selectedImages.push(await compressLeaveImage(file));
+          }
+          renderImagePreview();
+          showStatus("เตรียมรูปแล้ว " + selectedImages.length + " รูป", "success");
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      async function compressLeaveImage(file) {
+        const image = await loadBrowserImage(file);
+        const maxSide = 1280;
+        const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        let quality = 0.82;
+        let blob = await canvasToBlob(canvas, quality);
+        while (blob.size > 900 * 1024 && quality > 0.42) {
+          quality -= 0.1;
+          blob = await canvasToBlob(canvas, quality);
+        }
+        if (blob.size > 1024 * 1024) {
+          throw new Error("บีบอัดรูป " + file.name + " ให้ต่ำกว่า 1 MB ไม่สำเร็จ");
+        }
+        return {
+          name:file.name.replace(/\.[^.]+$/, "") + ".jpg",
+          mimeType:"image/jpeg",
+          base64:await blobToBase64(blob),
+          previewUrl:URL.createObjectURL(blob)
+        };
+      }
+
+      function loadBrowserImage(file) {
+        return new Promise(function(resolve, reject) {
+          const url = URL.createObjectURL(file);
+          const image = new Image();
+          image.onload = function() {
+            URL.revokeObjectURL(url);
+            resolve(image);
+          };
+          image.onerror = function() {
+            URL.revokeObjectURL(url);
+            reject(new Error("เปิดรูป " + file.name + " ไม่สำเร็จ"));
+          };
+          image.src = url;
+        });
+      }
+
+      function canvasToBlob(canvas, quality) {
+        return new Promise(function(resolve, reject) {
+          canvas.toBlob(function(blob) {
+            blob ? resolve(blob) : reject(new Error("บีบอัดรูปไม่สำเร็จ"));
+          }, "image/jpeg", quality);
+        });
+      }
+
+      function blobToBase64(blob) {
+        return new Promise(function(resolve, reject) {
+          const reader = new FileReader();
+          reader.onload = function() {
+            resolve(String(reader.result).split(",")[1] || "");
+          };
+          reader.onerror = function() { reject(new Error("อ่านข้อมูลรูปไม่สำเร็จ")); };
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      function renderImagePreview() {
+        elements.imagePreview.replaceChildren();
+        selectedImages.forEach(function(image, index) {
+          const item = document.createElement("span");
+          item.className = "image-preview-item";
+          const preview = document.createElement("img");
+          preview.src = image.previewUrl;
+          preview.alt = "รูปแนบ " + (index + 1);
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "remove-image";
+          remove.textContent = "×";
+          remove.setAttribute("aria-label", "ลบรูป " + (index + 1));
+          remove.addEventListener("click", function() {
+            URL.revokeObjectURL(selectedImages[index].previewUrl);
+            selectedImages.splice(index, 1);
+            renderImagePreview();
+          });
+          item.appendChild(preview);
+          item.appendChild(remove);
+          elements.imagePreview.appendChild(item);
+        });
+      }
+
+      function clearSelectedImages() {
+        selectedImages.forEach(function(image) { URL.revokeObjectURL(image.previewUrl); });
+        selectedImages.length = 0;
+        elements.leaveImages.value = "";
+        renderImagePreview();
+      }
+
+      async function loadRequestImages(requestId, button, gallery) {
+        if (gallery.childElementCount) {
+          gallery.replaceChildren();
+          button.textContent = "ดูรูปแนบ";
+          return;
+        }
+        button.disabled = true;
+        button.textContent = "กำลังโหลดรูป…";
+        try {
+          const images = await callBackend("getLeaveRequestImages", { requestId:requestId });
+          images.forEach(function(image, index) {
+            const element = document.createElement("img");
+            element.src = image.dataUrl;
+            element.alt = image.name || "รูปแนบ " + (index + 1);
+            element.addEventListener("click", function() { window.open(image.dataUrl, "_blank"); });
+            gallery.appendChild(element);
+          });
+          button.textContent = "ซ่อนรูป";
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+          button.textContent = "ลองโหลดรูปอีกครั้ง";
+        } finally {
+          button.disabled = false;
+        }
       }
 
       function statusClass(status) {
