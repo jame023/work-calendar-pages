@@ -260,6 +260,11 @@
           <div class="request-list" id="pendingList"></div>
         </section>
 
+        <section class="card manager-card" id="cancelledManagerCard">
+          <h2>ประวัติการยกเลิกคำขอ</h2>
+          <div class="request-list" id="cancelledList"></div>
+        </section>
+
         <section class="card">
           <h2>ปฏิทินวันลาที่อนุมัติแล้ว</h2>
           <div class="calendar-toolbar">
@@ -297,7 +302,8 @@
         month:"",
         calendar:[],
         ownRequests:[],
-        pendingRequests:[]
+        pendingRequests:[],
+        cancelledRequests:[]
       };
       const pendingCalls = new Map();
       const selectedImages = [];
@@ -312,6 +318,7 @@
         "profileText","statusBox","app","leaveForm","leaveStartDate",
         "leaveEndDate","leaveType",
         "leaveDays","leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
+        "cancelledManagerCard","cancelledList",
         "monthInput","loadButton","calendarGrid","ownRequestList","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
@@ -365,6 +372,7 @@
           state.calendar = result.calendar || [];
           state.ownRequests = result.ownRequests || [];
           state.pendingRequests = result.pendingRequests || [];
+          state.cancelledRequests = result.cancelledRequests || [];
           elements.profileText.textContent =
             "เข้าสู่ระบบ: " + result.profile.employeeName +
             (state.role === "manager" ? " · ผู้บริหาร" : " · พนักงาน");
@@ -468,6 +476,18 @@
       }
 
       async function cancelRequest(row) {
+        const cancellationReason = String(window.prompt(
+          "กรุณาระบุเหตุผลการยกเลิก",
+          ""
+        ) || "").trim();
+        if (!cancellationReason) {
+          showStatus("ต้องระบุเหตุผลก่อนยกเลิกคำขอ", "error");
+          return;
+        }
+        if (cancellationReason.length > 500) {
+          showStatus("เหตุผลการยกเลิกต้องไม่เกิน 500 ตัวอักษร", "error");
+          return;
+        }
         const confirmed = window.confirm(
           "ยืนยันยกเลิกคำขอลานี้?\n" +
           formatDisplayDateRange(row.startDate || row.date, row.endDate || row.date) +
@@ -482,7 +502,8 @@
         showStatus("กำลังยกเลิกคำขอและแจ้งผู้บริหาร…", "info");
         try {
           const result = await callBackend("cancelLeaveRequest", {
-            requestId:row.requestId
+            requestId:row.requestId,
+            cancellationReason:cancellationReason
           });
           const notification = result.managerNotification || {};
           if (notification.status === "error") {
@@ -503,17 +524,22 @@
 
       function renderAll() {
         elements.managerCard.classList.toggle("show", state.role === "manager");
-        renderRequests(elements.pendingList, state.pendingRequests, true);
-        renderRequests(elements.ownRequestList, state.ownRequests, false);
+        elements.cancelledManagerCard.classList.toggle("show", state.role === "manager");
+        renderRequests(elements.pendingList, state.pendingRequests, true, true,
+          "ไม่มีคำขอรออนุมัติ");
+        renderRequests(elements.cancelledList, state.cancelledRequests, false, true,
+          "ยังไม่มีประวัติการยกเลิก");
+        renderRequests(elements.ownRequestList, state.ownRequests, false, false,
+          "ยังไม่มีคำขอลา");
         renderCalendar();
       }
 
-      function renderRequests(container, rows, showDecision) {
+      function renderRequests(container, rows, showDecision, showEmployeeName, emptyText) {
         container.replaceChildren();
         if (!rows.length) {
           const empty = document.createElement("p");
           empty.className = "empty-message";
-          empty.textContent = showDecision ? "ไม่มีคำขอรออนุมัติ" : "ยังไม่มีคำขอลา";
+          empty.textContent = emptyText;
           container.appendChild(empty);
           return;
         }
@@ -521,7 +547,7 @@
           const card = document.createElement("article");
           card.className = "request-card " + statusClass(row.status);
           const title = document.createElement("h3");
-          title.textContent = (showDecision ? row.employeeName + " · " : "") +
+          title.textContent = (showEmployeeName ? row.employeeName + " · " : "") +
             row.type;
           card.appendChild(title);
 
@@ -536,16 +562,29 @@
             card.appendChild(rejection);
           }
 
+          if (row.status === "ยกเลิก" && row.cancellationReason) {
+            const cancellation = document.createElement("p");
+            cancellation.className = "status info";
+            cancellation.textContent = "เหตุผลยกเลิก: " + row.cancellationReason;
+            card.appendChild(cancellation);
+          }
+
           const meta = document.createElement("div");
           meta.className = "request-meta";
-          [
+          const metaItems = [
             ["วันที่", formatDisplayDateRange(
               row.startDate || row.date,
               row.endDate || row.date
             )],
             ["จำนวน", formatLeaveDayCount(row.days)],
             ["สถานะ", row.status || "อนุมัติ"]
-          ].forEach(function(item) {
+          ];
+          if (row.status === "ยกเลิก") {
+            metaItems.push(["สถานะเดิม", row.previousStatus || "-"]);
+            metaItems.push(["ผู้ยกเลิก", row.cancelledBy || "-"]);
+            metaItems.push(["เวลายกเลิก", row.cancelledAt || "-"]);
+          }
+          metaItems.forEach(function(item) {
             const box = document.createElement("div");
             const label = document.createElement("small");
             label.textContent = item[0];
@@ -598,7 +637,8 @@
             card.appendChild(actions);
           }
           if (!showDecision && row.requestId &&
-              ["รออนุมัติ", "อนุมัติ"].includes(row.status)) {
+              ["รออนุมัติ", "อนุมัติ"].includes(row.status) &&
+              canCancelRequestByDate(row)) {
             const cancel = document.createElement("button");
             cancel.type = "button";
             cancel.className = "cancel-leave";
@@ -610,6 +650,11 @@
           }
           container.appendChild(card);
         });
+      }
+
+      function canCancelRequestByDate(row) {
+        const endDate = row.endDate || row.date || "";
+        return endDate && todayText() <= endDate;
       }
 
       function renderCalendar() {
