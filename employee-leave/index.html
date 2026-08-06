@@ -61,7 +61,7 @@
       textarea { min-height:96px; resize:vertical; }
       .full-width { grid-column:1 / -1; }
       .actions { display:flex; gap:10px; margin-top:14px; }
-      .primary,.secondary,.approve,.reject {
+      .primary,.secondary,.approve,.reject,.cancel-leave {
         min-height:48px;
         border:0;
         border-radius:10px;
@@ -72,6 +72,7 @@
       .secondary { background:#e8eef6; color:var(--navy); }
       .approve { background:var(--green); color:#fff; }
       .reject { background:var(--red); color:#fff; }
+      .cancel-leave { width:100%; margin-top:10px; background:#fff0ee; color:var(--red); }
       button:disabled { cursor:not-allowed; opacity:.55; }
       .manager-card { display:none; }
       .manager-card.show { display:block; }
@@ -86,6 +87,7 @@
       .request-card.pending { border-left-color:var(--amber); }
       .request-card.approved { border-left-color:var(--green); }
       .request-card.rejected { border-left-color:var(--red); }
+      .request-card.cancelled { border-left-color:#7b8794; }
       .request-meta {
         display:grid;
         grid-template-columns:repeat(3,minmax(0,1fr));
@@ -465,6 +467,40 @@
         }
       }
 
+      async function cancelRequest(row) {
+        const confirmed = window.confirm(
+          "ยืนยันยกเลิกคำขอลานี้?\n" +
+          formatDisplayDateRange(row.startDate || row.date, row.endDate || row.date) +
+          " · " + row.type + "\n" +
+          (row.status === "อนุมัติ"
+            ? "รายการนี้อนุมัติแล้ว และจะถูกนำออกจากปฏิทิน/รายงาน"
+            : "รายการนี้กำลังรออนุมัติ")
+        );
+        if (!confirmed) return;
+
+        setBusy(true);
+        showStatus("กำลังยกเลิกคำขอและแจ้งผู้บริหาร…", "info");
+        try {
+          const result = await callBackend("cancelLeaveRequest", {
+            requestId:row.requestId
+          });
+          const notification = result.managerNotification || {};
+          if (notification.status === "error") {
+            showStatus(
+              "ยกเลิกคำขอแล้ว แต่แจ้งผู้บริหารไม่สำเร็จ: " + notification.error,
+              "error"
+            );
+          } else {
+            showStatus("ยกเลิกคำขอและแจ้งผู้บริหารแล้ว", "success");
+          }
+          await loadData();
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
       function renderAll() {
         elements.managerCard.classList.toggle("show", state.role === "manager");
         renderRequests(elements.pendingList, state.pendingRequests, true);
@@ -560,6 +596,17 @@
             actions.appendChild(approve);
             actions.appendChild(reject);
             card.appendChild(actions);
+          }
+          if (!showDecision && row.requestId &&
+              ["รออนุมัติ", "อนุมัติ"].includes(row.status)) {
+            const cancel = document.createElement("button");
+            cancel.type = "button";
+            cancel.className = "cancel-leave";
+            cancel.textContent = "ยกเลิกการลา";
+            cancel.addEventListener("click", function() {
+              cancelRequest(row);
+            });
+            card.appendChild(cancel);
           }
           container.appendChild(card);
         });
@@ -828,6 +875,7 @@
       function statusClass(status) {
         if (status === "รออนุมัติ") return "pending";
         if (status === "ปฏิเสธ") return "rejected";
+        if (status === "ยกเลิก") return "cancelled";
         return "approved";
       }
 
