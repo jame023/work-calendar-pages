@@ -49,22 +49,49 @@
       .card.show { display:block; }
       .toolbar {
         display:grid;
-        grid-template-columns:minmax(180px,1fr) auto;
+        grid-template-columns:minmax(150px,.75fr) minmax(180px,1fr) auto;
         gap:12px;
         align-items:end;
       }
       label { display:block; color:var(--navy); font-weight:700; }
-      input[type="month"],.primary,.secondary {
+      input[type="month"],select,.primary,.secondary {
         min-height:48px;
         border-radius:10px;
         padding:10px 14px;
       }
-      input[type="month"] {
+      input[type="month"],select {
         width:100%;
         margin-top:7px;
         border:1px solid var(--border);
         background:#fff;
       }
+      .group-target-panel {
+        margin-top:14px;
+        border:1px solid var(--border);
+        border-radius:12px;
+        padding:14px;
+        background:#f7f9fc;
+      }
+      .group-target-title { color:var(--navy); font-weight:800; }
+      .group-options {
+        display:grid;
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        gap:8px;
+        margin-top:10px;
+      }
+      .group-option {
+        display:flex;
+        min-height:48px;
+        align-items:center;
+        gap:9px;
+        border:1px solid var(--border);
+        border-radius:10px;
+        padding:10px 12px;
+        background:#fff;
+        cursor:pointer;
+      }
+      .group-option input { width:20px; height:20px; margin:0; }
+      .group-target-note { margin:9px 0 0; color:#627083; font-size:14px; }
       .primary,.secondary {
         border:0;
         font-weight:750;
@@ -183,6 +210,7 @@
         .page { padding:10px; }
         .header,.card { border-radius:12px; padding:14px; }
         .toolbar { grid-template-columns:1fr; }
+        .group-options { grid-template-columns:repeat(2,minmax(0,1fr)); }
         .quick-actions { grid-template-columns:1fr; }
         .save-actions { grid-template-columns:1fr; }
         .recipient-list { columns:1; }
@@ -205,10 +233,44 @@
       <section class="card" id="calendarCard">
         <div class="toolbar">
           <label>
+            กลุ่มต้นแบบ
+            <select id="workGroupInput">
+              <option value="สกรีน">สกรีน</option>
+              <option value="ผลิต">ผลิต</option>
+              <option value="ขนส่ง">ขนส่ง</option>
+              <option value="ออฟฟิต">ออฟฟิต</option>
+            </select>
+          </label>
+          <label>
             เลือกเดือน
             <input id="monthInput" type="month">
           </label>
           <button class="primary" id="loadButton" type="button">โหลดเดือนนี้</button>
+        </div>
+
+        <div class="group-target-panel">
+          <div class="group-target-title">บันทึกให้กลุ่ม (เลือกได้มากกว่า 1)</div>
+          <div class="group-options">
+            <label class="group-option">
+              <input type="checkbox" name="targetWorkGroup" value="สกรีน" checked>
+              <span>สกรีน</span>
+            </label>
+            <label class="group-option">
+              <input type="checkbox" name="targetWorkGroup" value="ผลิต">
+              <span>ผลิต</span>
+            </label>
+            <label class="group-option">
+              <input type="checkbox" name="targetWorkGroup" value="ขนส่ง">
+              <span>ขนส่ง</span>
+            </label>
+            <label class="group-option">
+              <input type="checkbox" name="targetWorkGroup" value="ออฟฟิต">
+              <span>ออฟฟิต</span>
+            </label>
+          </div>
+          <p class="group-target-note">
+            ระบบจะใช้ตารางของกลุ่มต้นแบบที่แสดงอยู่แทนข้อมูลทั้งเดือนของทุกกลุ่มที่เลือก
+          </p>
         </div>
 
         <div class="quick-actions">
@@ -263,6 +325,8 @@
       const state = {
         idToken:"",
         month:"",
+        workGroup:"สกรีน",
+        workGroups:["สกรีน"],
         days:[],
         changeId:""
       };
@@ -277,7 +341,7 @@
       const elements = {};
 
       [
-        "signedInName","statusBox","calendarCard","monthInput","loadButton",
+        "signedInName","statusBox","calendarCard","workGroupInput","monthInput","loadButton",
         "sundayButton","weekendButton","fullMonthButton","fullCount","halfCount",
         "offCount","calendarGrid","saveButton","previewButton","notificationCard",
         "recipientCount","previewMessage","recipientList","sendButton",
@@ -285,11 +349,31 @@
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
       });
+      const targetWorkGroupInputs = Array.from(
+        document.querySelectorAll('input[name="targetWorkGroup"]')
+      );
 
       window.addEventListener("message", receiveBridgeMessage);
       window.addEventListener("load", initialize);
       elements.loadButton.addEventListener("click", loadSelectedMonth);
       elements.monthInput.addEventListener("change", loadSelectedMonth);
+      elements.workGroupInput.addEventListener("change", function() {
+        setTargetWorkGroups([elements.workGroupInput.value]);
+        loadSelectedMonth();
+      });
+      targetWorkGroupInputs.forEach(function(input) {
+        input.addEventListener("change", function() {
+          const workGroups = selectedTargetWorkGroups();
+          if (!workGroups.length) {
+            input.checked = true;
+            showStatus("กรุณาเลือกกลุ่มที่จะบันทึกอย่างน้อย 1 กลุ่ม", "error");
+            return;
+          }
+          state.workGroups = workGroups;
+          state.changeId = "";
+          elements.notificationCard.classList.remove("show");
+        });
+      });
       elements.sundayButton.addEventListener("click", function() { setWeekendStatuses([0]); });
       elements.weekendButton.addEventListener("click", function() { setWeekendStatuses([0, 6]); });
       elements.fullMonthButton.addEventListener("click", setFullMonth);
@@ -327,16 +411,34 @@
       async function loadSelectedMonth() {
         const month = elements.monthInput.value;
         if (!month) return;
+        const workGroup = elements.workGroupInput.value;
         setBusy(true);
-        showStatus("กำลังโหลด Work_Calendar…", "info");
+        showStatus("กำลังโหลด Work_Calendar กลุ่ม " + workGroup + "…", "info");
+        state.month = "";
+        state.workGroup = workGroup;
+        state.days = [];
+        state.changeId = "";
+        elements.notificationCard.classList.remove("show");
+        renderCalendar();
         try {
-          const result = await callBackend("getWorkCalendarMonth", { month:month });
+          const result = await callBackend("getWorkCalendarMonth", {
+            month:month,
+            workGroup:workGroup
+          });
           state.month = result.month;
+          state.workGroup = result.workGroup;
+          if (!selectedTargetWorkGroups().length) {
+            setTargetWorkGroups([result.workGroup]);
+          }
+          state.workGroups = selectedTargetWorkGroups();
           state.days = result.days || [];
           state.changeId = "";
-          elements.notificationCard.classList.remove("show");
           renderCalendar();
-          showStatus("โหลดข้อมูลเดือนนี้แล้ว วันที่ไม่มีข้อมูลตั้งต้นเป็นเต็มวัน", "success");
+          showStatus(
+            "โหลดกลุ่ม " + state.workGroup +
+            " แล้ว วันที่ไม่มีข้อมูลตั้งต้นเป็นเต็มวัน",
+            "success"
+          );
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
@@ -404,9 +506,16 @@
 
       async function saveMonth() {
         if (!state.month || !state.days.length) return;
+        const workGroups = selectedTargetWorkGroups();
+        if (!workGroups.length) {
+          showStatus("กรุณาเลือกกลุ่มที่จะบันทึกอย่างน้อย 1 กลุ่ม", "error");
+          return;
+        }
         const summary = countStatuses();
         const confirmed = window.confirm(
-          "บันทึกเดือน " + state.month + " ใช่หรือไม่?\n" +
+          "ใช้ตารางของกลุ่มต้นแบบ " + state.workGroup +
+          " บันทึกให้กลุ่ม: " + workGroups.join(", ") + "\n" +
+          "ข้อมูลทั้งเดือนของกลุ่มที่เลือกจะถูกแทนด้วยตารางนี้\n\n" +
           "เต็มวัน " + summary.full + " | ครึ่งวัน " + summary.half +
           " | หยุด " + summary.off
         );
@@ -417,14 +526,18 @@
         try {
           const result = await callBackend("saveWorkCalendarMonth", {
             month:state.month,
+            workGroup:state.workGroup,
+            workGroups:workGroups,
             days:state.days
           });
+          state.workGroups = result.workGroups || workGroups;
           state.changeId = result.changeId || "";
           elements.notificationCard.classList.remove("show");
           showStatus(
-            "บันทึกแล้ว " + result.savedDays + " วัน · เต็มวัน " + result.fullDays +
+            "บันทึกให้กลุ่ม " + state.workGroups.join(", ") + " แล้ว " +
+            result.daysPerGroup + " วันต่อกลุ่ม · เต็มวัน " + result.fullDays +
             " · ครึ่งวัน " + result.halfDays + " · หยุด " + result.holidays +
-            " · เปลี่ยนจริง " + result.changedCount + " วัน" +
+            " · เปลี่ยนจริงรวม " + result.changedCount + " รายการ" +
             (result.changedCount
               ? " · กดดูตัวอย่างเพื่อส่งเฉพาะวันที่เปลี่ยน"
               : " · ไม่มีรายการต้องแจ้ง"),
@@ -448,14 +561,16 @@
           const result = await callBackend("previewWorkCalendarNotification", {
             changeId:state.changeId
           });
+          state.workGroups = result.workGroups || [result.workGroup];
           elements.recipientCount.textContent =
-            "ผู้รับ " + result.recipientCount + " คน";
+            "กลุ่ม " + state.workGroups.join(", ") + " · ผู้รับรวม " +
+            result.recipientCount + " คน";
           elements.previewMessage.textContent = result.message || "";
           elements.recipientList.replaceChildren();
           (result.recipients || []).forEach(function(recipient) {
             const item = document.createElement("li");
-            item.textContent = recipient.employeeName ||
-              recipient.lineDisplayName || "ไม่มีชื่อ";
+            item.textContent = "[" + recipient.workGroup + "] " +
+              (recipient.employeeName || recipient.lineDisplayName || "ไม่มีชื่อ");
             elements.recipientList.appendChild(item);
           });
           elements.notificationCard.classList.add("show");
@@ -481,7 +596,9 @@
       async function sendNotification() {
         const recipientText = elements.recipientCount.textContent;
         const confirmed = window.confirm(
-          "ยืนยันส่งเฉพาะวันที่เพิ่งเปลี่ยน?\n" +
+          "ยืนยันส่งเฉพาะวันที่เพิ่งเปลี่ยนของกลุ่ม " +
+          state.workGroups.join(", ") +
+          "?\n" +
           recipientText + "\n\n" +
           "เมื่อยืนยัน ระบบจะส่ง LINE จริงทันที"
         );
@@ -494,11 +611,13 @@
             changeId:state.changeId,
             confirmation:"SEND_ACTIVE_EMPLOYEES"
           });
+          state.workGroups = result.workGroups || [result.workGroup];
           elements.sendButton.hidden = true;
           elements.notificationNote.textContent =
             "ส่งข้อความสำเร็จแล้ว " + result.sentCount + " คน";
           showStatus(
-            "ส่งแจ้งเตือน LINE สำเร็จ " + result.sentCount + " คน",
+            "ส่งแจ้งเตือน LINE กลุ่ม " + state.workGroups.join(", ") +
+            " สำเร็จ " + result.sentCount + " คน",
             "success"
           );
         } catch (error) {
@@ -586,12 +705,30 @@
         return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
       }
 
+      function selectedTargetWorkGroups() {
+        return targetWorkGroupInputs.filter(function(input) {
+          return input.checked;
+        }).map(function(input) {
+          return input.value;
+        });
+      }
+
+      function setTargetWorkGroups(workGroups) {
+        const selected = new Set(workGroups || []);
+        targetWorkGroupInputs.forEach(function(input) {
+          input.checked = selected.has(input.value);
+        });
+        state.workGroups = selectedTargetWorkGroups();
+        state.changeId = "";
+        elements.notificationCard.classList.remove("show");
+      }
+
       function setBusy(busy) {
         [
-          elements.monthInput,elements.loadButton,elements.sundayButton,
+          elements.workGroupInput,elements.monthInput,elements.loadButton,elements.sundayButton,
           elements.weekendButton,elements.fullMonthButton,elements.saveButton,
           elements.previewButton,elements.sendButton
-        ].forEach(function(element) {
+        ].concat(targetWorkGroupInputs).forEach(function(element) {
           element.disabled = busy;
         });
       }
