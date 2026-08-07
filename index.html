@@ -92,12 +92,13 @@
       }
       .group-option input { width:20px; height:20px; margin:0; }
       .group-target-note { margin:9px 0 0; color:#627083; font-size:14px; }
-      .primary,.secondary {
+      .primary,.secondary,.discard-button {
         border:0;
         font-weight:750;
       }
       .primary { background:var(--blue); color:#fff; }
       .secondary { background:#e8eef6; color:var(--navy); }
+      .discard-button { background:#fff0ef; color:#9f2f27; }
       .send-button {
         width:100%;
         min-height:54px;
@@ -297,18 +298,21 @@
             <button class="secondary" id="previewButton" type="button">
               ดูตัวอย่างวันที่เปลี่ยน
             </button>
+            <button class="discard-button" id="discardButton" type="button" hidden>
+              ยกเลิกชุดแจ้งเตือนค้าง
+            </button>
           </div>
         </div>
       </section>
 
       <section class="card" id="notificationCard">
-        <h2>ตัวอย่างข้อความแจ้งพนักงาน</h2>
-        <p class="muted" id="recipientCount">ผู้รับ 0 คน</p>
+        <h2>ตัวอย่างข้อความแจ้งผู้รับ</h2>
+        <p class="muted" id="recipientCount">ผู้รับไม่ซ้ำ 0 คน</p>
         <pre class="preview-message" id="previewMessage"></pre>
         <h2>รายชื่อผู้รับ</h2>
         <ul class="recipient-list" id="recipientList"></ul>
         <button class="send-button" id="sendButton" type="button" hidden>
-          ส่งแจ้งเตือนพนักงาน
+          ส่งแจ้งเตือนผู้รับ
         </button>
         <p class="muted" id="notificationNote">
           แสดงเฉพาะวันที่เปลี่ยนจากการบันทึกล่าสุด ระบบยังไม่ส่งข้อความ LINE
@@ -328,7 +332,8 @@
         workGroup:"สกรีน",
         workGroups:["สกรีน"],
         days:[],
-        changeId:""
+        changeId:"",
+        previewSignature:""
       };
       const pending = new Map();
       let bridgeWindow = null;
@@ -344,7 +349,7 @@
         "signedInName","statusBox","calendarCard","workGroupInput","monthInput","loadButton",
         "sundayButton","weekendButton","fullMonthButton","fullCount","halfCount",
         "offCount","calendarGrid","saveButton","previewButton","notificationCard",
-        "recipientCount","previewMessage","recipientList","sendButton",
+        "recipientCount","previewMessage","recipientList","sendButton","discardButton",
         "notificationNote","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
@@ -370,7 +375,7 @@
             return;
           }
           state.workGroups = workGroups;
-          state.changeId = "";
+          state.previewSignature = "";
           elements.notificationCard.classList.remove("show");
         });
       });
@@ -380,6 +385,7 @@
       elements.saveButton.addEventListener("click", saveMonth);
       elements.previewButton.addEventListener("click", previewNotification);
       elements.sendButton.addEventListener("click", sendNotification);
+      elements.discardButton.addEventListener("click", discardPendingNotification);
 
       async function initialize() {
         try {
@@ -400,6 +406,7 @@
           elements.signedInName.textContent = "เข้าสู่ระบบ: " + profile.displayName;
           elements.monthInput.value = currentMonthText();
           await loadSelectedMonth();
+          await restorePendingNotification();
           elements.calendarCard.classList.add("show");
         } catch (error) {
           showStatus(messageOf(error), "error");
@@ -417,7 +424,7 @@
         state.month = "";
         state.workGroup = workGroup;
         state.days = [];
-        state.changeId = "";
+        state.previewSignature = "";
         elements.notificationCard.classList.remove("show");
         renderCalendar();
         try {
@@ -432,7 +439,6 @@
           }
           state.workGroups = selectedTargetWorkGroups();
           state.days = result.days || [];
-          state.changeId = "";
           renderCalendar();
           showStatus(
             "โหลดกลุ่ม " + state.workGroup +
@@ -476,7 +482,8 @@
             button.textContent = status;
             button.addEventListener("click", function() {
               day.status = status;
-              state.changeId = "";
+              state.previewSignature = "";
+              elements.notificationCard.classList.remove("show");
               renderCalendar();
             });
             buttons.appendChild(button);
@@ -490,7 +497,8 @@
       }
 
       function setWeekendStatuses(weekdays) {
-        state.changeId = "";
+        state.previewSignature = "";
+        elements.notificationCard.classList.remove("show");
         state.days.forEach(function(day) {
           const weekday = new Date(day.date + "T00:00:00").getDay();
           if (weekdays.indexOf(weekday) !== -1) day.status = "หยุด";
@@ -499,7 +507,8 @@
       }
 
       function setFullMonth() {
-        state.changeId = "";
+        state.previewSignature = "";
+        elements.notificationCard.classList.remove("show");
         state.days.forEach(function(day) { day.status = "เต็มวัน"; });
         renderCalendar();
       }
@@ -509,6 +518,14 @@
         const workGroups = selectedTargetWorkGroups();
         if (!workGroups.length) {
           showStatus("กรุณาเลือกกลุ่มที่จะบันทึกอย่างน้อย 1 กลุ่ม", "error");
+          return;
+        }
+        if (state.changeId) {
+          elements.discardButton.hidden = false;
+          showStatus(
+            "มีชุดแจ้งเตือนค้าง กรุณากดดูตัวอย่างแล้วส่ง หรือยกเลิกชุดค้างก่อนบันทึกรอบใหม่",
+            "error"
+          );
           return;
         }
         const summary = countStatuses();
@@ -531,7 +548,11 @@
             days:state.days
           });
           state.workGroups = result.workGroups || workGroups;
-          state.changeId = result.changeId || "";
+          if (result.changeId) {
+            state.changeId = result.changeId;
+            state.previewSignature = "";
+            elements.discardButton.hidden = false;
+          }
           elements.notificationCard.classList.remove("show");
           showStatus(
             "บันทึกให้กลุ่ม " + state.workGroups.join(", ") + " แล้ว " +
@@ -540,11 +561,21 @@
             " · เปลี่ยนจริงรวม " + result.changedCount + " รายการ" +
             (result.changedCount
               ? " · กดดูตัวอย่างเพื่อส่งเฉพาะวันที่เปลี่ยน"
-              : " · ไม่มีรายการต้องแจ้ง"),
+              : " · ไม่มีรายการต้องแจ้ง") +
+            (!result.changeId && state.changeId
+              ? " · ชุดแจ้งเตือนเดิมยังค้างอยู่"
+              : ""),
             "success"
           );
         } catch (error) {
           showStatus(messageOf(error), "error");
+          if (/ชุดแจ้งเตือนค้าง/.test(messageOf(error))) {
+            try {
+              await restorePendingNotification();
+            } catch (restoreError) {
+              showStatus(messageOf(restoreError), "error");
+            }
+          }
         } finally {
           setBusy(false);
         }
@@ -556,30 +587,78 @@
           return;
         }
         setBusy(true);
+        state.previewSignature = "";
+        elements.sendButton.hidden = true;
         showStatus("กำลังสร้างตัวอย่างข้อความและรายชื่อผู้รับ…", "info");
         try {
           const result = await callBackend("previewWorkCalendarNotification", {
             changeId:state.changeId
           });
           state.workGroups = result.workGroups || [result.workGroup];
+          state.previewSignature = result.previewSignature || "";
           elements.recipientCount.textContent =
-            "กลุ่ม " + state.workGroups.join(", ") + " · ผู้รับรวม " +
-            result.recipientCount + " คน";
-          elements.previewMessage.textContent = result.message || "";
+            "กลุ่มที่เปลี่ยน " + state.workGroups.join(", ") +
+            " · ผู้รับไม่ซ้ำ " + result.recipientCount +
+            " คน · รอส่ง " + result.pendingRecipientCount +
+            " · ส่งแล้ว " + result.alreadySentCount +
+            " · คนละไม่เกิน 1 ข้อความ";
+          const deliveryPreviews = Array.isArray(result.deliveryPreviews)
+            ? result.deliveryPreviews
+            : [];
+          const previewSections = deliveryPreviews.map(function(delivery) {
+            return "ผู้รับชุดกลุ่ม [" + delivery.workGroups.join(", ") + "] · " +
+              delivery.recipientCount + " คน (รอส่ง " +
+              delivery.pendingRecipientCount + " · ส่งแล้ว " +
+              delivery.alreadySentCount + ")\n\n" + delivery.message;
+          });
+          const groupsWithoutRecipients = (result.notifications || []).filter(
+            function(notification) { return notification.recipientCount < 1; }
+          ).map(function(notification) {
+            return notification.workGroup;
+          });
+          if (groupsWithoutRecipients.length) {
+            previewSections.push(
+              "⚠️ ไม่พบผู้รับ Active สำหรับกลุ่ม: " +
+              groupsWithoutRecipients.join(", ")
+            );
+          }
+          elements.previewMessage.textContent = previewSections.length
+            ? previewSections.join("\n\n══════════\n\n")
+            : (result.message || "");
           elements.recipientList.replaceChildren();
           (result.recipients || []).forEach(function(recipient) {
             const item = document.createElement("li");
-            item.textContent = "[" + recipient.workGroup + "] " +
-              (recipient.employeeName || recipient.lineDisplayName || "ไม่มีชื่อ");
+            const recipientWorkGroups = Array.isArray(recipient.workGroups) &&
+              recipient.workGroups.length
+              ? recipient.workGroups
+              : [recipient.workGroup];
+            const recipientRoles = Array.isArray(recipient.roles) &&
+              recipient.roles.length
+              ? recipient.roles
+              : [recipient.role];
+            const roleLabel = recipientRoles.indexOf("manager") !== -1
+              ? " · ผู้บริหาร"
+              : "";
+            item.textContent = "[" + recipientWorkGroups.join(", ") + "] " +
+              (recipient.employeeName || recipient.lineDisplayName || "ไม่มีชื่อ") +
+              roleLabel +
+              (recipient.alreadySent ? " · ส่งแล้ว จะไม่ส่งซ้ำ" : "");
             elements.recipientList.appendChild(item);
           });
           elements.notificationCard.classList.add("show");
-          elements.sendButton.hidden = result.recipientCount < 1;
+          elements.sendButton.hidden = result.recipientCount < 1 || result.sent === true;
+          elements.discardButton.hidden = result.sent === true;
+          if (result.sent) {
+            state.changeId = "";
+            state.previewSignature = "";
+          }
           elements.sendButton.disabled = false;
           elements.notificationNote.textContent =
             "ตรวจข้อความและรายชื่อก่อนกดส่ง ระบบจะขอยืนยันอีกครั้ง";
           showStatus(
-            "สร้าง Preview แล้ว ระบบยังไม่ได้ส่งข้อความ LINE",
+            result.sent
+              ? "ชุดแจ้งเตือนนี้ถูกส่งครบแล้ว"
+              : "สร้าง Preview แล้ว ระบบยังไม่ได้ส่งข้อความ LINE รอบนี้",
             "success"
           );
           elements.notificationCard.scrollIntoView({
@@ -593,31 +672,89 @@
         }
       }
 
+      async function restorePendingNotification() {
+        const result = await callBackend(
+          "getPendingWorkCalendarNotification",
+          {}
+        );
+        if (!result.changeId) return;
+        state.changeId = result.changeId;
+        state.previewSignature = "";
+        elements.discardButton.hidden = false;
+        showStatus(
+          "พบชุดแจ้งเตือนที่ยังไม่ได้ส่งของเดือน " + result.month +
+          " กลุ่ม " + (result.workGroups || [result.workGroup]).join(", ") +
+          " · กดดูตัวอย่างวันที่เปลี่ยนเพื่อดำเนินการต่อ",
+          "info"
+        );
+      }
+
+      async function discardPendingNotification() {
+        if (!state.changeId) return;
+        const confirmed = window.confirm(
+          "ยืนยันยกเลิกชุดแจ้งเตือนค้างนี้?\n\n" +
+          "ปฏิทินที่บันทึกไว้จะไม่ถูกลบ ผู้ที่ยังรอส่งจะไม่ถูกส่งเพิ่ม " +
+          "และข้อความที่ส่งไปแล้วไม่สามารถเรียกคืนได้"
+        );
+        if (!confirmed) return;
+        setBusy(true);
+        showStatus("กำลังยกเลิกชุดแจ้งเตือนค้าง…", "info");
+        try {
+          await callBackend("discardPendingWorkCalendarNotification", {
+            changeId:state.changeId,
+            confirmation:"DISCARD_PENDING_CHANGE"
+          });
+          state.changeId = "";
+          state.previewSignature = "";
+          elements.discardButton.hidden = true;
+          elements.notificationCard.classList.remove("show");
+          showStatus(
+            "ยกเลิกการส่งต่อของชุดค้างแล้ว ปฏิทินและข้อความที่ส่งแล้วคงเดิม",
+            "success"
+          );
+        } catch (error) {
+          showStatus(messageOf(error), "error");
+        } finally {
+          setBusy(false);
+        }
+      }
+
       async function sendNotification() {
+        if (!state.previewSignature) {
+          showStatus("กรุณากดดูตัวอย่างใหม่ก่อนส่งแจ้งเตือน", "error");
+          return;
+        }
         const recipientText = elements.recipientCount.textContent;
         const confirmed = window.confirm(
           "ยืนยันส่งเฉพาะวันที่เพิ่งเปลี่ยนของกลุ่ม " +
           state.workGroups.join(", ") +
           "?\n" +
           recipientText + "\n\n" +
-          "เมื่อยืนยัน ระบบจะส่ง LINE จริงทันที"
+          "ผู้รับที่อยู่หลายกลุ่มจะได้รับข้อความรวมเพียง 1 ข้อความ\n" +
+          "เมื่อยืนยัน ระบบจะส่ง LINE จริงเฉพาะผู้ที่ยังรอส่ง"
         );
         if (!confirmed) return;
 
         setBusy(true);
-        showStatus("กำลังส่งแจ้งเตือนพนักงานทาง LINE…", "info");
+        showStatus("กำลังส่งแจ้งเตือนผู้รับทาง LINE…", "info");
         try {
           const result = await callBackend("sendWorkCalendarNotification", {
             changeId:state.changeId,
+            previewSignature:state.previewSignature,
             confirmation:"SEND_ACTIVE_EMPLOYEES"
-          });
+          }, 120000);
           state.workGroups = result.workGroups || [result.workGroup];
           elements.sendButton.hidden = true;
           elements.notificationNote.textContent =
-            "ส่งข้อความสำเร็จแล้ว " + result.sentCount + " คน";
+            "ส่งข้อความรวมสำเร็จแล้ว " + result.sentCount +
+            " คน (ส่งใหม่ " + result.newlySentCount +
+            " · ข้ามผู้ที่ส่งแล้ว " + result.alreadySentCount + ")";
+          state.changeId = "";
+          state.previewSignature = "";
+          elements.discardButton.hidden = true;
           showStatus(
             "ส่งแจ้งเตือน LINE กลุ่ม " + state.workGroups.join(", ") +
-            " สำเร็จ " + result.sentCount + " คน",
+            " สำเร็จถึงผู้รับไม่ซ้ำ " + result.sentCount + " คน",
             "success"
           );
         } catch (error) {
@@ -660,13 +797,13 @@
         ]);
       }
 
-      function callBackend(action, payload) {
+      function callBackend(action, payload, timeoutMs) {
         return new Promise(function(resolve, reject) {
           const id = "request-" + (++requestNumber);
           const timer = setTimeout(function() {
             pending.delete(id);
             reject(new Error("Apps Script ตอบกลับช้าเกินกำหนด"));
-          }, 20000);
+          }, Number(timeoutMs) > 0 ? Number(timeoutMs) : 20000);
           pending.set(id, { resolve:resolve, reject:reject, timer:timer });
           bridgeWindow.postMessage({
             source:MESSAGE_SOURCE,
@@ -719,7 +856,7 @@
           input.checked = selected.has(input.value);
         });
         state.workGroups = selectedTargetWorkGroups();
-        state.changeId = "";
+        state.previewSignature = "";
         elements.notificationCard.classList.remove("show");
       }
 
@@ -727,7 +864,7 @@
         [
           elements.workGroupInput,elements.monthInput,elements.loadButton,elements.sundayButton,
           elements.weekendButton,elements.fullMonthButton,elements.saveButton,
-          elements.previewButton,elements.sendButton
+          elements.previewButton,elements.sendButton,elements.discardButton
         ].concat(targetWorkGroupInputs).forEach(function(element) {
           element.disabled = busy;
         });
