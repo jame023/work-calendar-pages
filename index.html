@@ -315,7 +315,7 @@
           ส่งแจ้งเตือนผู้รับ
         </button>
         <p class="muted" id="notificationNote">
-          แสดงเฉพาะวันที่เปลี่ยนจากการบันทึกล่าสุด ระบบยังไม่ส่งข้อความ LINE
+          สะสมเฉพาะวันที่เปลี่ยนจากแต่ละกลุ่มไว้ Preview และส่ง LINE พร้อมกัน
         </p>
       </section>
     </main>
@@ -520,14 +520,6 @@
           showStatus("กรุณาเลือกกลุ่มที่จะบันทึกอย่างน้อย 1 กลุ่ม", "error");
           return;
         }
-        if (state.changeId) {
-          elements.discardButton.hidden = false;
-          showStatus(
-            "มีชุดแจ้งเตือนค้าง กรุณากดดูตัวอย่างแล้วส่ง หรือยกเลิกชุดค้างก่อนบันทึกรอบใหม่",
-            "error"
-          );
-          return;
-        }
         const summary = countStatuses();
         const confirmed = window.confirm(
           "ใช้ตารางของกลุ่มต้นแบบ " + state.workGroup +
@@ -552,6 +544,10 @@
             state.changeId = result.changeId;
             state.previewSignature = "";
             elements.discardButton.hidden = false;
+          } else if (result.pendingCleared) {
+            state.changeId = "";
+            state.previewSignature = "";
+            elements.discardButton.hidden = true;
           }
           elements.notificationCard.classList.remove("show");
           showStatus(
@@ -559,8 +555,12 @@
             result.daysPerGroup + " วันต่อกลุ่ม · เต็มวัน " + result.fullDays +
             " · ครึ่งวัน " + result.halfDays + " · หยุด " + result.holidays +
             " · เปลี่ยนจริงรวม " + result.changedCount + " รายการ" +
-            (result.changedCount
-              ? " · กดดูตัวอย่างเพื่อส่งเฉพาะวันที่เปลี่ยน"
+            (result.pendingCleared
+              ? " · รายการทั้งหมดกลับเป็นค่าเดิม จึงล้างชุดรอส่งแล้ว"
+              : result.changedCount
+              ? (result.accumulated
+                ? " · เพิ่มเข้าชุดรอส่งเดิมแล้ว สามารถเลือกกลุ่มอื่นและบันทึกต่อได้"
+                : " · สร้างชุดรอส่งแล้ว สามารถเลือกกลุ่มอื่นและบันทึกต่อได้")
               : " · ไม่มีรายการต้องแจ้ง") +
             (!result.changeId && state.changeId
               ? " · ชุดแจ้งเตือนเดิมยังค้างอยู่"
