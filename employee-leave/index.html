@@ -7,8 +7,9 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
       :root {
-        --navy:#16324f;
-        --blue:#1f6feb;
+        --navy:#0b2f67;
+        --blue:#0b63ce;
+        --blue-soft:#edf5ff;
         --green:#16864b;
         --amber:#a96400;
         --red:#bd2c24;
@@ -18,23 +19,24 @@
       * { box-sizing:border-box; }
       body {
         margin:0;
-        background:#f3f6fa;
+        background:#f5f8fc;
         color:#17202b;
-        font-family:system-ui,"Segoe UI",sans-serif;
+        font-family:"Noto Sans Thai",system-ui,"Segoe UI",sans-serif;
       }
       button,input,select,textarea { font:inherit; }
       button { cursor:pointer; }
-      .page { width:min(1050px,100%); margin:auto; padding:16px; }
+      .page { width:min(1080px,100%); margin:auto; padding:20px; }
       .header,.card {
         border:1px solid var(--border);
-        border-radius:16px;
+        border-radius:18px;
         background:#fff;
-        box-shadow:0 8px 24px rgb(22 50 79 / 8%);
+        box-shadow:0 10px 28px rgb(11 47 103 / 8%);
       }
-      .header { padding:18px; }
+      .header { position:relative; padding:24px; overflow:hidden; }
+      .header::before { content:""; position:absolute; inset:0 auto 0 0; width:6px; background:var(--blue); }
       h1,h2,h3,p { margin-top:0; }
-      h1 { margin-bottom:6px; font-size:clamp(24px,6vw,32px); }
-      h2 { margin-bottom:14px; font-size:21px; }
+      h1 { margin-bottom:6px; color:var(--navy); font-size:clamp(25px,6vw,34px); letter-spacing:-.02em; }
+      h2 { margin-bottom:14px; color:var(--navy); font-size:21px; letter-spacing:-.015em; }
       h3 { margin-bottom:8px; font-size:17px; }
       .muted { margin-bottom:0; color:#627083; }
       .status { margin-top:14px; border-radius:12px; padding:12px 14px; }
@@ -42,7 +44,7 @@
       .success { background:#e5f6ed; color:var(--green); }
       .error { background:#fdecea; color:var(--red); }
       #app { display:none; }
-      .card { margin-top:14px; padding:18px; }
+      .card { margin-top:18px; padding:22px; }
       .form-grid {
         display:grid;
         grid-template-columns:repeat(2,minmax(0,1fr));
@@ -53,9 +55,10 @@
         width:100%;
         margin-top:7px;
         border:1px solid var(--border);
-        border-radius:10px;
+        border-radius:11px;
         padding:10px 12px;
         background:#fff;
+        transition:border-color .18s,box-shadow .18s;
       }
       input,select { min-height:48px; }
       textarea { min-height:96px; resize:vertical; }
@@ -68,8 +71,8 @@
         padding:10px 14px;
         font-weight:800;
       }
-      .primary { background:var(--blue); color:#fff; }
-      .secondary { background:#e8eef6; color:var(--navy); }
+      .primary { background:var(--blue); color:#fff; box-shadow:0 5px 12px rgb(11 99 206 / 18%); }
+      .secondary { background:var(--blue-soft); color:var(--navy); }
       .approve { background:var(--green); color:#fff; }
       .reject { background:var(--red); color:#fff; }
       .cancel-leave { width:100%; margin-top:10px; background:#fff0ee; color:var(--red); }
@@ -79,15 +82,16 @@
       .request-list { display:grid; gap:10px; }
       .request-card {
         border:1px solid var(--border);
-        border-left:5px solid var(--blue);
-        border-radius:12px;
+        border:1px solid var(--border);
+        border-radius:14px;
         padding:13px;
         background:#fff;
+        box-shadow:0 4px 14px rgb(11 47 103 / 5%);
       }
-      .request-card.pending { border-left-color:var(--amber); }
-      .request-card.approved { border-left-color:var(--green); }
-      .request-card.rejected { border-left-color:var(--red); }
-      .request-card.cancelled { border-left-color:#7b8794; }
+      .request-card.pending { background:#fffaf0; }
+      .request-card.approved { background:#f4fbf6; }
+      .request-card.rejected { background:#fff7f6; }
+      .request-card.cancelled { background:#f7f8fa; }
       .request-meta {
         display:grid;
         grid-template-columns:repeat(3,minmax(0,1fr));
@@ -97,7 +101,7 @@
       .request-meta div {
         border-radius:8px;
         padding:8px;
-        background:#f5f7fa;
+        background:#f7faff;
       }
       .request-meta small { display:block; color:#6a7789; }
       .decision-actions { display:flex; gap:8px; margin-top:10px; }
@@ -115,7 +119,7 @@
         width:100%;
         aspect-ratio:1;
         border:1px solid var(--border);
-        border-radius:10px;
+        border-radius:12px;
         object-fit:cover;
         background:#f5f7fa;
       }
@@ -156,7 +160,7 @@
         border:1px solid var(--border);
         border-radius:10px;
         padding:7px;
-        background:#fafbfd;
+        background:#fbfdff;
       }
       .empty-day { min-height:1px; }
       .day-number { color:var(--navy); font-weight:850; }
