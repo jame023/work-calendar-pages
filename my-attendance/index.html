@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+    <title>ข้อมูลของฉัน / งานค้างวันนี้</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+    <style>
+      :root {
+        --blue: #075bc7;
+        --navy: #10254b;
+        --muted: #61708a;
+        --line: #dce4ef;
+        --green: #10964b;
+        --amber: #d97706;
+        --red: #dc2626;
+        --white: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--white);
+        color: var(--navy);
+        font-family: "Noto Sans Thai", Tahoma, sans-serif;
+        font-size: 17px;
+        line-height: 1.45;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding: 18px 18px 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--white);
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      h2 {
+        margin: 22px 0 10px;
+        font-size: 18px;
+      }
+
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 18px 16px 96px;
+      }
+
+      .profile {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .profile strong {
+        font-size: 21px;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .today-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.25fr;
+        padding: 14px 4px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+
+      .today-item {
+        padding: 2px 8px;
+        border-right: 1px solid var(--line);
+        text-align: center;
+      }
+
+      .today-item:last-child {
+        border-right: 0;
+      }
+
+      .value {
+        color: var(--blue);
+        font-size: 23px;
+        font-weight: 800;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .metric {
+        padding: 12px 4px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        text-align: center;
+      }
+
+      .metric:nth-child(3n) {
+        border-right: 0;
+      }
+
+      .metric:nth-child(n + 4) {
+        border-bottom: 0;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 22px;
+      }
+
+      .list {
+        border-top: 1px solid var(--line);
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 4px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .row-main {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .row-title {
+        font-weight: 750;
+      }
+
+      .count {
+        color: var(--red);
+        font-size: 20px;
+        font-weight: 800;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      button,
+      .link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 8px 13px;
+        border: 1px solid var(--blue);
+        border-radius: 9px;
+        background: var(--white);
+        color: var(--blue);
+        font: inherit;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .tabs button {
+        flex: 1;
+      }
+
+      .tabs button.active {
+        background: var(--blue);
+        color: var(--white);
+      }
+
+      .refresh-button {
+        position: fixed;
+        right: 16px;
+        bottom: max(14px, env(safe-area-inset-bottom));
+        left: 16px;
+        max-width: 688px;
+        margin: auto;
+        border: 0;
+        background: var(--blue);
+        box-shadow: 0 5px 18px #075bc733;
+        color: var(--white);
+      }
+
+      .status-message {
+        padding: 22px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .success {
+        color: var(--green);
+      }
+
+      .warning {
+        color: var(--amber);
+      }
+
+      .danger {
+        color: var(--red);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .backend-frame {
+        position: fixed;
+        width: 1px;
+        height: 1px;
+        border: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      @media (max-width: 390px) {
+        body {
+          font-size: 16px;
+        }
+
+        .today-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .today-item:nth-child(2) {
+          border-right: 0;
+        }
+
+        .today-item:last-child {
+          grid-column: 1 / -1;
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px solid var(--line);
+        }
+
+        .row {
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1 id="pageTitle">กำลังเชื่อมต่อ…</h1>
+    </header>
+
+    <main>
+      <div id="statusMessage" class="status-message">กรุณารอสักครู่</div>
+      <div id="app" class="hidden"></div>
+    </main>
+
+    <button id="refreshButton" class="refresh-button hidden" type="button">
+      รีเฟรชข้อมูล
+    </button>
+
+    <iframe
+      id="backendFrame"
+      class="backend-frame"
+      title="Apps Script backend"
+    ></iframe>
+
+    <script>
+      const BACKEND_URL = "https://script.google.com/macros/s/AKfycbztndg5WffAGRJQUZ8Ptai4gYox3DVrjKZU90fj8miaploHoQBpsMGr_O57V2nkUvtM/exec";
+      const MESSAGE_SOURCE = "my-overview-frontend";
+      const BRIDGE_SOURCE = "my-overview-bridge";
+
+      const pageTitle = document.getElementById("pageTitle");
+      const statusMessage = document.getElementById("statusMessage");
+      const app = document.getElementById("app");
+      const refreshButton = document.getElementById("refreshButton");
+      const backendFrame = document.getElementById("backendFrame");
+
+      const state = {
+        idToken: "",
+        role: "employee",
+        employeeOverview: null,
+        managerOverview: null
+      };
+
+      const pendingCalls = new Map();
+      let bridgeWindow = null;
+      let bridgeLiffId = "";
+      let requestNumber = 0;
+      let resolveBridge;
+      const bridgeReady = new Promise(function(resolve) {
+        resolveBridge = resolve;
+      });
+
+      refreshButton.addEventListener("click", loadOverviewData);
+      window.addEventListener("message", receiveBridgeMessage);
+      initializePage();
+
+      async function initializePage() {
+        try {
+          showLoading("กำลังเชื่อมต่อระบบ…");
+          backendFrame.src = BACKEND_URL;
+          await waitForBridge();
+
+          showLoading("กำลังเชื่อมต่อ LINE…");
+          await initializeLiffWithTimeout();
+
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+
+          state.idToken = liff.getIDToken();
+          if (!state.idToken) {
+            throw new Error("ไม่พบ LINE ID token กรุณาเปิดผ่าน Rich Menu");
+          }
+
+          loadOverviewData();
+        } catch (error) {
+          showError(error);
+        }
+      }
+
+      function initializeLiffWithTimeout() {
+        const timeoutMilliseconds = 15000;
+        const timeout = new Promise(function(resolve, reject) {
+          window.setTimeout(function() {
+            reject(new Error(
+              "เชื่อมต่อ LINE ไม่สำเร็จภายใน 15 วินาที กรุณาปิดหน้าแล้วเปิดผ่าน Rich Menu อีกครั้ง"
+            ));
+          }, timeoutMilliseconds);
+        });
+
+        return Promise.race([
+          liff.init({
+            liffId: bridgeLiffId,
+            withLoginOnExternalBrowser: true
+          }),
+          timeout
+        ]);
+      }
+
+      function loadOverviewData() {
+        showLoading("กำลังโหลดข้อมูล…");
+
+        callBackend("getMyOverview", {
+          month: getCurrentMonth()
+        }).then(handleEmployeeOverviewLoaded).catch(showError);
+      }
+
+      function handleEmployeeOverviewLoaded(data) {
+        state.employeeOverview = data;
+        state.role = data.profile.role;
+
+        if (state.role !== "manager") {
+          renderEmployeeOverview(data);
+          return;
+        }
+
+        callBackend("getManagerPendingOverview", {})
+          .then(function(managerData) {
+            state.managerOverview = managerData;
+            renderManagerShell();
+          })
+          .catch(showError);
+      }
+
+      function receiveBridgeMessage(event) {
+        const data = event.data;
+        if (!data || data.source !== BRIDGE_SOURCE) {
+          return;
+        }
+
+        if (data.type === "ready") {
+          bridgeWindow = event.source;
+          bridgeLiffId = String(data.liffId || "");
+          if (!bridgeLiffId) {
+            showError(new Error("Bridge ไม่ส่ง LIFF ID"));
+            return;
+          }
+          resolveBridge();
+          return;
+        }
+
+        if (data.type !== "response" || event.source !== bridgeWindow) {
+          return;
+        }
+
+        const pendingRequest = pendingCalls.get(data.id);
+        if (!pendingRequest) {
+          return;
+        }
+
+        window.clearTimeout(pendingRequest.timer);
+        pendingCalls.delete(data.id);
+
+        if (data.ok) {
+          pendingRequest.resolve(data.result);
+        } else {
+          pendingRequest.reject(new Error(data.error));
+        }
+      }
+
+      function waitForBridge() {
+        return Promise.race([
+          bridgeReady,
+          new Promise(function(resolve, reject) {
+            window.setTimeout(function() {
+              reject(new Error("เชื่อมต่อ Apps Script ไม่สำเร็จ"));
+            }, 15000);
+          })
+        ]);
+      }
+
+      function callBackend(action, payload) {
+        return new Promise(function(resolve, reject) {
+          const requestId = "request-" + (++requestNumber);
+          const timer = window.setTimeout(function() {
+            pendingCalls.delete(requestId);
+            reject(new Error("Apps Script ตอบกลับช้าเกินกำหนด"));
+          }, 60000);
+
+          pendingCalls.set(requestId, {
+            resolve: resolve,
+            reject: reject,
+            timer: timer
+          });
+
+          bridgeWindow.postMessage({
+            source: MESSAGE_SOURCE,
+            id: requestId,
+            action: action,
+            idToken: state.idToken,
+            payload: payload || {}
+          }, "*");
+        });
+      }
+
+      function renderManagerShell() {
+        pageTitle.textContent = "ภาพรวมของฉัน";
+        app.innerHTML = [
+          '<div class="tabs">',
+          '  <button id="myOverviewTab" type="button">ข้อมูลของฉัน</button>',
+          '  <button id="managerOverviewTab" type="button">',
+          "    งานค้างวันนี้ (" + state.managerOverview.total + ")",
+          "  </button>",
+          "</div>",
+          '<div id="overviewPanel"></div>'
+        ].join("\n");
+
+        document.getElementById("myOverviewTab").addEventListener("click", function() {
+          activateManagerTab("employee");
+          renderEmployeeOverview(state.employeeOverview, true);
+        });
+
+        document.getElementById("managerOverviewTab").addEventListener("click", function() {
+          activateManagerTab("manager");
+          renderManagerOverview(state.managerOverview);
+        });
+
+        showApplication();
+        activateManagerTab("manager");
+        renderManagerOverview(state.managerOverview);
+      }
+
+      function activateManagerTab(activeTab) {
+        document.getElementById("myOverviewTab").classList.toggle(
+          "active",
+          activeTab === "employee"
+        );
+        document.getElementById("managerOverviewTab").classList.toggle(
+          "active",
+          activeTab === "manager"
+        );
+      }
+
+      function renderEmployeeOverview(data, insideManagerShell) {
+        pageTitle.textContent = "ข้อมูลของฉัน";
+
+        const today = data.today;
+        const month = data.month;
+        const target = getContentTarget(insideManagerShell);
+
+        target.innerHTML = [
+          renderProfile(data.profile, today.date),
+          "<h2>ข้อมูลการเข้างานวันนี้</h2>",
+          renderTodayAttendance(today),
+          "<h2>สรุปประจำเดือน</h2>",
+          renderMonthlyMetrics(month),
+          "<h2>งานปัจจุบัน</h2>",
+          renderCurrentWork(data.activeWork),
+          "<h2>ประวัติการเข้างานล่าสุด</h2>",
+          renderAttendanceHistory(data.history),
+          "<h2>สถานะคำขอลาของฉัน</h2>",
+          renderLeaveRequests(data.leaveRequests)
+        ].join("\n");
+
+        showApplication();
+      }
+
+      function renderManagerOverview(data) {
+        pageTitle.textContent = "งานค้างวันนี้";
+
+        const target = getContentTarget(true);
+        const itemHtml = data.items.map(renderManagerPendingItem).join("\n");
+
+        target.innerHTML = [
+          '<div class="profile">',
+          "  <div>",
+          "    <strong>งานค้างทั้งหมด</strong>",
+          '    <div class="count">' + data.total + " รายการ</div>",
+          "  </div>",
+          '  <div class="muted">' + formatThaiDate(data.date) + "</div>",
+          "</div>",
+          '<div class="list">',
+          itemHtml,
+          "</div>"
+        ].join("\n");
+
+        showApplication();
+      }
+
+      function renderProfile(profile, date) {
+        return [
+          '<div class="profile">',
+          "  <div>",
+          "    <strong>" + escapeHtml(profile.employeeName) + "</strong>",
+          '    <div class="muted">' + escapeHtml(profile.lineDisplayName) + "</div>",
+          "  </div>",
+          '  <div class="muted">' + formatThaiDate(date) + "</div>",
+          "</div>"
+        ].join("\n");
+      }
+
+      function renderTodayAttendance(today) {
+        return [
+          '<section class="today-grid">',
+          '  <div class="today-item">',
+          "    เวลาเข้า",
+          '    <div class="value">' + escapeHtml(today.checkIn || "-") + "</div>",
+          "  </div>",
+          '  <div class="today-item">',
+          "    เวลาออก",
+          '    <div class="value">' + escapeHtml(today.checkOut || "-") + "</div>",
+          "  </div>",
+          '  <div class="today-item">',
+          "    สถานะวันนี้",
+          '    <div class="value ' + getStatusClass(today.status) + '">',
+          "      " + escapeHtml(today.status),
+          "    </div>",
+          "  </div>",
+          "</section>"
+        ].join("\n");
+      }
+
+      function renderMonthlyMetrics(month) {
+        return [
+          '<section class="metrics">',
+          renderMetric("มาทำงาน", month.attendance),
+          renderMetric("ลา", month.leave),
+          renderMetric("ขาด", month.absence),
+          renderMetric("มาสาย", month.late),
+          renderMetric("ออกก่อน", month.early),
+          renderMetric("OT", formatMinutes(month.otMinutes)),
+          "</section>"
+        ].join("\n");
+      }
+
+      function renderMetric(label, value) {
+        return [
+          '<div class="metric">',
+          '  <span class="muted">' + escapeHtml(label) + "</span>",
+          "  <strong>" + escapeHtml(value) + "</strong>",
+          "</div>"
+        ].join("\n");
+      }
+
+      function renderCurrentWork(activeWork) {
+        if (!activeWork) {
+          return renderList([renderSimpleRow("ไม่มีงานที่กำลังทำ", "", "success")]);
+        }
+
+        const detail = [
+          activeWork.startTime || "-",
+          activeWork.orderName || activeWork.workType
+        ].filter(Boolean).join(" · ");
+
+        return renderList([renderSimpleRow(activeWork.machine, detail)]);
+      }
+
+      function renderAttendanceHistory(history) {
+        if (!history.length) {
+          return renderList([renderSimpleRow("ยังไม่มีข้อมูลเดือนนี้", "")]);
+        }
+
+        const rows = history.slice(0, 10).map(function(item) {
+          const detail = (item.checkIn || "-") + " — " + (item.checkOut || "-");
+          return renderSimpleRow(
+            formatThaiDate(item.date),
+            detail,
+            getStatusClass(item.status),
+            item.status
+          );
+        });
+
+        return renderList(rows);
+      }
+
+      function renderLeaveRequests(requests) {
+        if (!requests.length) {
+          return renderList([renderSimpleRow("ยังไม่มีคำขอลา", "")]);
+        }
+
+        const rows = requests.slice(0, 5).map(function(item) {
+          return renderSimpleRow(
+            item.type + " · " + formatThaiDate(item.date),
+            item.reason || "",
+            getStatusClass(item.status),
+            item.status
+          );
+        });
+
+        return renderList(rows);
+      }
+
+      function renderManagerPendingItem(item) {
+        const details = item.details && item.details.length
+          ? item.details.join(" · ")
+          : item.ok
+            ? "ไม่มีรายการ"
+            : "";
+
+        const value = item.key === "reports"
+          ? item.ok ? "ปกติ" : "ตรวจสอบ"
+          : item.count;
+
+        const valueClass = item.ok ? "success" : "count";
+        const action = item.url
+          ? '<a class="link" href="' + escapeHtmlAttribute(item.url) + '">ไปจัดการ</a>'
+          : "";
+
+        return [
+          '<div class="row">',
+          '  <div class="row-main">',
+          '    <div class="row-title">' + escapeHtml(item.title) + "</div>",
+          '    <div class="muted">' + escapeHtml(details) + "</div>",
+          "  </div>",
+          '  <div class="' + valueClass + '">' + escapeHtml(value) + "</div>",
+          "  " + action,
+          "</div>"
+        ].join("\n");
+      }
+
+      function renderSimpleRow(title, detail, statusClass, endValue) {
+        const endHtml = endValue
+          ? '<div class="' + statusClass + '">' + escapeHtml(endValue) + "</div>"
+          : "";
+
+        return [
+          '<div class="row">',
+          '  <div class="row-main">',
+          '    <div class="row-title">' + escapeHtml(title) + "</div>",
+          '    <div class="muted">' + escapeHtml(detail) + "</div>",
+          "  </div>",
+          "  " + endHtml,
+          "</div>"
+        ].join("\n");
+      }
+
+      function renderList(rows) {
+        return '<div class="list">\n' + rows.join("\n") + "\n</div>";
+      }
+
+      function getContentTarget(insideManagerShell) {
+        if (insideManagerShell && state.role === "manager") {
+          return document.getElementById("overviewPanel");
+        }
+        return app;
+      }
+
+      function getStatusClass(value) {
+        const text = String(value || "");
+
+        if (/ปกติ|เต็มวัน|อนุมัติ/.test(text)) {
+          return "success";
+        }
+        if (/สาย|ก่อน|รอ/.test(text)) {
+          return "warning";
+        }
+        if (/ขาด|ไม่ได้/.test(text)) {
+          return "danger";
+        }
+        return "";
+      }
+
+      function getCurrentMonth() {
+        return new Date()
+          .toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" })
+          .slice(0, 7);
+      }
+
+      function formatThaiDate(value) {
+        if (!value) {
+          return "-";
+        }
+
+        const date = new Date(value + "T00:00:00+07:00");
+        return date.toLocaleDateString("th-TH", {
+          day: "numeric",
+          month: "short",
+          year: "numeric"
+        });
+      }
+
+      function formatMinutes(value) {
+        const minutes = Number(value) || 0;
+        return Math.floor(minutes / 60) + ":" +
+          String(minutes % 60).padStart(2, "0") + " ชม.";
+      }
+
+      function showLoading(message) {
+        statusMessage.textContent = message;
+        statusMessage.classList.remove("hidden");
+        app.classList.add("hidden");
+        refreshButton.classList.add("hidden");
+      }
+
+      function showApplication() {
+        statusMessage.classList.add("hidden");
+        app.classList.remove("hidden");
+        refreshButton.classList.remove("hidden");
+      }
+
+      function showError(error) {
+        statusMessage.textContent = error && error.message
+          ? error.message
+          : String(error);
+        statusMessage.classList.remove("hidden");
+        app.classList.add("hidden");
+        refreshButton.classList.add("hidden");
+      }
+
+      function escapeHtml(value) {
+        return String(value === null || value === undefined ? "" : value)
+          .replace(/[&<>"']/g, function(character) {
+            return {
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;"
+            }[character];
+          });
+      }
+
+      function escapeHtmlAttribute(value) {
+        return escapeHtml(value);
+      }
+    </script>
+  </body>
+</html>
