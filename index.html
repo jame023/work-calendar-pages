@@ -8,34 +8,37 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
       :root {
-        --navy:#16324f;
-        --blue:#1f6feb;
+        --navy:#0b2f67;
+        --blue:#0b63ce;
+        --blue-soft:#edf5ff;
         --green:#16864b;
         --amber:#b26a00;
         --red:#bd2c24;
         --border:#d7dee7;
         --surface:#fff;
+        --page:#f5f8fc;
       }
       * { box-sizing:border-box; }
       body {
         margin:0;
-        background:#f3f6fa;
+        background:var(--page);
         color:#17202b;
-        font-family:system-ui,"Segoe UI",sans-serif;
+        font-family:"Noto Sans Thai",system-ui,"Segoe UI",sans-serif;
       }
       button,input { font:inherit; }
       button { cursor:pointer; }
-      .page { width:min(1050px,100%); margin:auto; padding:16px; }
+      .page { width:min(1080px,100%); margin:auto; padding:20px; }
       .header,.card {
         border:1px solid var(--border);
-        border-radius:16px;
+        border-radius:18px;
         background:var(--surface);
-        box-shadow:0 8px 24px rgb(22 50 79 / 8%);
+        box-shadow:0 10px 28px rgb(11 47 103 / 8%);
       }
-      .header { padding:18px; }
+      .header { position:relative; padding:24px; overflow:hidden; }
+      .header::before { content:""; position:absolute; inset:0 auto 0 0; width:6px; background:var(--blue); }
       h1,h2,p { margin-top:0; }
-      h1 { margin-bottom:6px; font-size:clamp(24px,6vw,32px); }
-      h2 { margin-bottom:12px; font-size:20px; }
+      h1 { margin-bottom:6px; color:var(--navy); font-size:clamp(25px,6vw,34px); letter-spacing:-.02em; }
+      h2 { margin-bottom:12px; color:var(--navy); font-size:21px; letter-spacing:-.015em; }
       .muted { margin-bottom:0; color:#627083; }
       .status {
         margin-top:14px;
@@ -45,7 +48,7 @@
       .info { background:#e9f2ff; color:#144f98; }
       .success { background:#e5f6ed; color:var(--green); }
       .error { background:#fdecea; color:var(--red); }
-      .card { display:none; margin-top:14px; padding:18px; }
+      .card { display:none; margin-top:18px; padding:22px; }
       .card.show { display:block; }
       .toolbar {
         display:grid;
@@ -70,7 +73,7 @@
         border:1px solid var(--border);
         border-radius:12px;
         padding:14px;
-        background:#f7f9fc;
+        background:var(--blue-soft);
       }
       .group-target-title { color:var(--navy); font-weight:800; }
       .group-options {
@@ -85,19 +88,21 @@
         align-items:center;
         gap:9px;
         border:1px solid var(--border);
-        border-radius:10px;
+        border-radius:11px;
         padding:10px 12px;
         background:#fff;
+        transition:border-color .18s,box-shadow .18s,background .18s;
         cursor:pointer;
       }
-      .group-option input { width:20px; height:20px; margin:0; }
+      .group-option input { width:20px; height:20px; margin:0; accent-color:var(--blue); }
+      .group-option:has(input:checked) { border-color:var(--blue); background:#f7fbff; box-shadow:0 0 0 3px rgb(11 99 206 / 10%); }
       .group-target-note { margin:9px 0 0; color:#627083; font-size:14px; }
       .primary,.secondary,.discard-button {
         border:0;
         font-weight:750;
       }
-      .primary { background:var(--blue); color:#fff; }
-      .secondary { background:#e8eef6; color:var(--navy); }
+      .primary { background:var(--blue); color:#fff; box-shadow:0 5px 12px rgb(11 99 206 / 18%); }
+      .secondary { background:var(--blue-soft); color:var(--navy); }
       .discard-button { background:#fff0ef; color:#9f2f27; }
       .send-button {
         width:100%;
@@ -125,7 +130,7 @@
         margin:14px 0;
       }
       .summary-item {
-        border-radius:12px;
+        border-radius:14px;
         padding:12px;
         text-align:center;
         font-weight:750;
@@ -151,7 +156,7 @@
         border:2px solid transparent;
         border-radius:12px;
         padding:9px;
-        background:#f7f9fc;
+        background:#fbfdff;
       }
       .day-card.full { border-color:#9bd5b5; background:#f0faf4; }
       .day-card.half { border-color:#e8c77c; background:#fff9e9; }
@@ -184,9 +189,9 @@
       .preview-message {
         margin:12px 0;
         border:1px solid var(--border);
-        border-radius:12px;
+        border-radius:14px;
         padding:14px;
-        background:#f7f9fc;
+        background:#fbfdff;
         white-space:pre-wrap;
         overflow-wrap:anywhere;
         font-family:inherit;
