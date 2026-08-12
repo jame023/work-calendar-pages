@@ -359,12 +359,14 @@
       function loadOverviewData() {
         showLoading("กำลังโหลดข้อมูล…");
 
-        callBackend("getMyOverview", {
-          month: getCurrentMonth()
-        }).then(handleEmployeeOverviewLoaded).catch(showError);
-      }
+         callBackend("getOverviewPage", {
+           month: getCurrentMonth()
+         }).then(function(page) {
+           handleEmployeeOverviewLoaded(page.employee, page.manager);
+         }).catch(showError);
+       }
 
-      function handleEmployeeOverviewLoaded(data) {
+       function handleEmployeeOverviewLoaded(data, managerData) {
         state.employeeOverview = data;
         state.role = data.profile.role;
 
@@ -373,13 +375,9 @@
           return;
         }
 
-        callBackend("getManagerPendingOverview", {})
-          .then(function(managerData) {
-            state.managerOverview = managerData;
-            renderManagerShell();
-          })
-          .catch(showError);
-      }
+         state.managerOverview = managerData;
+         renderManagerShell();
+       }
 
       function receiveBridgeMessage(event) {
         const data = event.data;
@@ -648,7 +646,7 @@
         const detailsHtml = (item.key === "leave" || item.key === "work") &&
             item.details && item.details.length
           ? item.details.map(function(detail) {
-              return '<span class="pending-detail">' + escapeHtml(detail) + "</span>";
+              return '<div class="pending-detail">' + escapeHtml(detail) + "</div>";
             }).join("")
           : escapeHtml(details);
 
@@ -657,6 +655,9 @@
           : item.count;
 
         const valueClass = item.ok ? "success" : "count";
+        const valueHtml = item.key === "leave" || item.key === "work"
+          ? ""
+          : '<div class="' + valueClass + '">' + escapeHtml(value) + "</div>";
         const action = item.url
           ? '<a class="link" href="' + escapeHtmlAttribute(item.url) + '">ไปจัดการ</a>'
           : "";
@@ -667,7 +668,7 @@
           '    <div class="row-title">' + escapeHtml(item.title) + "</div>",
           '    <div class="muted">' + detailsHtml + "</div>",
           "  </div>",
-          '  <div class="' + valueClass + '">' + escapeHtml(value) + "</div>",
+          "  " + valueHtml,
           "  " + action,
           "</div>"
         ].join("\n");
