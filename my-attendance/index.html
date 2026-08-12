@@ -641,6 +641,10 @@
           : item.ok
             ? "ไม่มีรายการ"
             : "";
+        const detailsHtml = (item.key === "leave" || item.key === "work") &&
+            item.details && item.details.length
+          ? item.details.map(function(name) { return escapeHtml(name); }).join("<br>")
+          : escapeHtml(details);
 
         const value = item.key === "reports"
           ? item.ok ? "ปกติ" : "ตรวจสอบ"
@@ -655,7 +659,7 @@
           '<div class="row">',
           '  <div class="row-main">',
           '    <div class="row-title">' + escapeHtml(item.title) + "</div>",
-          '    <div class="muted">' + escapeHtml(details) + "</div>",
+          '    <div class="muted">' + detailsHtml + "</div>",
           "  </div>",
           '  <div class="' + valueClass + '">' + escapeHtml(value) + "</div>",
           "  " + action,
