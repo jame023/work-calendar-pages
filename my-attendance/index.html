@@ -77,6 +77,10 @@
         font-size: 14px;
       }
 
+      .pending-detail {
+        display: block;
+      }
+
       .today-grid {
         display: grid;
         grid-template-columns: 1fr 1fr 1.25fr;
@@ -643,7 +647,9 @@
             : "";
         const detailsHtml = (item.key === "leave" || item.key === "work") &&
             item.details && item.details.length
-          ? item.details.map(function(name) { return escapeHtml(name); }).join("<br>")
+          ? item.details.map(function(detail) {
+              return '<span class="pending-detail">' + escapeHtml(detail) + "</span>";
+            }).join("")
           : escapeHtml(details);
 
         const value = item.key === "reports"
