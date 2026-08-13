@@ -8,37 +8,34 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
       :root {
-        --navy:#0b2f67;
-        --blue:#0b63ce;
-        --blue-soft:#edf5ff;
+        --navy:#16324f;
+        --blue:#1f6feb;
         --green:#16864b;
         --amber:#b26a00;
         --red:#bd2c24;
         --border:#d7dee7;
         --surface:#fff;
-        --page:#f5f8fc;
       }
       * { box-sizing:border-box; }
       body {
         margin:0;
-        background:var(--page);
+        background:#f3f6fa;
         color:#17202b;
-        font-family:"Noto Sans Thai",system-ui,"Segoe UI",sans-serif;
+        font-family:system-ui,"Segoe UI",sans-serif;
       }
       button,input { font:inherit; }
       button { cursor:pointer; }
-      .page { width:min(1080px,100%); margin:auto; padding:20px; }
+      .page { width:min(1050px,100%); margin:auto; padding:16px; }
       .header,.card {
         border:1px solid var(--border);
-        border-radius:18px;
+        border-radius:16px;
         background:var(--surface);
-        box-shadow:0 10px 28px rgb(11 47 103 / 8%);
+        box-shadow:0 8px 24px rgb(22 50 79 / 8%);
       }
-      .header { position:relative; padding:24px; overflow:hidden; }
-      .header::before { content:""; position:absolute; inset:0 auto 0 0; width:6px; background:var(--blue); }
+      .header { padding:18px; }
       h1,h2,p { margin-top:0; }
-      h1 { margin-bottom:6px; color:var(--navy); font-size:clamp(25px,6vw,34px); letter-spacing:-.02em; }
-      h2 { margin-bottom:12px; color:var(--navy); font-size:21px; letter-spacing:-.015em; }
+      h1 { margin-bottom:6px; font-size:clamp(24px,6vw,32px); }
+      h2 { margin-bottom:12px; font-size:20px; }
       .muted { margin-bottom:0; color:#627083; }
       .status {
         margin-top:14px;
@@ -48,7 +45,7 @@
       .info { background:#e9f2ff; color:#144f98; }
       .success { background:#e5f6ed; color:var(--green); }
       .error { background:#fdecea; color:var(--red); }
-      .card { display:none; margin-top:18px; padding:22px; }
+      .card { display:none; margin-top:14px; padding:18px; }
       .card.show { display:block; }
       .toolbar {
         display:grid;
@@ -69,11 +66,12 @@
         background:#fff;
       }
       .group-target-panel {
+        display:none;
         margin-top:14px;
         border:1px solid var(--border);
         border-radius:12px;
         padding:14px;
-        background:var(--blue-soft);
+        background:#f7f9fc;
       }
       .group-target-title { color:var(--navy); font-weight:800; }
       .group-options {
@@ -88,21 +86,19 @@
         align-items:center;
         gap:9px;
         border:1px solid var(--border);
-        border-radius:11px;
+        border-radius:10px;
         padding:10px 12px;
         background:#fff;
-        transition:border-color .18s,box-shadow .18s,background .18s;
         cursor:pointer;
       }
-      .group-option input { width:20px; height:20px; margin:0; accent-color:var(--blue); }
-      .group-option:has(input:checked) { border-color:var(--blue); background:#f7fbff; box-shadow:0 0 0 3px rgb(11 99 206 / 10%); }
+      .group-option input { width:20px; height:20px; margin:0; }
       .group-target-note { margin:9px 0 0; color:#627083; font-size:14px; }
       .primary,.secondary,.discard-button {
         border:0;
         font-weight:750;
       }
-      .primary { background:var(--blue); color:#fff; box-shadow:0 5px 12px rgb(11 99 206 / 18%); }
-      .secondary { background:var(--blue-soft); color:var(--navy); }
+      .primary { background:var(--blue); color:#fff; }
+      .secondary { background:#e8eef6; color:var(--navy); }
       .discard-button { background:#fff0ef; color:#9f2f27; }
       .send-button {
         width:100%;
@@ -130,7 +126,7 @@
         margin:14px 0;
       }
       .summary-item {
-        border-radius:14px;
+        border-radius:12px;
         padding:12px;
         text-align:center;
         font-weight:750;
@@ -156,7 +152,7 @@
         border:2px solid transparent;
         border-radius:12px;
         padding:9px;
-        background:#fbfdff;
+        background:#f7f9fc;
       }
       .day-card.full { border-color:#9bd5b5; background:#f0faf4; }
       .day-card.half { border-color:#e8c77c; background:#fff9e9; }
@@ -189,9 +185,9 @@
       .preview-message {
         margin:12px 0;
         border:1px solid var(--border);
-        border-radius:14px;
+        border-radius:12px;
         padding:14px;
-        background:#fbfdff;
+        background:#f7f9fc;
         white-space:pre-wrap;
         overflow-wrap:anywhere;
         font-family:inherit;
@@ -479,14 +475,14 @@
 
           const buttons = document.createElement("div");
           buttons.className = "status-buttons";
-          ["เต็มวัน", "ครึ่งวัน", "หยุด"].forEach(function(status) {
+          ["เต็มวัน", "ครึ่งวัน", "หยุด", "ไม่เปลี่ยน"].forEach(function(status) {
             const button = document.createElement("button");
             button.type = "button";
             button.className = "status-button " + statusClass(status) +
               (day.status === status ? " selected" : "");
             button.textContent = status;
             button.addEventListener("click", function() {
-              day.status = status;
+              day.status = status === "ไม่เปลี่ยน" ? null : status;
               state.previewSignature = "";
               elements.notificationCard.classList.remove("show");
               renderCalendar();
@@ -837,6 +833,7 @@
       }
 
       function statusClass(status) {
+        if (!status) return "unchanged";
         if (status === "ครึ่งวัน") return "half";
         if (status === "หยุด") return "off";
         return "full";
