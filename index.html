@@ -275,12 +275,6 @@
           </p>
         </div>
 
-        <div class="quick-actions">
-          <button class="secondary" id="sundayButton" type="button">หยุดทุกวันอาทิตย์</button>
-          <button class="secondary" id="weekendButton" type="button">หยุดเสาร์–อาทิตย์</button>
-          <button class="secondary" id="fullMonthButton" type="button">ตั้งเป็นเต็มวันทั้งหมด</button>
-        </div>
-
         <div class="summary">
           <div class="summary-item summary-full">เต็มวัน<span id="fullCount">0</span></div>
           <div class="summary-item summary-half">ครึ่งวัน<span id="halfCount">0</span></div>
@@ -348,7 +342,7 @@
 
       [
         "signedInName","statusBox","calendarCard","workGroupInput","monthInput","loadButton",
-        "sundayButton","weekendButton","fullMonthButton","fullCount","halfCount",
+        "fullCount","halfCount",
         "offCount","calendarGrid","saveButton","previewButton","notificationCard",
         "recipientCount","previewMessage","recipientList","sendButton","discardButton",
         "notificationNote","backendFrame"
@@ -380,9 +374,6 @@
           elements.notificationCard.classList.remove("show");
         });
       });
-      elements.sundayButton.addEventListener("click", function() { setWeekendStatuses([0]); });
-      elements.weekendButton.addEventListener("click", function() { setWeekendStatuses([0, 6]); });
-      elements.fullMonthButton.addEventListener("click", setFullMonth);
       elements.saveButton.addEventListener("click", saveMonth);
       elements.previewButton.addEventListener("click", previewNotification);
       elements.sendButton.addEventListener("click", sendNotification);
@@ -475,14 +466,14 @@
 
           const buttons = document.createElement("div");
           buttons.className = "status-buttons";
-          ["เต็มวัน", "ครึ่งวัน", "หยุด", "ไม่เปลี่ยน"].forEach(function(status) {
+          ["เต็มวัน", "ครึ่งวัน", "หยุด", "คงเดิม"].forEach(function(status) {
             const button = document.createElement("button");
             button.type = "button";
             button.className = "status-button " + statusClass(status) +
               (day.status === status ? " selected" : "");
             button.textContent = status;
             button.addEventListener("click", function() {
-              day.status = status === "ไม่เปลี่ยน" ? null : status;
+              day.status = status === "คงเดิม" ? null : status;
               state.previewSignature = "";
               elements.notificationCard.classList.remove("show");
               renderCalendar();
@@ -864,8 +855,7 @@
 
       function setBusy(busy) {
         [
-          elements.workGroupInput,elements.monthInput,elements.loadButton,elements.sundayButton,
-          elements.weekendButton,elements.fullMonthButton,elements.saveButton,
+          elements.workGroupInput,elements.monthInput,elements.loadButton,elements.saveButton,
           elements.previewButton,elements.sendButton,elements.discardButton
         ].concat(targetWorkGroupInputs).forEach(function(element) {
           element.disabled = busy;
