@@ -473,7 +473,7 @@
               (day.status === status ? " selected" : "");
             button.textContent = status;
             button.addEventListener("click", function() {
-              day.status = status === "คงเดิม" ? null : status;
+              day.status = status;
               state.previewSignature = "";
               elements.notificationCard.classList.remove("show");
               renderCalendar();
