@@ -145,6 +145,106 @@
         font-size: 20px;
       }
 
+      .attendance-calendar {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--white);
+        box-shadow: 0 4px 14px rgba(16, 37, 75, 0.05);
+      }
+
+      .calendar-month {
+        margin-bottom: 12px;
+        color: var(--blue-dark);
+        font-size: 18px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .calendar-weekday {
+        padding: 4px 0;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .calendar-day {
+        min-width: 0;
+        min-height: 68px;
+        padding: 7px 4px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #f8fafc;
+        text-align: center;
+      }
+
+      .calendar-day.empty {
+        border-color: transparent;
+        background: transparent;
+      }
+
+      .calendar-date {
+        display: block;
+        font-size: 15px;
+        font-weight: 800;
+      }
+
+      .calendar-status {
+        display: block;
+        margin-top: 5px;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+      }
+
+      .calendar-day.present {
+        border-color: #86d7aa;
+        background: #e9f8ef;
+        color: #08783a;
+      }
+
+      .calendar-day.absent {
+        border-color: #f2a3a3;
+        background: #feeeee;
+        color: #b91c1c;
+      }
+
+      .calendar-day.leave {
+        border-color: #f0cf69;
+        background: #fff7d6;
+        color: #9a5a00;
+      }
+
+      .calendar-legend {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px 14px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .legend-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 4px;
+        border-radius: 50%;
+      }
+
+      .legend-dot.present { background: var(--green); }
+      .legend-dot.absent { background: var(--red); }
+      .legend-dot.leave { background: #e6ad16; }
+
       .list {
         display: grid;
         gap: 8px;
@@ -302,6 +402,28 @@
           min-width: 70px;
           padding-right: 8px;
           padding-left: 8px;
+        }
+
+        .attendance-calendar {
+          padding: 10px 8px;
+        }
+
+        .calendar-grid {
+          gap: 3px;
+        }
+
+        .calendar-day {
+          min-height: 58px;
+          padding: 5px 2px;
+          border-radius: 6px;
+        }
+
+        .calendar-date {
+          font-size: 14px;
+        }
+
+        .calendar-status {
+          font-size: 9px;
         }
       }
     </style>
@@ -549,6 +671,8 @@
           renderMonthlyMetrics(month),
           "<h2>งานปัจจุบัน</h2>",
           renderCurrentWork(data.activeWork),
+          "<h2>ปฏิทินการเข้างาน</h2>",
+          renderAttendanceCalendar(month),
           "<h2>ประวัติการเข้างานล่าสุด</h2>",
           renderAttendanceHistory(data.history),
           "<h2>สถานะคำขอลาของฉัน</h2>",
@@ -647,6 +771,56 @@
         ].filter(Boolean).join(" · ");
 
         return renderList([renderSimpleRow(activeWork.machine, detail)]);
+      }
+
+      function renderAttendanceCalendar(month) {
+        const monthText = String(month.month || getCurrentMonth());
+        const parts = monthText.split("-");
+        const year = Number(parts[0]);
+        const monthIndex = Number(parts[1]) - 1;
+        const firstDay = new Date(Date.UTC(year, monthIndex, 1));
+        const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+        const mondayOffset = (firstDay.getUTCDay() + 6) % 7;
+        const statusByDate = {};
+        (month.calendarDays || []).forEach(function(item) {
+          statusByDate[item.date] = item;
+        });
+
+        const cells = [];
+        for (let index = 0; index < mondayOffset; index += 1) {
+          cells.push('<div class="calendar-day empty" aria-hidden="true"></div>');
+        }
+        for (let day = 1; day <= daysInMonth; day += 1) {
+          const date = monthText + "-" + String(day).padStart(2, "0");
+          const item = statusByDate[date];
+          const status = item && item.status !== "scheduled" ? item.status : "";
+          const label = item && item.status !== "scheduled" ? item.label : "";
+          const accessibleLabel = formatThaiDate(date) + (label ? " " + label : "");
+          cells.push([
+            '<div class="calendar-day ' + escapeHtmlAttribute(status) +
+              '" aria-label="' + escapeHtmlAttribute(accessibleLabel) + '">',
+            '  <span class="calendar-date">' + day + "</span>",
+            label ? '  <span class="calendar-status">' + escapeHtml(label) + "</span>" : "",
+            "</div>"
+          ].join("\n"));
+        }
+
+        return [
+          '<section class="attendance-calendar" aria-label="ปฏิทินการเข้างานประจำเดือน">',
+          '  <div class="calendar-month">' + escapeHtml(formatThaiMonth(monthText)) + "</div>",
+          '  <div class="calendar-grid">',
+          ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."].map(function(dayName) {
+            return '<div class="calendar-weekday">' + dayName + "</div>";
+          }).join("\n"),
+          cells.join("\n"),
+          "  </div>",
+          '  <div class="calendar-legend">',
+          '    <span><i class="legend-dot present"></i>มาทำงาน</span>',
+          '    <span><i class="legend-dot absent"></i>ขาดงาน</span>',
+          '    <span><i class="legend-dot leave"></i>ลา</span>',
+          "  </div>",
+          "</section>"
+        ].join("\n");
       }
 
       function renderAttendanceHistory(history) {
@@ -779,6 +953,16 @@
           day: "numeric",
           month: "short",
           year: "numeric"
+        });
+      }
+
+      function formatThaiMonth(value) {
+        const parts = String(value || "").split("-");
+        const date = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, 1));
+        return date.toLocaleDateString("th-TH", {
+          month: "long",
+          year: "numeric",
+          timeZone: "Asia/Bangkok"
         });
       }
 
