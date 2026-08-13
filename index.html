@@ -826,7 +826,7 @@
       }
 
       function statusClass(status) {
-        if (!status) return "unchanged";
+        if (!status || status === "คงเดิม") return "unchanged";
         if (status === "ครึ่งวัน") return "half";
         if (status === "หยุด") return "off";
         return "full";
