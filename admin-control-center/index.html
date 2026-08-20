@@ -25,15 +25,15 @@
       .module h2 { margin:0 0 8px; font-size:1.05rem; } .detail { color:var(--muted); font-size:.9rem; line-height:1.5; }
       .badge { align-self:flex-start; margin-top:16px; padding:5px 9px; border-radius:999px; font-size:.78rem; font-weight:700; }
       .ready { color:var(--green); background:#e8f5ee; } .not-ready { color:var(--amber); background:#fff3cd; }
-      .module[data-key="employees"] { cursor:pointer; border-color:#9bc2e6; }
-      .employee-panel { margin-top:22px; padding:18px; }
+      .module[data-key="employees"],.module[data-key="attendance"] { cursor:pointer; border-color:#9bc2e6; }
+      .employee-panel,.attendance-panel { margin-top:22px; padding:18px; }
       .panel-head { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
       .panel-head h2 { margin:0; } .search { display:flex; gap:8px; flex:1; max-width:460px; }
       input,select,textarea { width:100%; min-height:44px; border:1px solid #b8c5d3; border-radius:10px; padding:9px 11px; font:inherit; background:white; }
       .primary,.secondary { border:0; border-radius:10px; padding:9px 14px; cursor:pointer; font-weight:700; }
       .primary { color:white; background:var(--blue); } .secondary { color:var(--navy); background:#eaf1f8; }
-      .employee-list { display:grid; gap:10px; margin-top:16px; }
-      .employee-row { display:grid; grid-template-columns:1.4fr .8fr .8fr auto; gap:10px; align-items:center; padding:13px; border:1px solid var(--line); border-radius:11px; }
+      .employee-list,.attendance-list { display:grid; gap:10px; margin-top:16px; }
+      .employee-row,.attendance-row { display:grid; grid-template-columns:1.4fr .8fr .8fr auto; gap:10px; align-items:center; padding:13px; border:1px solid var(--line); border-radius:11px; }
       .employee-meta { color:var(--muted); font-size:.86rem; }
       .editor-card { width:100%; margin-top:18px; border:1px solid #9bc2e6; border-radius:14px; background:#f9fbfd; }
       .dialog-body { padding:20px; }
@@ -43,7 +43,7 @@
       .preview-box { margin-top:14px; padding:12px; border-radius:10px; background:#f4f7fb; white-space:pre-wrap; font-size:.86rem; }
       [hidden] { display:none !important; }
       @media (max-width:820px) { .modules { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-      @media (max-width:600px) { .profile,.modules,.form-grid { grid-template-columns:1fr; } .module { min-height:124px; } .employee-row { grid-template-columns:1fr auto; } .employee-row .employee-meta { grid-column:1; } }
+      @media (max-width:600px) { .profile,.modules,.form-grid { grid-template-columns:1fr; } .module { min-height:124px; } .employee-row,.attendance-row { grid-template-columns:1fr auto; } .employee-row .employee-meta,.attendance-row .employee-meta { grid-column:1; } }
     </style>
   </head>
   <body>
@@ -77,6 +77,24 @@
             <div class="dialog-actions"><button class="secondary" id="cancelEdit" type="button">ยกเลิก</button><button class="secondary" id="previewEdit" type="button">Preview</button><button class="primary" id="applyEdit" type="button" hidden>บันทึก</button></div>
           </form></div>
         </section>
+        <section class="card attendance-panel" id="attendancePanel" hidden>
+          <div class="panel-head"><h2>เวลาเข้า–ออก</h2><div class="search"><input id="attendanceSearch" aria-label="ค้นหาเวลาเข้าออก" placeholder="ค้นชื่อหรือ UID"><button class="primary" id="attendanceSearchButton" type="button">ค้นหา</button></div></div>
+          <div class="form-grid" style="margin-top:12px"><label>ตั้งแต่<input id="attendanceFrom" type="date"></label><label>ถึง<input id="attendanceTo" type="date"></label></div>
+          <div class="attendance-list" id="attendanceList"></div>
+          <div class="editor-card" id="attendanceEditor" hidden><form class="dialog-body" id="attendanceForm">
+            <h2 id="attendanceTitle">แก้ไขเวลาเข้า–ออก</h2>
+            <div class="form-grid">
+              <label>เวลาเข้า<input id="attendanceCheckin" type="time" step="1"></label>
+              <label>เวลาออก<input id="attendanceCheckout" type="time" step="1"></label>
+            </div>
+            <label>หมายเหตุ<textarea id="attendanceNote" maxlength="500" rows="3"></textarea></label>
+            <label class="check"><input id="attendanceVoided" type="checkbox"> VOID รายการนี้ (ไม่ลบข้อมูล และไม่นับเวลาทำงาน)</label>
+            <label>เหตุผล<textarea id="attendanceReason" required minlength="3" maxlength="300" rows="3"></textarea></label>
+            <div id="attendanceConfirmationWrap" hidden><label>พิมพ์คำว่า ยืนยัน<input id="attendanceConfirmation" autocomplete="off"></label></div>
+            <div class="preview-box" id="attendancePreview" hidden></div>
+            <div class="dialog-actions"><button class="secondary" id="cancelAttendance" type="button">ยกเลิก</button><button class="secondary" id="previewAttendance" type="button">Preview</button><button class="primary" id="applyAttendance" type="button" hidden>บันทึก</button></div>
+          </form></div>
+        </section>
       </main>
     </div>
     <iframe id="bridge" title="Admin backend bridge" hidden></iframe>
@@ -95,11 +113,17 @@
       let liffId = "";
       let selectedEmployee = null;
       let employeePlan = null;
+      let selectedAttendance = null;
+      let attendancePlan = null;
       document.getElementById("refreshButton").addEventListener("click", loadOverview);
       document.getElementById("employeeSearchButton").addEventListener("click", loadEmployees);
       document.getElementById("cancelEdit").addEventListener("click", closeEmployeeDialog);
       document.getElementById("previewEdit").addEventListener("click", previewEmployeeEdit);
       document.getElementById("applyEdit").addEventListener("click", applyEmployeeEdit);
+      document.getElementById("attendanceSearchButton").addEventListener("click", loadAttendance);
+      document.getElementById("cancelAttendance").addEventListener("click", closeAttendanceEditor);
+      document.getElementById("previewAttendance").addEventListener("click", previewAttendanceEdit);
+      document.getElementById("applyAttendance").addEventListener("click", applyAttendanceEdit);
       window.addEventListener("message", receiveBridgeMessage);
       start();
 
@@ -189,7 +213,7 @@
         document.getElementById("employeeName").textContent = data.profile.employeeName || "-";
         document.getElementById("lineName").textContent = data.profile.lineDisplayName || "-";
         document.getElementById("profile").style.display = "grid";
-        document.getElementById("policy").textContent = "การแก้ไขข้อมูลพนักงานต้อง Preview ระบุเหตุผล และบันทึก Audit Log · ไม่มี hard delete";
+        document.getElementById("policy").textContent = "ทุกการแก้ไขต้อง Preview ระบุเหตุผล และบันทึก Audit Log · ไม่มี hard delete";
         document.getElementById("policy").hidden = false;
         document.getElementById("modules").replaceChildren(...data.modules.map(function(item) {
           const card = document.createElement("article"); card.className = "card module";
@@ -200,6 +224,7 @@
           content.append(title, detail); card.append(content, badge);
           card.dataset.key = item.key;
           if (item.key === "employees" && item.ready) card.addEventListener("click", openEmployees);
+          if (item.key === "attendance" && item.ready) card.addEventListener("click", openAttendance);
           return card;
         }));
         setStatus("ยืนยันสิทธิ์ Admin แล้ว · อัปเดต " + new Date(data.generatedAt).toLocaleString("th-TH"), false);
@@ -282,6 +307,92 @@
       function closeEmployeeDialog() {
         document.getElementById("employeeDialog").hidden = true;
       }
+
+      async function openAttendance() {
+        const today = new Date();
+        const from = new Date(today); from.setDate(from.getDate() - 7);
+        if (!document.getElementById("attendanceFrom").value) document.getElementById("attendanceFrom").value = localDateInput(from);
+        if (!document.getElementById("attendanceTo").value) document.getElementById("attendanceTo").value = localDateInput(today);
+        document.getElementById("attendancePanel").hidden = false;
+        await loadAttendance();
+        document.getElementById("attendancePanel").scrollIntoView({ behavior:"smooth", block:"start" });
+      }
+
+      async function loadAttendance() {
+        closeAttendanceEditor();
+        const list = document.getElementById("attendanceList"); list.textContent = "กำลังโหลด…";
+        try {
+          const items = await callBackend("getAdminAttendance", { query:document.getElementById("attendanceSearch").value,
+            fromDate:document.getElementById("attendanceFrom").value, toDate:document.getElementById("attendanceTo").value });
+          if (!items.length) { list.textContent = "ไม่พบรายการเวลาเข้า–ออก"; return; }
+          list.replaceChildren(...items.map(function(item) {
+            const row=document.createElement("article"); row.className="attendance-row";
+            const name=document.createElement("strong"); name.textContent=item.employeeName || item.uid;
+            const date=document.createElement("span"); date.className="employee-meta"; date.textContent=item.date;
+            const meta=document.createElement("span"); meta.className="employee-meta";
+            meta.textContent=(item.checkin || "-")+" → "+(item.checkout || "-")+" · "+(item.voided ? "VOID" : (item.workdayStatus || item.status || "ยังไม่สรุป"));
+            const edit=document.createElement("button"); edit.type="button"; edit.className="secondary"; edit.textContent="แก้ไข";
+            edit.addEventListener("click",function(){ openAttendanceEditor(item); });
+            row.append(name,date,meta,edit); return row;
+          }));
+        } catch(error) { list.textContent=error.message || String(error); }
+      }
+
+      function openAttendanceEditor(item) {
+        selectedAttendance=item; attendancePlan=null;
+        document.getElementById("attendanceTitle").textContent="แก้ไข " + (item.employeeName || item.uid) + " · " + item.date;
+        document.getElementById("attendanceCheckin").value=timeInputValue(item.checkin);
+        document.getElementById("attendanceCheckout").value=timeInputValue(item.checkout);
+        document.getElementById("attendanceNote").value=item.note || "";
+        document.getElementById("attendanceVoided").checked=item.voided;
+        document.getElementById("attendanceReason").value="";
+        document.getElementById("attendanceConfirmation").value="";
+        document.getElementById("attendanceConfirmationWrap").hidden=true;
+        document.getElementById("attendancePreview").hidden=true;
+        document.getElementById("applyAttendance").hidden=true;
+        const editor=document.getElementById("attendanceEditor"); editor.hidden=false;
+        editor.scrollIntoView({ behavior:"smooth", block:"start" });
+      }
+
+      function attendanceDraft() {
+        return { checkin:document.getElementById("attendanceCheckin").value,
+          checkout:document.getElementById("attendanceCheckout").value,
+          note:document.getElementById("attendanceNote").value,
+          voided:document.getElementById("attendanceVoided").checked };
+      }
+
+      async function previewAttendanceEdit() {
+        if (!selectedAttendance) return;
+        try {
+          attendancePlan=await callBackend("previewAdminAttendanceUpdate", { recordId:selectedAttendance.recordId,
+            draft:attendanceDraft(), reason:document.getElementById("attendanceReason").value });
+          const box=document.getElementById("attendancePreview");
+          box.textContent="ก่อน: "+summarizeAttendance(attendancePlan.before)+"\nหลัง: "+summarizeAttendance(attendancePlan.after);
+          box.hidden=false;
+          document.getElementById("attendanceConfirmationWrap").hidden=!attendancePlan.requiresConfirmation;
+          document.getElementById("applyAttendance").hidden=false;
+        } catch(error) { showError(error); }
+      }
+
+      async function applyAttendanceEdit() {
+        if (!attendancePlan) return;
+        try {
+          const result=await callBackend("applyAdminAttendanceUpdate", { recordId:selectedAttendance.recordId,
+            draft:attendancePlan.after, reason:attendancePlan.reason, expectedBefore:attendancePlan.before,
+            confirmation:document.getElementById("attendanceConfirmation").value, requestId:createRequestId() });
+          closeAttendanceEditor();
+          setStatus(result.duplicate ? "คำขอนี้บันทึกไว้แล้ว" : "บันทึกเวลาเข้า–ออกและ Audit Log แล้ว", false);
+          await loadAttendance();
+        } catch(error) { showError(error); }
+      }
+
+      function summarizeAttendance(item) {
+        return [item.checkin||"ไม่มีเวลาเข้า",item.checkout||"ไม่มีเวลาออก",item.voided?"VOID":(item.workdayStatus||item.status||"ยังไม่สรุป"),item.lateStatus,item.earlyStatus,item.overtime?"OT "+item.overtime:"",item.note?"หมายเหตุ: "+item.note:""]
+          .filter(Boolean).join(" · ");
+      }
+      function timeInputValue(value) { return value ? value.slice(0,8) : ""; }
+      function localDateInput(date) { const offset=date.getTimezoneOffset()*60000; return new Date(date-offset).toISOString().slice(0,10); }
+      function closeAttendanceEditor() { document.getElementById("attendanceEditor").hidden=true; }
 
       function setStatus(message, error) { const box=document.getElementById("status"); box.textContent=message; box.classList.toggle("error",!!error); }
       function showError(error) { setStatus(error && error.message ? error.message : String(error), true); }
