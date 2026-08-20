@@ -37,6 +37,11 @@
       .calendar-day[data-status="ครึ่งวัน"] { background:#fff3cd; color:var(--amber); }
       .calendar-day[data-status="หยุด"] { background:#f3f4f6; color:var(--muted); }
       .calendar-blank { min-height:82px; }
+      .leave-calendar-day { min-height:104px; padding:5px; border:1px solid var(--line); border-radius:8px; background:white; overflow:hidden; }
+      .leave-entry { width:100%; min-height:0; margin-top:3px; padding:3px 4px; border:0; border-radius:5px; font-size:.65rem; text-align:left; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .leave-entry[data-status="รออนุมัติ"] { background:#fff3cd; color:var(--amber); }
+      .leave-entry[data-status="อนุมัติ"] { background:#e8f5ee; color:var(--green); }
+      .leave-entry[data-status="ปฏิเสธ"],.leave-entry[data-status="ยกเลิก"] { background:#fdecea; color:var(--red); }
       .panel-head { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
       .panel-head h2 { margin:0; } .search { display:flex; gap:8px; flex:1; max-width:460px; }
       input,select,textarea { width:100%; min-height:44px; border:1px solid #b8c5d3; border-radius:10px; padding:9px 11px; font:inherit; background:white; }
@@ -53,7 +58,7 @@
       .preview-box { margin-top:14px; padding:12px; border-radius:10px; background:#f4f7fb; white-space:pre-wrap; font-size:.86rem; }
       [hidden] { display:none !important; }
       @media (max-width:820px) { .modules { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-      @media (max-width:600px) { .profile,.modules,.form-grid { grid-template-columns:1fr; } .calendar-days { gap:3px; margin-left:-10px; margin-right:-10px; } .calendar-day,.calendar-blank { min-height:68px; } .calendar-day { padding:5px 3px; border-radius:7px; } .calendar-status { font-size:.61rem; } .module { min-height:124px; } .employee-row,.attendance-row { grid-template-columns:1fr auto; } .employee-row .employee-meta,.attendance-row .employee-meta { grid-column:1; } }
+      @media (max-width:600px) { .profile,.modules,.form-grid { grid-template-columns:1fr; } .calendar-days { gap:3px; margin-left:-10px; margin-right:-10px; } .calendar-day,.calendar-blank { min-height:68px; } .leave-calendar-day { min-height:88px; padding:3px 2px; } .leave-entry { font-size:.56rem; padding:2px; } .calendar-day { padding:5px 3px; border-radius:7px; } .calendar-status { font-size:.61rem; } .module { min-height:124px; } .employee-row,.attendance-row { grid-template-columns:1fr auto; } .employee-row .employee-meta,.attendance-row .employee-meta { grid-column:1; } }
     </style>
   </head>
   <body>
@@ -107,7 +112,8 @@
         </section>
         <section class="card leave-panel" id="leavePanel" hidden>
           <div class="panel-head"><h2>การลา</h2><div class="search"><input id="leaveSearch" aria-label="ค้นหาคำขอลา" placeholder="ค้นชื่อ Request ID หรือประเภท"><button class="primary" id="leaveSearchButton" type="button">ค้นหา</button></div></div>
-          <label style="margin-top:12px">สถานะ<select id="leaveStatus"><option value="">ทุกสถานะ</option><option>รออนุมัติ</option><option>อนุมัติ</option><option>ปฏิเสธ</option><option>ยกเลิก</option></select></label>
+          <div class="form-grid" style="margin-top:12px"><label>เดือน<input id="leaveMonth" type="month"></label><label>สถานะ<select id="leaveStatus"><option value="">ทุกสถานะ</option><option>รออนุมัติ</option><option>อนุมัติ</option><option>ปฏิเสธ</option><option>ยกเลิก</option></select></label></div>
+          <div class="calendar-days" id="leaveCalendar" aria-label="ปฏิทินการลา"></div>
           <div class="attendance-list" id="leaveList"></div>
           <div class="editor-card" id="leaveEditor" hidden><form class="dialog-body" id="leaveForm">
             <h2 id="leaveTitle">จัดการคำขอลา</h2>
@@ -168,6 +174,7 @@
       document.getElementById("applyAttendance").addEventListener("click", applyAttendanceEdit);
       document.getElementById("leaveSearchButton").addEventListener("click", loadLeaveRequests);
       document.getElementById("leaveStatus").addEventListener("change", loadLeaveRequests);
+      document.getElementById("leaveMonth").addEventListener("change", loadLeaveRequests);
       document.getElementById("leaveAction").addEventListener("change", updateLeaveActionFields);
       document.getElementById("cancelLeaveEdit").addEventListener("click", closeLeaveEditor);
       document.getElementById("previewLeave").addEventListener("click", previewLeaveDecision);
@@ -448,6 +455,7 @@
       function closeAttendanceEditor() { document.getElementById("attendanceEditor").hidden=true; }
 
       async function openLeave() {
+        if(!document.getElementById("leaveMonth").value)document.getElementById("leaveMonth").value=localDateInput(new Date()).slice(0,7);
         document.getElementById("leavePanel").hidden=false;
         await loadLeaveRequests();
         document.getElementById("leavePanel").scrollIntoView({ behavior:"smooth", block:"start" });
@@ -459,6 +467,7 @@
         try {
           const items=await callBackend("getAdminLeaveRequests", { query:document.getElementById("leaveSearch").value,
             status:document.getElementById("leaveStatus").value });
+          renderLeaveCalendar(items,document.getElementById("leaveMonth").value);
           if (!items.length) { list.textContent="ไม่พบคำขอลา"; return; }
           list.replaceChildren(...items.map(function(item) {
             const row=document.createElement("article"); row.className="attendance-row";
@@ -470,6 +479,8 @@
           }));
         } catch(error) { list.textContent=error.message || String(error); }
       }
+
+      function renderLeaveCalendar(items,month){const calendar=document.getElementById("leaveCalendar");const cells=["อา","จ","อ","พ","พฤ","ศ","ส"].map(function(label){const head=document.createElement("div");head.className="calendar-weekday";head.textContent=label;return head;});const firstDay=new Date(month+"-01T00:00:00").getDay();for(let index=0;index<firstDay;index+=1){const blank=document.createElement("div");blank.className="calendar-blank";cells.push(blank);}const parts=month.split("-").map(Number),count=new Date(parts[0],parts[1],0).getDate();for(let day=1;day<=count;day+=1){const date=month+"-"+String(day).padStart(2,"0");const cell=document.createElement("div");cell.className="leave-calendar-day";const number=document.createElement("strong");number.textContent=String(day);cell.append(number);items.filter(function(item){return (item.leaveDates||[]).indexOf(date)>=0;}).forEach(function(item){const entry=document.createElement("button");entry.type="button";entry.className="leave-entry";entry.dataset.status=item.status;entry.textContent=item.employeeName+" · "+item.type;entry.title=item.employeeName+" · "+item.type+" · "+item.status;entry.addEventListener("click",function(){openLeaveEditor(item);});cell.append(entry);});cells.push(cell);}calendar.replaceChildren(...cells);}
 
       function openLeaveEditor(item) {
         selectedLeave=item; leavePlan=null;
