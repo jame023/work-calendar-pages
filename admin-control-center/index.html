@@ -87,6 +87,7 @@
       const FRONTEND_SOURCE = "admin-center-frontend";
       const BRIDGE_SOURCE = "admin-center-bridge";
       const pending = new Map();
+      const bridgeNonce = createBridgeNonce();
       let bridgeOrigin = "";
       let expectedBridgeOrigin = "";
       let idToken = "";
@@ -105,7 +106,9 @@
         try {
           if (!BRIDGE_URL) throw new Error("URL นี้ยังไม่มีค่า bridge");
           expectedBridgeOrigin = new URL(BRIDGE_URL).origin;
-          document.getElementById("bridge").src = BRIDGE_URL;
+          const bridgeUrl = new URL(BRIDGE_URL);
+          bridgeUrl.searchParams.set("bridgeNonce", bridgeNonce);
+          document.getElementById("bridge").src = bridgeUrl.toString();
           await waitForBridge();
           await initializeLiffWithTimeout(liffId);
           if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
@@ -141,14 +144,16 @@
           const id = Date.now() + "-" + Math.random().toString(16).slice(2);
           pending.set(id, { resolve:resolve, reject:reject });
           document.getElementById("bridge").contentWindow.postMessage({
-            source:FRONTEND_SOURCE, id:id, action:action, idToken:idToken, payload:payload
+            source:FRONTEND_SOURCE, nonce:bridgeNonce, id:id, action:action,
+            idToken:idToken, payload:payload
           }, bridgeOrigin);
           setTimeout(function() { if (pending.has(id)) { pending.delete(id); reject(new Error("backend ตอบกลับช้าเกินไป")); } }, 20000);
         });
       }
 
       function receiveBridgeMessage(event) {
-        if (!isTrustedBridgeEvent(event) || !event.data || event.data.source !== BRIDGE_SOURCE) return;
+        if (!isTrustedBridgeEvent(event) || !event.data || event.data.source !== BRIDGE_SOURCE ||
+            event.data.nonce !== bridgeNonce) return;
         if (event.data.type === "ready") {
           bridgeOrigin = event.origin;
           liffId = event.data.liffId;
@@ -161,10 +166,19 @@
       }
 
       function isTrustedBridgeEvent(event) {
-        const iframe = document.getElementById("bridge");
-        if (event.source !== iframe.contentWindow) return false;
         if (event.origin === expectedBridgeOrigin) return true;
         return /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/.test(event.origin);
+      }
+
+      function createBridgeNonce() {
+        const values = new Uint32Array(4);
+        if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(values);
+        else for (let index = 0; index < values.length; index += 1) {
+          values[index] = Math.floor(Math.random() * 0xffffffff);
+        }
+        return Array.from(values).map(function(value) {
+          return value.toString(16).padStart(8, "0");
+        }).join("");
       }
 
       function renderOverview(data) {
