@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Admin Control Center</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      :root { color-scheme: light; --navy:#12305a; --blue:#1769aa; --ink:#172033; --muted:#667085; --line:#d9e2ec; --bg:#f4f7fb; --green:#157347; --amber:#9a6700; --red:#b42318; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--ink); font-family:"Noto Sans Thai",Tahoma,"Segoe UI",sans-serif; }
+      button { min-height:44px; font:inherit; }
+      .shell { width:min(1120px,100%); margin:auto; padding:0 16px 40px; }
+      header { position:sticky; top:0; z-index:2; margin:0 -16px 20px; padding:16px; color:white; background:linear-gradient(135deg,var(--navy),var(--blue)); box-shadow:0 3px 14px #12305a33; }
+      .header-row { width:min(1088px,100%); margin:auto; display:flex; gap:12px; align-items:center; justify-content:space-between; }
+      h1 { margin:0; font-size:clamp(1.25rem,4vw,1.75rem); } .subtitle { opacity:.85; font-size:.9rem; }
+      .refresh { border:1px solid #ffffff88; border-radius:10px; padding:8px 14px; color:white; background:#ffffff18; cursor:pointer; }
+      .status,.card { background:white; border:1px solid var(--line); border-radius:14px; box-shadow:0 5px 18px #12305a0d; }
+      .status { padding:14px 16px; margin-bottom:18px; } .status.error { border-color:#f4b7b2; color:var(--red); }
+      .profile { display:none; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+      .profile .card { padding:16px; } .label { color:var(--muted); font-size:.82rem; } .value { margin-top:4px; font-weight:700; overflow-wrap:anywhere; }
+      .policy { padding:14px 16px; margin-bottom:18px; border-left:4px solid var(--amber); background:#fff9e8; }
+      .modules { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+      .module { padding:18px; min-height:142px; display:flex; flex-direction:column; justify-content:space-between; }
+      .module h2 { margin:0 0 8px; font-size:1.05rem; } .detail { color:var(--muted); font-size:.9rem; line-height:1.5; }
+      .badge { align-self:flex-start; margin-top:16px; padding:5px 9px; border-radius:999px; font-size:.78rem; font-weight:700; }
+      .ready { color:var(--green); background:#e8f5ee; } .not-ready { color:var(--amber); background:#fff3cd; }
+      [hidden] { display:none !important; }
+      @media (max-width:820px) { .modules { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+      @media (max-width:600px) { .profile,.modules { grid-template-columns:1fr; } .module { min-height:124px; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header><div class="header-row"><div><h1>Admin Control Center</h1><div class="subtitle">ศูนย์ดูแลทุกระบบ</div></div><button class="refresh" id="refreshButton" type="button">รีเฟรช</button></div></header>
+      <main>
+        <div class="status" id="status" role="status" aria-live="polite">กำลังเชื่อมต่อระบบ…</div>
+        <section class="profile" id="profile" aria-label="ข้อมูลผู้ดูแล">
+          <article class="card"><div class="label">ผู้ดูแล</div><div class="value" id="employeeName">-</div></article>
+          <article class="card"><div class="label">ชื่อ LINE</div><div class="value" id="lineName">-</div></article>
+          <article class="card"><div class="label">สิทธิ์</div><div class="value">Manager · Admin</div></article>
+        </section>
+        <aside class="policy" id="policy" hidden>ระยะแรกเป็นภาพรวมแบบอ่านอย่างเดียว ยังไม่มีปุ่มแก้ไขหรือลบข้อมูล</aside>
+        <section class="modules" id="modules" aria-label="ระบบทั้งหมด"></section>
+      </main>
+    </div>
+    <iframe id="bridge" title="Admin backend bridge" hidden></iframe>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const DEFAULT_BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzQXDl8Kav9Jmh_PtFmrGSKexHhaqzZC_0sw5mTotSbSeS2dL1qRVfn2KvPyC6FwTsldw/exec";
+      const BRIDGE_URL = params.get("bridge") || DEFAULT_BRIDGE_URL;
+      const FRONTEND_SOURCE = "admin-center-frontend";
+      const BRIDGE_SOURCE = "admin-center-bridge";
+      const pending = new Map();
+      let bridgeOrigin = "";
+      let idToken = "";
+      let liffId = "";
+      document.getElementById("refreshButton").addEventListener("click", loadOverview);
+      window.addEventListener("message", receiveBridgeMessage);
+      start();
+
+      async function start() {
+        try {
+          if (!BRIDGE_URL) throw new Error("URL นี้ยังไม่มีค่า bridge");
+          bridgeOrigin = new URL(BRIDGE_URL).origin;
+          document.getElementById("bridge").src = BRIDGE_URL;
+          await waitForBridge();
+          await initializeLiffWithTimeout(liffId);
+          if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+          idToken = liff.getIDToken();
+          await loadOverview();
+        } catch (error) { showError(error); }
+      }
+
+      async function initializeLiffWithTimeout(value) {
+        await Promise.race([
+          liff.init({ liffId: value }),
+          new Promise(function(_, reject) { setTimeout(function() { reject(new Error("เชื่อมต่อ LINE ไม่สำเร็จภายใน 15 วินาที")); }, 15000); })
+        ]);
+      }
+
+      function waitForBridge() {
+        return new Promise(function(resolve, reject) {
+          const timer = setTimeout(function() { reject(new Error("เชื่อมต่อ backend ไม่สำเร็จ")); }, 15000);
+          window.bridgeReady = function() { clearTimeout(timer); resolve(); };
+        });
+      }
+
+      async function loadOverview() {
+        setStatus("กำลังตรวจสิทธิ์และโหลดภาพรวม…", false);
+        try {
+          const data = await callBackend("getAdminBootstrap", {});
+          renderOverview(data);
+        } catch (error) { showError(error); }
+      }
+
+      function callBackend(action, payload) {
+        return new Promise(function(resolve, reject) {
+          const id = Date.now() + "-" + Math.random().toString(16).slice(2);
+          pending.set(id, { resolve:resolve, reject:reject });
+          document.getElementById("bridge").contentWindow.postMessage({
+            source:FRONTEND_SOURCE, id:id, action:action, idToken:idToken, payload:payload
+          }, bridgeOrigin);
+          setTimeout(function() { if (pending.has(id)) { pending.delete(id); reject(new Error("backend ตอบกลับช้าเกินไป")); } }, 20000);
+        });
+      }
+
+      function receiveBridgeMessage(event) {
+        if (event.origin !== bridgeOrigin || !event.data || event.data.source !== BRIDGE_SOURCE) return;
+        if (event.data.type === "ready") { liffId = event.data.liffId; if (window.bridgeReady) window.bridgeReady(); return; }
+        const request = pending.get(event.data.id); if (!request) return;
+        pending.delete(event.data.id);
+        event.data.ok ? request.resolve(event.data.result) : request.reject(new Error(event.data.error));
+      }
+
+      function renderOverview(data) {
+        document.getElementById("employeeName").textContent = data.profile.employeeName || "-";
+        document.getElementById("lineName").textContent = data.profile.lineDisplayName || "-";
+        document.getElementById("profile").style.display = "grid";
+        document.getElementById("policy").hidden = false;
+        document.getElementById("modules").replaceChildren(...data.modules.map(function(item) {
+          const card = document.createElement("article"); card.className = "card module";
+          const content = document.createElement("div");
+          const title = document.createElement("h2"); title.textContent = item.title;
+          const detail = document.createElement("div"); detail.className = "detail"; detail.textContent = item.detail;
+          const badge = document.createElement("span"); badge.className = "badge " + (item.ready ? "ready" : "not-ready"); badge.textContent = item.ready ? "พร้อมเชื่อมต่อ" : "ต้องตั้งค่า";
+          content.append(title, detail); card.append(content, badge); return card;
+        }));
+        setStatus("ยืนยันสิทธิ์ Admin แล้ว · อัปเดต " + new Date(data.generatedAt).toLocaleString("th-TH"), false);
+      }
+
+      function setStatus(message, error) { const box=document.getElementById("status"); box.textContent=message; box.classList.toggle("error",!!error); }
+      function showError(error) { setStatus(error && error.message ? error.message : String(error), true); }
+    </script>
+  </body>
+</html>
