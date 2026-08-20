@@ -89,6 +89,7 @@
       const pending = new Map();
       const bridgeNonce = createBridgeNonce();
       let bridgeOrigin = "";
+      let bridgeWindow = null;
       let expectedBridgeOrigin = "";
       let idToken = "";
       let liffId = "";
@@ -143,7 +144,8 @@
         return new Promise(function(resolve, reject) {
           const id = Date.now() + "-" + Math.random().toString(16).slice(2);
           pending.set(id, { resolve:resolve, reject:reject });
-          document.getElementById("bridge").contentWindow.postMessage({
+          if (!bridgeWindow) { pending.delete(id); reject(new Error("Bridge ยังไม่พร้อม")); return; }
+          bridgeWindow.postMessage({
             source:FRONTEND_SOURCE, nonce:bridgeNonce, id:id, action:action,
             idToken:idToken, payload:payload
           }, bridgeOrigin);
@@ -156,6 +158,7 @@
             event.data.nonce !== bridgeNonce) return;
         if (event.data.type === "ready") {
           bridgeOrigin = event.origin;
+          bridgeWindow = event.source;
           liffId = event.data.liffId;
           if (window.bridgeReady) window.bridgeReady();
           return;
@@ -166,6 +169,7 @@
       }
 
       function isTrustedBridgeEvent(event) {
+        if (bridgeWindow && event.source !== bridgeWindow) return false;
         if (event.origin === expectedBridgeOrigin) return true;
         return /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/.test(event.origin);
       }
