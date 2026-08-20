@@ -205,10 +205,16 @@
         overflow-wrap: anywhere;
       }
 
-      .calendar-day.present {
+      .calendar-day.present-full {
         border-color: #86d7aa;
         background: #e9f8ef;
         color: #08783a;
+      }
+
+      .calendar-day.present-half {
+        border-color: #f0cf69;
+        background: #fff7d6;
+        color: #8a5a00;
       }
 
       .calendar-day.absent {
@@ -218,9 +224,9 @@
       }
 
       .calendar-day.leave {
-        border-color: #f0cf69;
-        background: #fff7d6;
-        color: #9a5a00;
+        border-color: #f2ad5b;
+        background: #fff0dc;
+        color: #a0440b;
       }
 
       .calendar-legend {
@@ -241,9 +247,10 @@
         border-radius: 50%;
       }
 
-      .legend-dot.present { background: var(--green); }
+      .legend-dot.present-full { background: var(--green); }
+      .legend-dot.present-half { background: #e6ad16; }
       .legend-dot.absent { background: var(--red); }
-      .legend-dot.leave { background: #e6ad16; }
+      .legend-dot.leave { background: #ed7c18; }
 
       .list {
         display: grid;
@@ -815,7 +822,8 @@
           cells.join("\n"),
           "  </div>",
           '  <div class="calendar-legend">',
-          '    <span><i class="legend-dot present"></i>มาทำงาน</span>',
+          '    <span><i class="legend-dot present-full"></i>มาทำงานเต็มวัน</span>',
+          '    <span><i class="legend-dot present-half"></i>ครึ่งวัน</span>',
           '    <span><i class="legend-dot absent"></i>ขาดงาน</span>',
           '    <span><i class="legend-dot leave"></i>ลา</span>',
           "  </div>",
