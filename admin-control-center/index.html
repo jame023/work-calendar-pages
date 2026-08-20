@@ -25,8 +25,8 @@
       .module h2 { margin:0 0 8px; font-size:1.05rem; } .detail { color:var(--muted); font-size:.9rem; line-height:1.5; }
       .badge { align-self:flex-start; margin-top:16px; padding:5px 9px; border-radius:999px; font-size:.78rem; font-weight:700; }
       .ready { color:var(--green); background:#e8f5ee; } .not-ready { color:var(--amber); background:#fff3cd; }
-      .module[data-key="employees"],.module[data-key="attendance"] { cursor:pointer; border-color:#9bc2e6; }
-      .employee-panel,.attendance-panel { margin-top:22px; padding:18px; }
+      .module[data-key="employees"],.module[data-key="attendance"],.module[data-key="leave"] { cursor:pointer; border-color:#9bc2e6; }
+      .employee-panel,.attendance-panel,.leave-panel { margin-top:22px; padding:18px; }
       .panel-head { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
       .panel-head h2 { margin:0; } .search { display:flex; gap:8px; flex:1; max-width:460px; }
       input,select,textarea { width:100%; min-height:44px; border:1px solid #b8c5d3; border-radius:10px; padding:9px 11px; font:inherit; background:white; }
@@ -95,6 +95,22 @@
             <div class="dialog-actions"><button class="secondary" id="cancelAttendance" type="button">ยกเลิก</button><button class="secondary" id="previewAttendance" type="button">Preview</button><button class="primary" id="applyAttendance" type="button" hidden>บันทึก</button></div>
           </form></div>
         </section>
+        <section class="card leave-panel" id="leavePanel" hidden>
+          <div class="panel-head"><h2>การลา</h2><div class="search"><input id="leaveSearch" aria-label="ค้นหาคำขอลา" placeholder="ค้นชื่อ Request ID หรือประเภท"><button class="primary" id="leaveSearchButton" type="button">ค้นหา</button></div></div>
+          <label style="margin-top:12px">สถานะ<select id="leaveStatus"><option value="">ทุกสถานะ</option><option>รออนุมัติ</option><option>อนุมัติ</option><option>ปฏิเสธ</option><option>ยกเลิก</option></select></label>
+          <div class="attendance-list" id="leaveList"></div>
+          <div class="editor-card" id="leaveEditor" hidden><form class="dialog-body" id="leaveForm">
+            <h2 id="leaveTitle">จัดการคำขอลา</h2>
+            <div class="preview-box" id="leaveDetails"></div>
+            <label>การดำเนินการ<select id="leaveAction"><option value="APPROVE">อนุมัติ</option><option value="REJECT">ปฏิเสธ</option><option value="CANCEL">ยกเลิกคำขอ</option></select></label>
+            <label id="leaveRejectionWrap" hidden>เหตุผลที่ไม่อนุมัติ<textarea id="leaveRejectionReason" maxlength="500" rows="3"></textarea></label>
+            <label id="leaveCancellationWrap" hidden>เหตุผลการยกเลิก<textarea id="leaveCancellationReason" maxlength="500" rows="3"></textarea></label>
+            <label>เหตุผลการแก้ไขสำหรับ Audit<textarea id="leaveAuditReason" required minlength="3" maxlength="300" rows="3"></textarea></label>
+            <div id="leaveConfirmationWrap" hidden><label>พิมพ์คำว่า ยืนยัน<input id="leaveConfirmation" autocomplete="off"></label></div>
+            <div class="preview-box" id="leavePreview" hidden></div>
+            <div class="dialog-actions"><button class="secondary" id="cancelLeaveEdit" type="button">ยกเลิก</button><button class="secondary" id="previewLeave" type="button">Preview</button><button class="primary" id="applyLeave" type="button" hidden>บันทึก</button></div>
+          </form></div>
+        </section>
       </main>
     </div>
     <iframe id="bridge" title="Admin backend bridge" hidden></iframe>
@@ -115,6 +131,8 @@
       let employeePlan = null;
       let selectedAttendance = null;
       let attendancePlan = null;
+      let selectedLeave = null;
+      let leavePlan = null;
       document.getElementById("refreshButton").addEventListener("click", loadOverview);
       document.getElementById("employeeSearchButton").addEventListener("click", loadEmployees);
       document.getElementById("cancelEdit").addEventListener("click", closeEmployeeDialog);
@@ -124,6 +142,12 @@
       document.getElementById("cancelAttendance").addEventListener("click", closeAttendanceEditor);
       document.getElementById("previewAttendance").addEventListener("click", previewAttendanceEdit);
       document.getElementById("applyAttendance").addEventListener("click", applyAttendanceEdit);
+      document.getElementById("leaveSearchButton").addEventListener("click", loadLeaveRequests);
+      document.getElementById("leaveStatus").addEventListener("change", loadLeaveRequests);
+      document.getElementById("leaveAction").addEventListener("change", updateLeaveActionFields);
+      document.getElementById("cancelLeaveEdit").addEventListener("click", closeLeaveEditor);
+      document.getElementById("previewLeave").addEventListener("click", previewLeaveDecision);
+      document.getElementById("applyLeave").addEventListener("click", applyLeaveDecision);
       window.addEventListener("message", receiveBridgeMessage);
       start();
 
@@ -225,6 +249,7 @@
           card.dataset.key = item.key;
           if (item.key === "employees" && item.ready) card.addEventListener("click", openEmployees);
           if (item.key === "attendance" && item.ready) card.addEventListener("click", openAttendance);
+          if (item.key === "leave" && item.ready) card.addEventListener("click", openLeave);
           return card;
         }));
         setStatus("ยืนยันสิทธิ์ Admin แล้ว · อัปเดต " + new Date(data.generatedAt).toLocaleString("th-TH"), false);
@@ -393,6 +418,102 @@
       function timeInputValue(value) { return value ? value.slice(0,8) : ""; }
       function localDateInput(date) { const offset=date.getTimezoneOffset()*60000; return new Date(date-offset).toISOString().slice(0,10); }
       function closeAttendanceEditor() { document.getElementById("attendanceEditor").hidden=true; }
+
+      async function openLeave() {
+        document.getElementById("leavePanel").hidden=false;
+        await loadLeaveRequests();
+        document.getElementById("leavePanel").scrollIntoView({ behavior:"smooth", block:"start" });
+      }
+
+      async function loadLeaveRequests() {
+        closeLeaveEditor();
+        const list=document.getElementById("leaveList"); list.textContent="กำลังโหลด…";
+        try {
+          const items=await callBackend("getAdminLeaveRequests", { query:document.getElementById("leaveSearch").value,
+            status:document.getElementById("leaveStatus").value });
+          if (!items.length) { list.textContent="ไม่พบคำขอลา"; return; }
+          list.replaceChildren(...items.map(function(item) {
+            const row=document.createElement("article"); row.className="attendance-row";
+            const name=document.createElement("strong"); name.textContent=item.employeeName;
+            const date=document.createElement("span"); date.className="employee-meta"; date.textContent=formatLeaveDateRange(item);
+            const meta=document.createElement("span"); meta.className="employee-meta"; meta.textContent=item.type+" · "+item.days+" วัน · "+item.status;
+            const edit=document.createElement("button"); edit.type="button"; edit.className="secondary"; edit.textContent="จัดการ";
+            edit.addEventListener("click",function(){ openLeaveEditor(item); }); row.append(name,date,meta,edit); return row;
+          }));
+        } catch(error) { list.textContent=error.message || String(error); }
+      }
+
+      function openLeaveEditor(item) {
+        selectedLeave=item; leavePlan=null;
+        document.getElementById("leaveTitle").textContent="จัดการคำขอลา · "+item.employeeName;
+        document.getElementById("leaveDetails").textContent=summarizeLeave(item);
+        const action=document.getElementById("leaveAction");
+        action.value=item.status === "รออนุมัติ" ? "APPROVE" : "CANCEL";
+        Array.from(action.options).forEach(function(option) {
+          option.disabled=(option.value !== "CANCEL" && item.status !== "รออนุมัติ") ||
+            (option.value === "CANCEL" && ["รออนุมัติ","อนุมัติ"].indexOf(item.status) < 0);
+        });
+        document.getElementById("leaveRejectionReason").value="";
+        document.getElementById("leaveCancellationReason").value="";
+        document.getElementById("leaveAuditReason").value="";
+        document.getElementById("leaveConfirmation").value="";
+        document.getElementById("leaveConfirmationWrap").hidden=true;
+        document.getElementById("leavePreview").hidden=true;
+        document.getElementById("applyLeave").hidden=true;
+        updateLeaveActionFields();
+        const editor=document.getElementById("leaveEditor"); editor.hidden=false;
+        editor.scrollIntoView({ behavior:"smooth", block:"start" });
+      }
+
+      function updateLeaveActionFields() {
+        const action=document.getElementById("leaveAction").value;
+        document.getElementById("leaveRejectionWrap").hidden=action!=="REJECT";
+        document.getElementById("leaveCancellationWrap").hidden=action!=="CANCEL";
+        leavePlan=null; document.getElementById("leavePreview").hidden=true; document.getElementById("applyLeave").hidden=true;
+      }
+
+      function leaveDraft() {
+        return { action:document.getElementById("leaveAction").value,
+          rejectionReason:document.getElementById("leaveRejectionReason").value,
+          cancellationReason:document.getElementById("leaveCancellationReason").value };
+      }
+
+      async function previewLeaveDecision() {
+        if (!selectedLeave) return;
+        try {
+          leavePlan=await callBackend("previewAdminLeaveDecision", { recordId:selectedLeave.requestId,
+            draft:leaveDraft(), reason:document.getElementById("leaveAuditReason").value });
+          const box=document.getElementById("leavePreview");
+          box.textContent="ก่อน: "+summarizeLeave(leavePlan.before)+"\nหลัง: "+summarizeLeave(leavePlan.after);
+          box.hidden=false; document.getElementById("leaveConfirmationWrap").hidden=false;
+          document.getElementById("applyLeave").hidden=false;
+        } catch(error) { showError(error); }
+      }
+
+      async function applyLeaveDecision() {
+        if (!leavePlan) return;
+        try {
+          const result=await callBackend("applyAdminLeaveDecision", { recordId:selectedLeave.requestId,
+            draft:{ action:leavePlan.action, rejectionReason:leavePlan.after.rejectionReason,
+              cancellationReason:leavePlan.after.cancellationReason }, reason:leavePlan.reason,
+            expectedBefore:leavePlan.before, confirmation:document.getElementById("leaveConfirmation").value,
+            requestId:createRequestId() });
+          closeLeaveEditor();
+          const warnings=[];
+          if (result.employeeNotification && result.employeeNotification.status !== "sent") warnings.push("แจ้งพนักงาน: "+result.employeeNotification.status);
+          if (result.managerRichMenu && result.managerRichMenu.status !== "synced") warnings.push("Rich Menu: "+result.managerRichMenu.status);
+          setStatus(result.duplicate?"คำขอนี้บันทึกไว้แล้ว":"บันทึกสถานะการลาและ Audit Log แล้ว"+(warnings.length?" · "+warnings.join(" · "):""),false);
+          await loadLeaveRequests();
+        } catch(error) { showError(error); }
+      }
+
+      function formatLeaveDateRange(item) { return item.startDate === item.endDate ? item.startDate : item.startDate+" ถึง "+item.endDate; }
+      function summarizeLeave(item) {
+        return [item.requestId,item.employeeName,formatLeaveDateRange(item),item.type,item.days+" วัน",item.period,item.status,
+          item.rejectionReason?"เหตุผลไม่อนุมัติ: "+item.rejectionReason:"",
+          item.cancellationReason?"เหตุผลยกเลิก: "+item.cancellationReason:""] .filter(Boolean).join(" · ");
+      }
+      function closeLeaveEditor() { document.getElementById("leaveEditor").hidden=true; }
 
       function setStatus(message, error) { const box=document.getElementById("status"); box.textContent=message; box.classList.toggle("error",!!error); }
       function showError(error) { setStatus(error && error.message ? error.message : String(error), true); }
