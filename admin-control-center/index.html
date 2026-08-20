@@ -25,8 +25,10 @@
       .module h2 { margin:0 0 8px; font-size:1.05rem; } .detail { color:var(--muted); font-size:.9rem; line-height:1.5; }
       .badge { align-self:flex-start; margin-top:16px; padding:5px 9px; border-radius:999px; font-size:.78rem; font-weight:700; }
       .ready { color:var(--green); background:#e8f5ee; } .not-ready { color:var(--amber); background:#fff3cd; }
-      .module[data-key="employees"],.module[data-key="attendance"],.module[data-key="leave"] { cursor:pointer; border-color:#9bc2e6; }
-      .employee-panel,.attendance-panel,.leave-panel { margin-top:22px; padding:18px; }
+      .module[data-key="employees"],.module[data-key="attendance"],.module[data-key="leave"],.module[data-key="calendar"] { cursor:pointer; border-color:#9bc2e6; }
+      .employee-panel,.attendance-panel,.leave-panel,.calendar-panel { margin-top:22px; padding:18px; }
+      .calendar-days { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:16px; }
+      .calendar-day { padding:10px; border:1px solid var(--line); border-radius:10px; }
       .panel-head { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
       .panel-head h2 { margin:0; } .search { display:flex; gap:8px; flex:1; max-width:460px; }
       input,select,textarea { width:100%; min-height:44px; border:1px solid #b8c5d3; border-radius:10px; padding:9px 11px; font:inherit; background:white; }
@@ -43,7 +45,7 @@
       .preview-box { margin-top:14px; padding:12px; border-radius:10px; background:#f4f7fb; white-space:pre-wrap; font-size:.86rem; }
       [hidden] { display:none !important; }
       @media (max-width:820px) { .modules { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-      @media (max-width:600px) { .profile,.modules,.form-grid { grid-template-columns:1fr; } .module { min-height:124px; } .employee-row,.attendance-row { grid-template-columns:1fr auto; } .employee-row .employee-meta,.attendance-row .employee-meta { grid-column:1; } }
+      @media (max-width:600px) { .profile,.modules,.form-grid { grid-template-columns:1fr; } .calendar-days { grid-template-columns:repeat(2,minmax(0,1fr)); } .module { min-height:124px; } .employee-row,.attendance-row { grid-template-columns:1fr auto; } .employee-row .employee-meta,.attendance-row .employee-meta { grid-column:1; } }
     </style>
   </head>
   <body>
@@ -111,6 +113,18 @@
             <div class="dialog-actions"><button class="secondary" id="cancelLeaveEdit" type="button">ยกเลิก</button><button class="secondary" id="previewLeave" type="button">Preview</button><button class="primary" id="applyLeave" type="button" hidden>บันทึก</button></div>
           </form></div>
         </section>
+        <section class="card calendar-panel" id="calendarPanel" hidden>
+          <div class="panel-head"><h2>ปฏิทินการทำงาน</h2></div>
+          <div class="form-grid"><label>เดือน<input id="calendarMonth" type="month"></label><label>กลุ่มงาน<select id="calendarGroup"><option>สกรีน</option><option>ผลิต</option><option>ขนส่ง</option><option>ออฟฟิต</option></select></label></div>
+          <button class="secondary" id="loadCalendar" type="button">โหลดปฏิทิน</button>
+          <div class="employee-meta" id="calendarSheetName"></div><div class="calendar-days" id="calendarDays"></div>
+          <div class="editor-card" id="calendarActions" hidden><div class="dialog-body">
+            <label>เหตุผลการแก้ไข<textarea id="calendarReason" minlength="3" maxlength="300" rows="3"></textarea></label>
+            <div id="calendarConfirmationWrap" hidden><label>พิมพ์คำว่า ยืนยัน<input id="calendarConfirmation"></label></div>
+            <div class="preview-box" id="calendarPreview" hidden></div>
+            <div class="dialog-actions"><button class="secondary" id="previewCalendar" type="button">Preview</button><button class="primary" id="applyCalendar" type="button" hidden>บันทึก</button></div>
+          </div></div>
+        </section>
       </main>
     </div>
     <iframe id="bridge" title="Admin backend bridge" hidden></iframe>
@@ -133,6 +147,8 @@
       let attendancePlan = null;
       let selectedLeave = null;
       let leavePlan = null;
+      let calendarData = null;
+      let calendarPlan = null;
       document.getElementById("refreshButton").addEventListener("click", loadOverview);
       document.getElementById("employeeSearchButton").addEventListener("click", loadEmployees);
       document.getElementById("cancelEdit").addEventListener("click", closeEmployeeDialog);
@@ -148,6 +164,9 @@
       document.getElementById("cancelLeaveEdit").addEventListener("click", closeLeaveEditor);
       document.getElementById("previewLeave").addEventListener("click", previewLeaveDecision);
       document.getElementById("applyLeave").addEventListener("click", applyLeaveDecision);
+      document.getElementById("loadCalendar").addEventListener("click", loadCalendar);
+      document.getElementById("previewCalendar").addEventListener("click", previewCalendar);
+      document.getElementById("applyCalendar").addEventListener("click", applyCalendar);
       window.addEventListener("message", receiveBridgeMessage);
       start();
 
@@ -250,6 +269,7 @@
           if (item.key === "employees" && item.ready) card.addEventListener("click", openEmployees);
           if (item.key === "attendance" && item.ready) card.addEventListener("click", openAttendance);
           if (item.key === "leave" && item.ready) card.addEventListener("click", openLeave);
+          if (item.key === "calendar" && item.ready) card.addEventListener("click", openCalendar);
           return card;
         }));
         setStatus("ยืนยันสิทธิ์ Admin แล้ว · อัปเดต " + new Date(data.generatedAt).toLocaleString("th-TH"), false);
@@ -514,6 +534,12 @@
           item.cancellationReason?"เหตุผลยกเลิก: "+item.cancellationReason:""] .filter(Boolean).join(" · ");
       }
       function closeLeaveEditor() { document.getElementById("leaveEditor").hidden=true; }
+
+      async function openCalendar(){const today=new Date();if(!document.getElementById("calendarMonth").value)document.getElementById("calendarMonth").value=localDateInput(today).slice(0,7);document.getElementById("calendarPanel").hidden=false;await loadCalendar();document.getElementById("calendarPanel").scrollIntoView({behavior:"smooth",block:"start"});}
+      async function loadCalendar(){const box=document.getElementById("calendarDays");box.textContent="กำลังโหลด…";calendarPlan=null;try{calendarData=await callBackend("getAdminWorkCalendar",{month:document.getElementById("calendarMonth").value,workGroup:document.getElementById("calendarGroup").value});document.getElementById("calendarSheetName").textContent="แหล่งข้อมูล: "+calendarData.sheetName;box.replaceChildren(...calendarData.days.map(function(day){const card=document.createElement("label");card.className="calendar-day";card.append(document.createTextNode(day.date));const select=document.createElement("select");select.dataset.date=day.date;["เต็มวัน","ครึ่งวัน","หยุด"].forEach(function(status){const option=document.createElement("option");option.textContent=status;option.value=status;select.append(option);});select.value=day.status;select.addEventListener("change",function(){calendarPlan=null;document.getElementById("calendarPreview").hidden=true;document.getElementById("applyCalendar").hidden=true;});card.append(select);return card;}));document.getElementById("calendarActions").hidden=false;}catch(error){box.textContent=error.message||String(error);}}
+      function calendarDraft(){return Array.from(document.querySelectorAll("#calendarDays select")).map(function(select){return{date:select.dataset.date,status:select.value};});}
+      async function previewCalendar(){try{calendarPlan=await callBackend("previewAdminWorkCalendarUpdate",{month:calendarData.month,workGroup:calendarData.workGroup,days:calendarDraft(),reason:document.getElementById("calendarReason").value});const box=document.getElementById("calendarPreview");box.textContent=calendarPlan.changes.map(function(change){return change.date+": "+change.originalStatus+" → "+change.status;}).join("\n");box.hidden=false;document.getElementById("calendarConfirmationWrap").hidden=false;document.getElementById("applyCalendar").hidden=false;}catch(error){showError(error);}}
+      async function applyCalendar(){if(!calendarPlan)return;try{const result=await callBackend("applyAdminWorkCalendarUpdate",{month:calendarPlan.month,workGroup:calendarPlan.workGroup,days:calendarPlan.after.days,reason:calendarPlan.reason,expectedBefore:calendarPlan.before,confirmation:document.getElementById("calendarConfirmation").value,requestId:createRequestId()});setStatus("บันทึกปฏิทิน "+result.changedCount+" วันและ Audit Log แล้ว"+(result.notification&&result.notification.status!=="sent"?" · LINE: "+result.notification.status:""),false);document.getElementById("calendarConfirmation").value="";document.getElementById("calendarReason").value="";await loadCalendar();}catch(error){showError(error);}}
 
       function setStatus(message, error) { const box=document.getElementById("status"); box.textContent=message; box.classList.toggle("error",!!error); }
       function showError(error) { setStatus(error && error.message ? error.message : String(error), true); }
