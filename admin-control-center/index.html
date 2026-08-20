@@ -35,8 +35,7 @@
       .employee-list { display:grid; gap:10px; margin-top:16px; }
       .employee-row { display:grid; grid-template-columns:1.4fr .8fr .8fr auto; gap:10px; align-items:center; padding:13px; border:1px solid var(--line); border-radius:11px; }
       .employee-meta { color:var(--muted); font-size:.86rem; }
-      .editor-overlay { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:12px; background:#10213c99; }
-      .editor-card { width:min(650px,100%); max-height:calc(100dvh - 24px); overflow:auto; border-radius:16px; background:white; box-shadow:0 20px 60px #0005; }
+      .editor-card { width:100%; margin-top:18px; border:1px solid #9bc2e6; border-radius:14px; background:#f9fbfd; }
       .dialog-body { padding:20px; }
       .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; } label { display:grid; gap:5px; color:var(--muted); font-size:.86rem; }
       .check { display:flex; align-items:center; gap:9px; min-height:44px; color:var(--ink); } .check input { width:20px; min-height:20px; }
@@ -62,24 +61,24 @@
         <section class="card employee-panel" id="employeePanel" hidden>
           <div class="panel-head"><h2>พนักงานและสิทธิ์</h2><div class="search"><input id="employeeSearch" aria-label="ค้นหาพนักงาน" placeholder="ค้นชื่อ รหัส หรือกลุ่มงาน"><button class="primary" id="employeeSearchButton" type="button">ค้นหา</button></div></div>
           <div class="employee-list" id="employeeList"></div>
+          <div class="editor-card" id="employeeDialog" hidden><form class="dialog-body" id="employeeForm">
+            <h2 id="dialogTitle">แก้ไขพนักงาน</h2>
+            <div class="form-grid">
+              <label>ชื่อพนักงาน<input id="editName" required maxlength="100"></label>
+              <label>รหัสพนักงาน<input id="editCode" required maxlength="50"></label>
+              <label>Role<select id="editRole"><option value="employee">employee</option><option value="manager">manager</option></select></label>
+              <label>กลุ่มงาน<input id="editGroups" placeholder="ผลิต, สกรีน"></label>
+              <label>กลุ่มงานหลัก<input id="editPrimaryGroup"></label>
+              <div><label class="check"><input id="editActive" type="checkbox"> Active</label><label class="check"><input id="editAdmin" type="checkbox"> Admin</label></div>
+            </div>
+            <label>เหตุผล<textarea id="editReason" required minlength="3" maxlength="300" rows="3"></textarea></label>
+            <div id="confirmationWrap" hidden><label>พิมพ์คำว่า ยืนยัน<input id="editConfirmation" autocomplete="off"></label></div>
+            <div class="preview-box" id="employeePreview" hidden></div>
+            <div class="dialog-actions"><button class="secondary" id="cancelEdit" type="button">ยกเลิก</button><button class="secondary" id="previewEdit" type="button">Preview</button><button class="primary" id="applyEdit" type="button" hidden>บันทึก</button></div>
+          </form></div>
         </section>
       </main>
     </div>
-    <div class="editor-overlay" id="employeeDialog" hidden><div class="editor-card"><form class="dialog-body" id="employeeForm">
-      <h2 id="dialogTitle">แก้ไขพนักงาน</h2>
-      <div class="form-grid">
-        <label>ชื่อพนักงาน<input id="editName" required maxlength="100"></label>
-        <label>รหัสพนักงาน<input id="editCode" required maxlength="50"></label>
-        <label>Role<select id="editRole"><option value="employee">employee</option><option value="manager">manager</option></select></label>
-        <label>กลุ่มงาน<input id="editGroups" placeholder="ผลิต, สกรีน"></label>
-        <label>กลุ่มงานหลัก<input id="editPrimaryGroup"></label>
-        <div><label class="check"><input id="editActive" type="checkbox"> Active</label><label class="check"><input id="editAdmin" type="checkbox"> Admin</label></div>
-      </div>
-      <label>เหตุผล<textarea id="editReason" required minlength="3" maxlength="300" rows="3"></textarea></label>
-      <div id="confirmationWrap" hidden><label>พิมพ์คำว่า ยืนยัน<input id="editConfirmation" autocomplete="off"></label></div>
-      <div class="preview-box" id="employeePreview" hidden></div>
-      <div class="dialog-actions"><button class="secondary" id="cancelEdit" type="button">ยกเลิก</button><button class="secondary" id="previewEdit" type="button">Preview</button><button class="primary" id="applyEdit" type="button" hidden>บันทึก</button></div>
-    </form></div></div>
     <iframe id="bridge" title="Admin backend bridge" hidden></iframe>
     <script>
       const params = new URLSearchParams(location.search);
@@ -212,7 +211,9 @@
         document.getElementById("confirmationWrap").hidden=true;
         document.getElementById("employeePreview").hidden=true;
         document.getElementById("applyEdit").hidden=true;
-        document.getElementById("employeeDialog").hidden = false;
+        const editor = document.getElementById("employeeDialog");
+        editor.hidden = false;
+        editor.scrollIntoView({ behavior:"smooth", block:"start" });
       }
 
       function employeeDraft() {
