@@ -82,12 +82,13 @@
     <iframe id="bridge" title="Admin backend bridge" hidden></iframe>
     <script>
       const params = new URLSearchParams(location.search);
-      const DEFAULT_BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzQXDl8Kav9Jmh_PtFmrGSKexHhaqzZC_0sw5mTotSbSeS2dL1qRVfn2KvPyC6FwTsldw/exec";
+      const DEFAULT_BRIDGE_URL = "https://script.google.com/macros/s/AKfycbzQXDl8Kav9Jmh_PtFmrGSKexHhaqzZC_0sw5mTotSbSeS2dL1qRVfn2KvPyC6FwTsldw/exec?mode=bridge";
       const BRIDGE_URL = params.get("bridge") || DEFAULT_BRIDGE_URL;
       const FRONTEND_SOURCE = "admin-center-frontend";
       const BRIDGE_SOURCE = "admin-center-bridge";
       const pending = new Map();
       let bridgeOrigin = "";
+      let expectedBridgeOrigin = "";
       let idToken = "";
       let liffId = "";
       let selectedEmployee = null;
@@ -103,7 +104,7 @@
       async function start() {
         try {
           if (!BRIDGE_URL) throw new Error("URL นี้ยังไม่มีค่า bridge");
-          bridgeOrigin = new URL(BRIDGE_URL).origin;
+          expectedBridgeOrigin = new URL(BRIDGE_URL).origin;
           document.getElementById("bridge").src = BRIDGE_URL;
           await waitForBridge();
           await initializeLiffWithTimeout(liffId);
@@ -147,11 +148,23 @@
       }
 
       function receiveBridgeMessage(event) {
-        if (event.origin !== bridgeOrigin || !event.data || event.data.source !== BRIDGE_SOURCE) return;
-        if (event.data.type === "ready") { liffId = event.data.liffId; if (window.bridgeReady) window.bridgeReady(); return; }
+        if (!isTrustedBridgeEvent(event) || !event.data || event.data.source !== BRIDGE_SOURCE) return;
+        if (event.data.type === "ready") {
+          bridgeOrigin = event.origin;
+          liffId = event.data.liffId;
+          if (window.bridgeReady) window.bridgeReady();
+          return;
+        }
         const request = pending.get(event.data.id); if (!request) return;
         pending.delete(event.data.id);
         event.data.ok ? request.resolve(event.data.result) : request.reject(new Error(event.data.error));
+      }
+
+      function isTrustedBridgeEvent(event) {
+        const iframe = document.getElementById("bridge");
+        if (event.source !== iframe.contentWindow) return false;
+        if (event.origin === expectedBridgeOrigin) return true;
+        return /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/.test(event.origin);
       }
 
       function renderOverview(data) {
