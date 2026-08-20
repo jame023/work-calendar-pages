@@ -94,7 +94,7 @@
       let employeePlan = null;
       document.getElementById("refreshButton").addEventListener("click", loadOverview);
       document.getElementById("employeeSearchButton").addEventListener("click", loadEmployees);
-      document.getElementById("cancelEdit").addEventListener("click", function() { document.getElementById("employeeDialog").close(); });
+      document.getElementById("cancelEdit").addEventListener("click", closeEmployeeDialog);
       document.getElementById("previewEdit").addEventListener("click", previewEmployeeEdit);
       document.getElementById("applyEdit").addEventListener("click", applyEmployeeEdit);
       window.addEventListener("message", receiveBridgeMessage);
@@ -211,7 +211,13 @@
         document.getElementById("confirmationWrap").hidden=true;
         document.getElementById("employeePreview").hidden=true;
         document.getElementById("applyEdit").hidden=true;
-        document.getElementById("employeeDialog").showModal();
+        const dialog = document.getElementById("employeeDialog");
+        try {
+          if (typeof dialog.showModal === "function") dialog.showModal();
+          else dialog.setAttribute("open", "");
+        } catch (error) {
+          dialog.setAttribute("open", "");
+        }
       }
 
       function employeeDraft() {
@@ -238,7 +244,7 @@
           const result=await callBackend("applyAdminEmployeeUpdate", { recordId:selectedEmployee.recordId, draft:employeePlan.after,
             reason:employeePlan.reason, expectedBefore:employeePlan.before, confirmation:document.getElementById("editConfirmation").value,
             requestId:createRequestId() });
-          document.getElementById("employeeDialog").close();
+          closeEmployeeDialog();
           setStatus(result.duplicate ? "คำขอนี้บันทึกไว้แล้ว" : "บันทึกข้อมูลพนักงานและ Audit Log แล้ว", false);
           await loadEmployees();
         } catch(error) { showError(error); }
@@ -246,6 +252,11 @@
 
       function summarizeEmployee(item) { return [item.employeeName,item.employeeCode,item.role,item.active?"Active":"ปิดใช้งาน",item.admin?"Admin":"ไม่ใช่ Admin",item.workGroups||"ไม่มีกลุ่ม"].join(" · "); }
       function createRequestId() { return "ADMIN-" + Date.now() + "-" + Math.random().toString(16).slice(2); }
+      function closeEmployeeDialog() {
+        const dialog = document.getElementById("employeeDialog");
+        if (typeof dialog.close === "function") dialog.close();
+        else dialog.removeAttribute("open");
+      }
 
       function setStatus(message, error) { const box=document.getElementById("status"); box.textContent=message; box.classList.toggle("error",!!error); }
       function showError(error) { setStatus(error && error.message ? error.message : String(error), true); }
