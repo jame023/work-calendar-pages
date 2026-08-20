@@ -35,8 +35,9 @@
       .employee-list { display:grid; gap:10px; margin-top:16px; }
       .employee-row { display:grid; grid-template-columns:1.4fr .8fr .8fr auto; gap:10px; align-items:center; padding:13px; border:1px solid var(--line); border-radius:11px; }
       .employee-meta { color:var(--muted); font-size:.86rem; }
-      dialog { width:min(650px,calc(100% - 24px)); max-height:calc(100dvh - 24px); border:0; border-radius:16px; padding:0; overflow:auto; box-shadow:0 20px 60px #0005; }
-      dialog::backdrop { background:#10213c99; } .dialog-body { padding:20px; }
+      .editor-overlay { position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:12px; background:#10213c99; }
+      .editor-card { width:min(650px,100%); max-height:calc(100dvh - 24px); overflow:auto; border-radius:16px; background:white; box-shadow:0 20px 60px #0005; }
+      .dialog-body { padding:20px; }
       .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; } label { display:grid; gap:5px; color:var(--muted); font-size:.86rem; }
       .check { display:flex; align-items:center; gap:9px; min-height:44px; color:var(--ink); } .check input { width:20px; min-height:20px; }
       .dialog-actions { position:sticky; bottom:0; display:flex; justify-content:flex-end; gap:9px; margin:18px -20px -20px; padding:12px 20px; border-top:1px solid var(--line); background:white; }
@@ -64,7 +65,7 @@
         </section>
       </main>
     </div>
-    <dialog id="employeeDialog"><form class="dialog-body" id="employeeForm" method="dialog">
+    <div class="editor-overlay" id="employeeDialog" hidden><div class="editor-card"><form class="dialog-body" id="employeeForm">
       <h2 id="dialogTitle">แก้ไขพนักงาน</h2>
       <div class="form-grid">
         <label>ชื่อพนักงาน<input id="editName" required maxlength="100"></label>
@@ -78,7 +79,7 @@
       <div id="confirmationWrap" hidden><label>พิมพ์คำว่า ยืนยัน<input id="editConfirmation" autocomplete="off"></label></div>
       <div class="preview-box" id="employeePreview" hidden></div>
       <div class="dialog-actions"><button class="secondary" id="cancelEdit" type="button">ยกเลิก</button><button class="secondary" id="previewEdit" type="button">Preview</button><button class="primary" id="applyEdit" type="button" hidden>บันทึก</button></div>
-    </form></dialog>
+    </form></div></div>
     <iframe id="bridge" title="Admin backend bridge" hidden></iframe>
     <script>
       const params = new URLSearchParams(location.search);
@@ -211,13 +212,7 @@
         document.getElementById("confirmationWrap").hidden=true;
         document.getElementById("employeePreview").hidden=true;
         document.getElementById("applyEdit").hidden=true;
-        const dialog = document.getElementById("employeeDialog");
-        try {
-          if (typeof dialog.showModal === "function") dialog.showModal();
-          else dialog.setAttribute("open", "");
-        } catch (error) {
-          dialog.setAttribute("open", "");
-        }
+        document.getElementById("employeeDialog").hidden = false;
       }
 
       function employeeDraft() {
@@ -253,9 +248,7 @@
       function summarizeEmployee(item) { return [item.employeeName,item.employeeCode,item.role,item.active?"Active":"ปิดใช้งาน",item.admin?"Admin":"ไม่ใช่ Admin",item.workGroups||"ไม่มีกลุ่ม"].join(" · "); }
       function createRequestId() { return "ADMIN-" + Date.now() + "-" + Math.random().toString(16).slice(2); }
       function closeEmployeeDialog() {
-        const dialog = document.getElementById("employeeDialog");
-        if (typeof dialog.close === "function") dialog.close();
-        else dialog.removeAttribute("open");
+        document.getElementById("employeeDialog").hidden = true;
       }
 
       function setStatus(message, error) { const box=document.getElementById("status"); box.textContent=message; box.classList.toggle("error",!!error); }
