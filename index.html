@@ -331,8 +331,7 @@
     <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
       <div class="loading-panel">
         <span class="loading-spinner" aria-hidden="true"></span>
-        <strong>กำลังโหลดข้อมูล</strong>
-        <span>กรุณารอสักครู่…</span>
+        <strong>กำลังโหลดข้อมูล…</strong>
       </div>
     </div>
 
@@ -885,6 +884,7 @@
             elements.loadingOverlay.classList.add("show");
             elements.loadingOverlay.setAttribute("aria-hidden", "false");
             document.body.classList.add("is-busy");
+            document.body.setAttribute("aria-busy", "true");
           }
         } else {
           busyDepth = Math.max(0, busyDepth - 1);
@@ -902,6 +902,7 @@
           elements.loadingOverlay.classList.remove("show");
           elements.loadingOverlay.setAttribute("aria-hidden", "true");
           document.body.classList.remove("is-busy");
+          document.body.setAttribute("aria-busy", "false");
           busyHideTimer = 0;
         }, remaining);
       }
