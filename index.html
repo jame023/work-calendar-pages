@@ -353,6 +353,9 @@
       let bridgeWindow = null;
       let bridgeLiffId = "";
       let requestNumber = 0;
+      let busyDepth = 0;
+      let busyShownAt = 0;
+      let busyHideTimer = 0;
       let resolveBridge;
       const bridgeReady = new Promise(function(resolve) {
         resolveBridge = resolve;
@@ -873,15 +876,34 @@
       }
 
       function setBusy(busy) {
+        if (busy) {
+          busyDepth += 1;
+          window.clearTimeout(busyHideTimer);
+          busyHideTimer = 0;
+          if (!elements.loadingOverlay.classList.contains("show")) {
+            busyShownAt = performance.now();
+            elements.loadingOverlay.classList.add("show");
+            elements.loadingOverlay.setAttribute("aria-hidden", "false");
+            document.body.classList.add("is-busy");
+          }
+        } else {
+          busyDepth = Math.max(0, busyDepth - 1);
+        }
         [
           elements.workGroupInput,elements.monthInput,elements.loadButton,elements.saveButton,
           elements.previewButton,elements.sendButton,elements.discardButton
         ].concat(targetWorkGroupInputs).forEach(function(element) {
-          element.disabled = busy;
+          element.disabled = busyDepth > 0;
         });
-        elements.loadingOverlay.classList.toggle("show", busy);
-        elements.loadingOverlay.setAttribute("aria-hidden", busy ? "false" : "true");
-        document.body.classList.toggle("is-busy", busy);
+        if (busy || busyDepth > 0) return;
+        const remaining = Math.max(0, 650 - (performance.now() - busyShownAt));
+        busyHideTimer = window.setTimeout(function() {
+          if (busyDepth > 0) return;
+          elements.loadingOverlay.classList.remove("show");
+          elements.loadingOverlay.setAttribute("aria-hidden", "true");
+          document.body.classList.remove("is-busy");
+          busyHideTimer = 0;
+        }, remaining);
       }
 
       function showStatus(message, type) {
