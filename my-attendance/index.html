@@ -360,7 +360,7 @@
         opacity: 0;
         pointer-events: none;
       }
-      .loading-overlay { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 20%); opacity:0; pointer-events:none; backdrop-filter:blur(2px); transition:opacity .18s ease-out; }
+      .loading-overlay { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:20px; background:#12305a33; opacity:0; pointer-events:none; backdrop-filter:blur(2px); transition:opacity .18s ease-out; }
       .loading-overlay.show { opacity:1; pointer-events:auto; }
       .loading-panel { display:flex; align-items:center; gap:12px; max-width:calc(100vw - 32px); padding:15px 18px; border-radius:12px; background:#fff; color:#071b33; box-shadow:0 12px 32px rgb(18 48 90 / 21%); font-size:20px; font-weight:700; line-height:1.4; }
       .loading-spinner { width:22px; height:22px; flex:0 0 22px; border:3px solid #cbd8e3; border-top-color:#1f6feb; border-radius:50%; animation:ui-spin .8s linear infinite; }
@@ -635,6 +635,8 @@
       }
 
       function callBackend(action, payload) {
+        showLoading("กำลังโหลดข้อมูล…");
+
         return new Promise(function(resolve, reject) {
           const requestId = "request-" + (++requestNumber);
           const timer = window.setTimeout(function() {
@@ -671,18 +673,30 @@
         ].join("\n");
 
         document.getElementById("myOverviewTab").addEventListener("click", function() {
-          activateManagerTab("employee");
-          renderEmployeeOverview(state.employeeOverview, true);
+          switchManagerView("employee");
         });
 
         document.getElementById("managerOverviewTab").addEventListener("click", function() {
-          activateManagerTab("manager");
-          renderManagerOverview(state.managerOverview);
+          switchManagerView("manager");
         });
 
         showApplication();
         activateManagerTab("manager");
         renderManagerOverview(state.managerOverview);
+      }
+
+      function switchManagerView(view) {
+        showLoading("กำลังโหลดข้อมูล…");
+        window.requestAnimationFrame(function() {
+          window.setTimeout(function() {
+            activateManagerTab(view);
+            if (view === "employee") {
+              renderEmployeeOverview(state.employeeOverview, true);
+            } else {
+              renderManagerOverview(state.managerOverview);
+            }
+          }, 180);
+        });
       }
 
       function activateManagerTab(activeTab) {
