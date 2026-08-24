@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>จัดการวันทำงาน</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link rel="stylesheet" href="./work-calendar-tailwind.css">
     <style>
       :root {
         --navy:#16324f;
@@ -228,8 +229,16 @@
   <body>
     <main class="page">
       <section class="header">
-        <h1>จัดการวันทำงาน</h1>
-        <p class="muted" id="signedInName">กำลังตรวจสอบสิทธิ์ผู้บริหารผ่าน LINE…</p>
+        <div class="brand-lockup">
+          <div class="app-logo" aria-hidden="true">
+            <img src="https://raw.githubusercontent.com/jame023/work-calendar-pages/main/assets/sip-iget-logo.png" alt="" width="96" height="52">
+          </div>
+          <div class="brand-copy">
+            <p class="eyebrow">ระบบบริหารงาน</p>
+            <h1>จัดการวันทำงาน</h1>
+            <p class="muted" id="signedInName">กำลังตรวจสอบสิทธิ์ผู้บริหารผ่าน LINE…</p>
+          </div>
+        </div>
       </section>
 
       <div class="status info" id="statusBox">กำลังเชื่อมต่อระบบ…</div>
@@ -302,7 +311,7 @@
         </div>
       </section>
 
-      <section class="card" id="notificationCard">
+      <section class="card notification-card" id="notificationCard">
         <h2>ตัวอย่างข้อความแจ้งผู้รับ</h2>
         <p class="muted" id="recipientCount">ผู้รับไม่ซ้ำ 0 คน</p>
         <pre class="preview-message" id="previewMessage"></pre>
@@ -318,6 +327,14 @@
     </main>
 
     <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
+
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
+      <div class="loading-panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <strong>กำลังโหลดข้อมูล</strong>
+        <span>กรุณารอสักครู่…</span>
+      </div>
+    </div>
 
     <script>
       const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzHZX3vWjGXouACldLUbujIZPJ7-Sd8ia4vSmDqW69YkgLFf4xOxCTOF3tcpg_grQ6d/exec";
@@ -347,7 +364,7 @@
         "fullCount","halfCount",
         "offCount","calendarGrid","saveButton","previewButton","notificationCard",
         "recipientCount","previewMessage","recipientList","sendButton","discardButton",
-        "notificationNote","backendFrame"
+        "notificationNote","backendFrame","loadingOverlay"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
       });
@@ -862,6 +879,9 @@
         ].concat(targetWorkGroupInputs).forEach(function(element) {
           element.disabled = busy;
         });
+        elements.loadingOverlay.classList.toggle("show", busy);
+        elements.loadingOverlay.setAttribute("aria-hidden", busy ? "false" : "true");
+        document.body.classList.toggle("is-busy", busy);
       }
 
       function showStatus(message, type) {
