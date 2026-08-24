@@ -194,6 +194,11 @@
         opacity:.01;
         pointer-events:none;
       }
+      .loading-overlay { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 20%); opacity:0; pointer-events:none; backdrop-filter:blur(2px); transition:opacity .18s ease-out; }
+      .loading-overlay.show { opacity:1; pointer-events:auto; }
+      .loading-panel { display:flex; align-items:center; gap:12px; max-width:calc(100vw - 32px); padding:15px 18px; border-radius:12px; background:#fff; color:#071b33; box-shadow:0 12px 32px rgb(18 48 90 / 21%); font-size:20px; font-weight:700; line-height:1.4; }
+      .loading-spinner { width:22px; height:22px; flex:0 0 22px; border:3px solid #cbd8e3; border-top-color:#1f6feb; border-radius:50%; animation:ui-spin .8s linear infinite; }
+      body.is-busy { overflow:hidden; }
       @media(max-width:700px) {
         .page { padding:10px; }
         .header,.card { padding:14px; border-radius:12px; }
@@ -211,7 +216,7 @@
         .page { width:100%; max-width:100%; margin:0; padding:0 0 max(24px,env(safe-area-inset-bottom)); }
         .header { display:flex; align-items:center; gap:12px; border-radius:0; padding:max(16px,env(safe-area-inset-top)) 16px 16px; border-color:#d7dee7; box-shadow:0 8px 24px rgb(22 50 79 / 8%); }
         .header::before { display:none; }
-        .header-logo { width:128px; min-width:128px; height:60px; padding:3px; border-radius:12px; object-fit:cover; }
+        .header-logo { display:block; width:128px; min-width:128px; height:60px; padding:3px; border:1px solid #cbd8e3; border-radius:12px; background:#fff; box-shadow:0 7px 20px rgb(7 27 51 / 9%); object-fit:cover; }
         .header-copy { min-width:0; }
         h1 { color:#16324f; font-size:20px; line-height:1.15; }
         .header .muted { font-size:20px; line-height:1.35; }
@@ -324,6 +329,9 @@
       </div>
     </main>
 
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
+      <div class="loading-panel"><span class="loading-spinner" aria-hidden="true"></span><span>กำลังโหลดข้อมูล…</span></div>
+    </div>
     <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
 
     <script>
@@ -353,7 +361,7 @@
         "leaveEndDate","leaveType",
         "leaveDays","leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
         "cancelledManagerCard","cancelledList",
-        "monthInput","loadButton","calendarGrid","ownRequestList","backendFrame"
+        "monthInput","loadButton","calendarGrid","ownRequestList","loadingOverlay","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
       });
@@ -786,6 +794,9 @@
       }
 
       function setBusy(busy) {
+        elements.loadingOverlay.classList.toggle("show", busy);
+        elements.loadingOverlay.setAttribute("aria-hidden", String(!busy));
+        document.body.classList.toggle("is-busy", busy);
         [
           elements.leaveStartDate,elements.leaveEndDate,
           elements.leaveType,elements.leaveDays,
@@ -934,6 +945,7 @@
         }
         button.disabled = true;
         button.textContent = "กำลังโหลดรูป…";
+        setBusy(true);
         try {
           const images = await callBackend("getLeaveRequestImages", { requestId:requestId });
           images.forEach(function(image, index) {
@@ -948,6 +960,7 @@
           showStatus(messageOf(error), "error");
           button.textContent = "ลองโหลดรูปอีกครั้ง";
         } finally {
+          setBusy(false);
           button.disabled = false;
         }
       }

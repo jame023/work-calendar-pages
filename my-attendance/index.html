@@ -360,6 +360,11 @@
         opacity: 0;
         pointer-events: none;
       }
+      .loading-overlay { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 20%); opacity:0; pointer-events:none; backdrop-filter:blur(2px); transition:opacity .18s ease-out; }
+      .loading-overlay.show { opacity:1; pointer-events:auto; }
+      .loading-panel { display:flex; align-items:center; gap:12px; max-width:calc(100vw - 32px); padding:15px 18px; border-radius:12px; background:#fff; color:#071b33; box-shadow:0 12px 32px rgb(18 48 90 / 21%); font-size:20px; font-weight:700; line-height:1.4; }
+      .loading-spinner { width:22px; height:22px; flex:0 0 22px; border:3px solid #cbd8e3; border-top-color:#1f6feb; border-radius:50%; animation:ui-spin .8s linear infinite; }
+      body.is-busy { overflow:hidden; }
 
       .pending-detail {
         padding: 2px 0;
@@ -440,7 +445,7 @@
       @media (max-width: 960px) {
         body { width:100vw; max-width:100vw; overflow-x:hidden; background:#f3f6fa; color:#17202b; font-size:20px; line-height:1.4; }
         header { display:flex; align-items:center; gap:12px; padding:max(16px,env(safe-area-inset-top)) 16px 16px; border-color:#d7dee7; background:#fff; box-shadow:0 8px 24px rgb(22 50 79 / 8%); text-align:left; }
-        .header-logo { width:128px; min-width:128px; height:60px; padding:3px; border-radius:12px; object-fit:cover; }
+        .header-logo { display:block; width:128px; min-width:128px; height:60px; padding:3px; border:1px solid #cbd8e3; border-radius:12px; background:#fff; box-shadow:0 7px 20px rgb(7 27 51 / 9%); object-fit:cover; }
         h1 { min-width:0; color:#16324f; font-size:20px; line-height:1.15; }
         h2,.profile strong,.row-title { font-size:20px; line-height:1.4; }
         main { width:100%; max-width:100%; margin:0; padding:0 0 190px; }
@@ -472,6 +477,10 @@
       รีเฟรชข้อมูล
     </button>
 
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
+      <div class="loading-panel"><span class="loading-spinner" aria-hidden="true"></span><span id="loadingText">กำลังโหลดข้อมูล…</span></div>
+    </div>
+
     <iframe
       id="backendFrame"
       class="backend-frame"
@@ -487,6 +496,8 @@
       const statusMessage = document.getElementById("statusMessage");
       const app = document.getElementById("app");
       const refreshButton = document.getElementById("refreshButton");
+      const loadingOverlay = document.getElementById("loadingOverlay");
+      const loadingText = document.getElementById("loadingText");
       const backendFrame = document.getElementById("backendFrame");
 
       const state = {
@@ -1004,18 +1015,28 @@
 
       function showLoading(message) {
         statusMessage.textContent = message;
+        loadingText.textContent = message;
+        loadingOverlay.classList.add("show");
+        loadingOverlay.setAttribute("aria-hidden", "false");
+        document.body.classList.add("is-busy");
         statusMessage.classList.remove("hidden");
         app.classList.add("hidden");
         refreshButton.classList.add("hidden");
       }
 
       function showApplication() {
+        loadingOverlay.classList.remove("show");
+        loadingOverlay.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("is-busy");
         statusMessage.classList.add("hidden");
         app.classList.remove("hidden");
         refreshButton.classList.remove("hidden");
       }
 
       function showError(error) {
+        loadingOverlay.classList.remove("show");
+        loadingOverlay.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("is-busy");
         statusMessage.textContent = error && error.message
           ? error.message
           : String(error);
