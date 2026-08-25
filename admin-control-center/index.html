@@ -232,6 +232,7 @@
       const BRIDGE_URL = params.get("bridge") || DEFAULT_BRIDGE_URL;
       const FRONTEND_SOURCE = "admin-center-frontend";
       const BRIDGE_SOURCE = "admin-center-bridge";
+      const LINE_REAUTH_KEY = "admin-line-reauth-attempt";
       const pending = new Map();
       const bridgeNonce = createBridgeNonce();
       let bridgeOrigin = "";
@@ -351,8 +352,30 @@
         setStatus("กำลังตรวจสิทธิ์และโหลดภาพรวม…", false);
         try {
           const data = await callBackend("getAdminBootstrap", {});
+          sessionStorage.removeItem(LINE_REAUTH_KEY);
           renderOverview(data);
-        } catch (error) { showError(error); }
+        } catch (error) { if (!recoverExpiredLineToken(error)) showError(error); }
+      }
+
+      function recoverExpiredLineToken(error) {
+        const message=error&&error.message?error.message:String(error||"");
+        if (message.indexOf("LINE_AUTH:TOKEN_EXPIRED")<0) return false;
+        if (sessionStorage.getItem(LINE_REAUTH_KEY)==="1") {
+          sessionStorage.removeItem(LINE_REAUTH_KEY);
+          return false;
+        }
+        sessionStorage.setItem(LINE_REAUTH_KEY,"1");
+        idToken="";
+        setStatus("เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…",false);
+        try { liff.logout(); } catch (logoutError) {}
+        liff.login({redirectUri:buildLineReauthUrl()});
+        return true;
+      }
+
+      function buildLineReauthUrl() {
+        const url=new URL(location.href);
+        ["code","state","liff.state","error","error_description"].forEach(function(name){url.searchParams.delete(name);});
+        return url.toString();
       }
 
       function callBackend(action, payload) {
