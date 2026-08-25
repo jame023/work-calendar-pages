@@ -132,7 +132,7 @@
       <header><div class="header-row"><div class="brand-lockup"><img class="brand-logo" src="Gemini_Generated_Image_o60g52o60g52o60g.png" alt="SIP i-GET Smart Integration Platform"><div class="brand-copy"><h1>Admin Control Center</h1><div class="subtitle">ศูนย์ดูแลทุกระบบ</div></div></div><button class="refresh" id="refreshButton" type="button">รีเฟรช</button></div></header>
       <main>
         <div class="status" id="status" role="status" aria-live="polite">กำลังเชื่อมต่อระบบ…</div>
-        <section class="workspace-bar" aria-label="ทางลัดสำหรับผู้ดูแล">
+        <section class="workspace-bar" aria-label="ทางลัดสำหรับผู้ดูแล" hidden>
           <div class="workspace-copy"><strong>พื้นที่ควบคุมงาน</strong><span>เลือกโมดูลเพื่อค้นหา ตรวจสอบ และดำเนินการ</span></div>
           <nav class="quick-nav" aria-label="ไปยังโมดูล">
             <button type="button" data-module-target="employees">พนักงาน</button><button type="button" data-module-target="attendance">เวลาเข้า–ออก</button><button type="button" data-module-target="leave">การลา</button><button type="button" data-module-target="calendar">ปฏิทิน</button><button type="button" data-module-target="production">ผลิต</button><button type="button" data-module-target="work">สกรีน</button><button type="button" data-module-target="delivery">จัดส่ง</button><button type="button" data-module-target="count">COUNT</button><button type="button" data-module-target="audit">Audit</button>
@@ -252,7 +252,10 @@
       let selectedDelivery=null,deliveryPlan=null;
       let selectedCount=null,countPlan=null;
       let activeRequests=0;
-      document.getElementById("refreshButton").addEventListener("click", loadOverview);
+      let activeModuleKey="";
+      const MODULE_PANEL_IDS={employees:"employeePanel",attendance:"attendancePanel",leave:"leavePanel",calendar:"calendarPanel",audit:"auditPanel",production:"productionPanel",work:"screenPanel",delivery:"deliveryPanel",count:"countPanel"};
+      const MODULE_OPENERS={employees:openEmployees,attendance:openAttendance,leave:openLeave,calendar:openCalendar,audit:openAuditTimeline,production:openProduction,work:openScreenSessions,delivery:openDelivery,count:openCount};
+      document.getElementById("refreshButton").addEventListener("click",refreshOverview);
       document.getElementById("employeeSearchButton").addEventListener("click", loadEmployees);
       document.getElementById("cancelEdit").addEventListener("click", closeEmployeeDialog);
       document.getElementById("previewEdit").addEventListener("click", previewEmployeeEdit);
@@ -311,8 +314,9 @@
           ["audit","ประวัติการแก้ไข","ค้นหา Request ID และตรวจ before/after ของทุก action"]
         ].map(function(item){return{key:item[0],title:item[1],detail:item[2],ready:true};});
         renderOverview({profile:{employeeName:"Jame",lineDisplayName:"Admin Preview"},modules:previewModules,generatedAt:new Date().toISOString()});
-        setStatus("โหมดตรวจ UI · ไม่เชื่อมต่อข้อมูลจริง",false);
       }
+
+      function refreshOverview(){resetModuleHome();window.scrollTo({top:0,behavior:"smooth"});return PREVIEW_MODE?startPreview():loadOverview();}
 
       async function start() {
         try {
@@ -384,6 +388,44 @@
         card.click();
       }
 
+      async function toggleModule(key) {
+        const panelId=MODULE_PANEL_IDS[key];
+        const opener=MODULE_OPENERS[key];
+        if (!panelId || !opener) return;
+        if (activeModuleKey===key && !document.getElementById(panelId).hidden) {
+          resetModuleHome();
+          document.getElementById("modules").scrollIntoView({behavior:"smooth",block:"start"});
+          return;
+        }
+        closeAllModulePanels();
+        activeModuleKey=key;
+        updateModuleExpandedState();
+        await opener();
+      }
+
+      function resetModuleHome() {
+        closeAllModulePanels();
+        setStatus("",false);
+      }
+
+      function closeAllModulePanels() {
+        Object.values(MODULE_PANEL_IDS).forEach(function(panelId){document.getElementById(panelId).hidden=true;});
+        ["employeeDialog","attendanceEditor","leaveEditor","calendarActions","productionEditor","screenEditor","deliveryEditor","countEditor"].forEach(function(editorId){const editor=document.getElementById(editorId);if(editor)editor.hidden=true;});
+        activeModuleKey="";
+        updateModuleExpandedState();
+      }
+
+      function updateModuleExpandedState() {
+        document.querySelectorAll(".module[data-key]").forEach(function(card){
+          const expanded=card.dataset.key===activeModuleKey;
+          card.setAttribute("aria-expanded",expanded?"true":"false");
+          const actionText=card.querySelector(".module-action span:first-child");
+          const arrow=card.querySelector(".module-arrow");
+          if(actionText)actionText.textContent=expanded?"ปิดข้อมูล":"เปิดจัดการข้อมูล";
+          if(arrow)arrow.textContent=expanded?"↑":"→";
+        });
+      }
+
       function updateBackToTop(){document.getElementById("backToTop").classList.toggle("visible",window.scrollY>520);}
 
       function updateBusyState(){const busy=activeRequests>0;document.body.classList.toggle("busy",busy);document.body.setAttribute("aria-busy",busy?"true":"false");document.getElementById("busyOverlay").hidden=!busy;}
@@ -423,9 +465,10 @@
       function renderOverview(data) {
         document.getElementById("employeeName").textContent = data.profile.employeeName || "-";
         document.getElementById("lineName").textContent = data.profile.lineDisplayName || "-";
-        document.getElementById("profile").style.display = "grid";
+        document.getElementById("profile").style.display = "";
         document.getElementById("policy").textContent = "ทุกการแก้ไขต้อง Preview ระบุเหตุผล และบันทึก Audit Log · ไม่มี hard delete";
-        document.getElementById("policy").hidden = false;
+        document.getElementById("policy").hidden = true;
+        resetModuleHome();
         const moduleLabels={employees:"บุคคล",attendance:"เวลา",leave:"ลา",calendar:"วัน",production:"ผลิต",work:"สกรีน",delivery:"ส่ง",count:"นับ",audit:"LOG"};
         document.getElementById("modules").replaceChildren(...data.modules.map(function(item) {
           const card = document.createElement("article"); card.className = "card module";
@@ -438,19 +481,10 @@
           const action=document.createElement("div");action.className="module-action";const actionText=document.createElement("span");actionText.textContent=item.ready?"เปิดจัดการข้อมูล":"รอการตั้งค่าระบบ";const arrow=document.createElement("span");arrow.className="module-arrow";arrow.textContent="→";action.append(actionText,arrow);
           top.append(icon,badge);card.append(top,content,action);
           card.dataset.key = item.key;
-          if (item.key === "employees" && item.ready) card.addEventListener("click", openEmployees);
-          if (item.key === "attendance" && item.ready) card.addEventListener("click", openAttendance);
-          if (item.key === "leave" && item.ready) card.addEventListener("click", openLeave);
-          if (item.key === "calendar" && item.ready) card.addEventListener("click", openCalendar);
-          if (item.key === "audit" && item.ready) card.addEventListener("click", openAuditTimeline);
-          if (item.key === "production" && item.ready) card.addEventListener("click",openProduction);
-          if (item.key === "work" && item.ready) card.addEventListener("click",openScreenSessions);
-          if (item.key === "delivery" && item.ready) card.addEventListener("click",openDelivery);
-          if (item.key === "count" && item.ready) card.addEventListener("click",openCount);
-          if(item.ready){card.tabIndex=0;card.setAttribute("role","button");card.setAttribute("aria-label","เปิด "+item.title);card.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();card.click();}});}
+          if(item.ready){card.addEventListener("click",function(){toggleModule(item.key);});card.tabIndex=0;card.setAttribute("role","button");card.setAttribute("aria-label","เปิดหรือปิด "+item.title);card.setAttribute("aria-controls",MODULE_PANEL_IDS[item.key]);card.setAttribute("aria-expanded","false");card.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();card.click();}});}
           return card;
         }));
-        setStatus("ยืนยันสิทธิ์ Admin แล้ว · อัปเดต " + new Date(data.generatedAt).toLocaleString("th-TH"), false);
+        setStatus("", false);
       }
 
       async function openEmployees() {
@@ -755,7 +789,7 @@
       async function previewCount(){try{countPlan=await callBackend("previewAdminCountUpdate",{recordId:selectedCount.countRequestId,draft:countDraft(),reason:document.getElementById("countReason").value});const box=document.getElementById("countPreview");box.textContent="ก่อน: "+summarizeCount(countPlan.before)+"\nหลัง: "+summarizeCount(countPlan.after);box.hidden=false;document.getElementById("countConfirmationWrap").hidden=!countPlan.requiresConfirmation;document.getElementById("applyCount").hidden=false;}catch(error){showError(error);}}
       async function applyCount(){if(!countPlan)return;try{const result=await callBackend("applyAdminCountUpdate",{recordId:selectedCount.countRequestId,draft:countPlan.after,reason:countPlan.reason,expectedBefore:countPlan.before,confirmation:document.getElementById("countConfirmation").value,requestId:createRequestId()});document.getElementById("countEditor").hidden=true;setStatus(result.duplicate?"คำขอนี้บันทึกไว้แล้ว":"บันทึก COUNT และ Audit Log แล้ว",false);await loadCount();}catch(error){showError(error);}}
 
-      function setStatus(message, error) { const box=document.getElementById("status"); box.textContent=message; box.classList.toggle("error",!!error); }
+      function setStatus(message, error) { const box=document.getElementById("status"); box.textContent=message; box.hidden=!message; box.classList.toggle("error",!!error); }
       function showError(error) { setStatus(error && error.message ? error.message : String(error), true); }
     </script>
   </body>
