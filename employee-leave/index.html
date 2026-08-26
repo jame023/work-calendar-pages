@@ -66,6 +66,54 @@
       input,select { min-height:48px; }
       textarea { min-height:96px; resize:vertical; }
       .full-width { grid-column:1 / -1; }
+      .leave-date-selector {
+        grid-column:1 / -1;
+        border:1px solid #cbd9e8;
+        border-radius:14px;
+        padding:14px;
+        background:#f8fbff;
+      }
+      .leave-date-selector-head {
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:12px;
+        margin-bottom:11px;
+      }
+      .leave-date-selector-title { color:var(--navy); font-weight:850; }
+      .leave-date-help { display:block; margin-top:3px; color:#627083; font-size:13px; }
+      .leave-date-list { display:grid; gap:9px; }
+      .leave-date-row {
+        display:grid;
+        grid-template-columns:minmax(170px,1fr) minmax(210px,1.25fr) 88px;
+        gap:10px;
+        align-items:center;
+        border:1px solid var(--border);
+        border-left:5px solid var(--blue);
+        border-radius:11px;
+        padding:10px;
+        background:#fff;
+      }
+      .leave-date-row.none { border-left-color:#8a97a6; background:#f5f7fa; }
+      .leave-date-label strong { display:block; color:var(--navy); }
+      .leave-date-label small { display:block; margin-top:2px; color:#6a7789; }
+      .leave-date-period { min-height:52px; margin:0; }
+      .leave-date-amount { color:#294e72; text-align:right; font-weight:850; white-space:nowrap; }
+      .leave-date-total {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        margin-top:11px;
+        border-radius:11px;
+        padding:12px 14px;
+        color:#0b5f3a;
+        background:#e8f8ef;
+        border:1px solid #b7e1c8;
+        font-weight:800;
+      }
+      .leave-date-total strong { font-size:20px; }
+      .set-all-full { flex:0 0 auto; min-height:42px; padding:7px 11px; }
       .actions { display:flex; gap:10px; margin-top:14px; }
       .primary,.secondary,.approve,.reject,.cancel-leave {
         min-height:48px;
@@ -107,6 +155,17 @@
         background:#f7faff;
       }
       .request-meta small { display:block; color:#6a7789; }
+      .request-day-details {
+        display:grid;
+        gap:6px;
+        margin-top:10px;
+        border-radius:10px;
+        padding:10px;
+        background:#edf5ff;
+      }
+      .request-day-details strong { color:var(--navy); }
+      .request-day-item { display:flex; justify-content:space-between; gap:10px; }
+      .request-day-item span:last-child { text-align:right; font-weight:750; }
       .decision-actions { display:flex; gap:8px; margin-top:10px; }
       .decision-actions button { flex:1; }
       .image-help { margin:7px 0 0; color:#627083; font-size:13px; font-weight:500; }
@@ -203,6 +262,14 @@
         .page { padding:10px; }
         .header,.card { padding:14px; border-radius:12px; }
         .form-grid,.calendar-toolbar { grid-template-columns:1fr; }
+        .leave-date-selector-head { align-items:stretch; flex-direction:column; }
+        .set-all-full { width:100%; }
+        .leave-date-row { grid-template-columns:minmax(0,1fr) auto; }
+        .leave-date-period { grid-column:1 / -1; grid-row:2; min-height:56px; }
+        .leave-date-amount { grid-column:2; grid-row:1; }
+        .leave-date-total { align-items:flex-start; flex-direction:column; }
+        .request-day-item { align-items:flex-start; flex-direction:column; gap:1px; }
+        .request-day-item span:last-child { text-align:left; }
         .request-meta { grid-template-columns:1fr 1fr; }
         .actions,.decision-actions { flex-direction:column; }
         .actions button { width:100%; }
@@ -265,14 +332,22 @@
                 ประเภทการลา
                 <select id="leaveType" required></select>
               </label>
-              <label>
-                ช่วงลา
-                <select id="leaveDays" required>
-                  <option value="1" data-period="เต็มวัน">เต็มวัน</option>
-                  <option value="0.5" data-period="ครึ่งวันเช้า">ครึ่งวัน (เช้า)</option>
-                  <option value="0.5" data-period="ครึ่งวันบ่าย">ครึ่งวัน (บ่าย)</option>
-                </select>
-              </label>
+              <div class="leave-date-selector">
+                <div class="leave-date-selector-head">
+                  <div>
+                    <span class="leave-date-selector-title">กำหนดช่วงลาแต่ละวัน</span>
+                    <span class="leave-date-help">ระบบสร้างรายการจากวันเริ่มลา–วันสิ้นสุดให้อัตโนมัติ</span>
+                  </div>
+                  <button class="secondary set-all-full" id="setAllFullButton" type="button">
+                    เต็มวันทั้งหมด
+                  </button>
+                </div>
+                <div class="leave-date-list" id="leaveDateList"></div>
+                <div class="leave-date-total" aria-live="polite">
+                  <span id="leaveDateCount">0 วันที่เลือกลา</span>
+                  <strong id="leaveTotalDays">รวม 0 วัน</strong>
+                </div>
+              </div>
               <label class="full-width">
                 เหตุผล
                 <textarea id="leaveReason" maxlength="500" required
@@ -345,8 +420,15 @@
         calendar:[],
         ownRequests:[],
         pendingRequests:[],
-        cancelledRequests:[]
+        cancelledRequests:[],
+        leaveDatePeriods:{}
       };
+      const LEAVE_PERIOD_OPTIONS = [
+        { value:"full", label:"เต็มวัน", amount:1 },
+        { value:"morning", label:"ครึ่งวันเช้า", amount:0.5 },
+        { value:"afternoon", label:"ครึ่งวันบ่าย", amount:0.5 },
+        { value:"none", label:"ไม่ลา", amount:0 }
+      ];
       const pendingCalls = new Map();
       const selectedImages = [];
       let bridgeWindow = null;
@@ -359,7 +441,8 @@
       [
         "profileText","statusBox","app","leaveForm","leaveStartDate",
         "leaveEndDate","leaveType",
-        "leaveDays","leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
+        "leaveDateList","leaveDateCount","leaveTotalDays","setAllFullButton",
+        "leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
         "cancelledManagerCard","cancelledList",
         "monthInput","loadButton","calendarGrid","ownRequestList","loadingOverlay","backendFrame"
       ].forEach(function(id) {
@@ -369,8 +452,9 @@
       window.addEventListener("message", receiveBridgeMessage);
       window.addEventListener("load", initialize);
       elements.leaveForm.addEventListener("submit", submitLeave);
-      elements.leaveStartDate.addEventListener("change", updateLeaveRangeRules);
-      elements.leaveDays.addEventListener("change", updateLeaveRangeRules);
+      elements.leaveStartDate.addEventListener("change", renderLeaveDateRows);
+      elements.leaveEndDate.addEventListener("change", renderLeaveDateRows);
+      elements.setAllFullButton.addEventListener("click", setAllLeaveDatesFull);
       elements.leaveImages.addEventListener("change", selectLeaveImages);
       elements.loadButton.addEventListener("click", loadData);
       elements.monthInput.addEventListener("change", loadData);
@@ -393,7 +477,7 @@
           elements.monthInput.value = currentMonthText();
           elements.leaveStartDate.value = todayText();
           elements.leaveEndDate.value = todayText();
-          updateLeaveRangeRules();
+          renderLeaveDateRows();
           await loadData();
           elements.app.style.display = "block";
         } catch (error) {
@@ -430,12 +514,22 @@
 
       async function submitLeave(event) {
         event.preventDefault();
+        const dates = collectLeaveDateInputs();
+        const totalDays = dates.reduce(function(total, item) {
+          return total + periodAmount(item.period);
+        }, 0);
+        if (!dates.length || totalDays <= 0) {
+          showStatus("กรุณาเลือกช่วงลาอย่างน้อย 1 วัน", "error");
+          const firstPeriodSelect = elements.leaveDateList.querySelector("select");
+          if (firstPeriodSelect) firstPeriodSelect.focus();
+          return;
+        }
         const input = {
           startDate:elements.leaveStartDate.value,
           endDate:elements.leaveEndDate.value,
           type:elements.leaveType.value,
-          days:Number(elements.leaveDays.value),
-          period:elements.leaveDays.selectedOptions[0].dataset.period,
+          dates:dates,
+          totalDays:totalDays,
           reason:elements.leaveReason.value,
           images:selectedImages.map(function(image) {
             return { name:image.name, mimeType:image.mimeType, base64:image.base64 };
@@ -444,8 +538,9 @@
         const confirmed = window.confirm(
           "ยืนยันส่งคำขอลา?\n" +
           formatDisplayDateRange(input.startDate, input.endDate) + " · " +
-          input.type + " · " +
-          formatLeaveDayCount(input.days, input.period)
+          input.type + "\n" +
+          formatLeaveDateSelection(input.dates) + "\n" +
+          "รวม " + formatTotalLeaveDays(totalDays)
         );
         if (!confirmed) return;
 
@@ -637,6 +732,26 @@
           });
           card.appendChild(meta);
 
+          if (Array.isArray(row.leaveItems) && row.leaveItems.length) {
+            const details = document.createElement("div");
+            details.className = "request-day-details";
+            const detailsTitle = document.createElement("strong");
+            detailsTitle.textContent = "รายละเอียดรายวัน";
+            details.appendChild(detailsTitle);
+            row.leaveItems.forEach(function(item) {
+              const detail = document.createElement("div");
+              detail.className = "request-day-item";
+              const date = document.createElement("span");
+              date.textContent = formatDisplayDate(item.date);
+              const period = document.createElement("span");
+              period.textContent = item.label || periodLabel(item.period);
+              detail.appendChild(date);
+              detail.appendChild(period);
+              details.appendChild(detail);
+            });
+            card.appendChild(details);
+          }
+
           if (row.imageCount) {
             const imageNote = document.createElement("p");
             imageNote.className = "image-help";
@@ -799,23 +914,172 @@
         document.body.classList.toggle("is-busy", busy);
         [
           elements.leaveStartDate,elements.leaveEndDate,
-          elements.leaveType,elements.leaveDays,
+          elements.leaveType,elements.setAllFullButton,
           elements.leaveReason,elements.leaveImages,elements.submitButton,elements.monthInput,
           elements.loadButton
         ].forEach(function(element) { element.disabled = busy; });
-        if (!busy) updateLeaveRangeRules();
+        elements.leaveDateList.querySelectorAll("select").forEach(function(select) {
+          select.disabled = busy;
+        });
       }
 
-      function updateLeaveRangeRules() {
-        const halfDay = Number(elements.leaveDays.value) === 0.5;
+      function renderLeaveDateRows() {
         const startDate = elements.leaveStartDate.value;
-        if (halfDay && startDate) elements.leaveEndDate.value = startDate;
         if (startDate && (!elements.leaveEndDate.value ||
             elements.leaveEndDate.value < startDate)) {
           elements.leaveEndDate.value = startDate;
         }
         elements.leaveEndDate.min = startDate || "";
-        elements.leaveEndDate.disabled = halfDay || elements.submitButton.disabled;
+        const dates = enumerateLeaveDates(startDate, elements.leaveEndDate.value);
+        elements.leaveDateList.replaceChildren();
+
+        dates.forEach(function(date) {
+          if (!Object.prototype.hasOwnProperty.call(state.leaveDatePeriods, date)) {
+            state.leaveDatePeriods[date] = "full";
+          }
+          const row = document.createElement("div");
+          row.className = "leave-date-row";
+          row.dataset.date = date;
+
+          const dateLabel = document.createElement("div");
+          dateLabel.className = "leave-date-label";
+          const dateText = document.createElement("strong");
+          dateText.textContent = formatDisplayDate(date);
+          const weekdayText = document.createElement("small");
+          weekdayText.textContent = formatThaiWeekday(date);
+          dateLabel.appendChild(dateText);
+          dateLabel.appendChild(weekdayText);
+
+          const select = document.createElement("select");
+          select.className = "leave-date-period";
+          select.setAttribute("aria-label", "ช่วงลาวันที่ " + formatDisplayDate(date));
+          LEAVE_PERIOD_OPTIONS.forEach(function(period) {
+            const option = document.createElement("option");
+            option.value = period.value;
+            option.textContent = period.label;
+            select.appendChild(option);
+          });
+          select.value = state.leaveDatePeriods[date];
+
+          const amount = document.createElement("div");
+          amount.className = "leave-date-amount";
+          amount.textContent = formatPeriodAmount(select.value);
+          row.classList.toggle("none", select.value === "none");
+          select.addEventListener("change", function() {
+            state.leaveDatePeriods[date] = select.value;
+            amount.textContent = formatPeriodAmount(select.value);
+            row.classList.toggle("none", select.value === "none");
+            updateLeaveDateTotal();
+          });
+
+          row.appendChild(dateLabel);
+          row.appendChild(select);
+          row.appendChild(amount);
+          elements.leaveDateList.appendChild(row);
+        });
+        updateLeaveDateTotal();
+      }
+
+      function enumerateLeaveDates(startDate, endDate) {
+        const start = parseIsoDate(startDate);
+        const end = parseIsoDate(endDate);
+        if (!start || !end || start > end) return [];
+        const dates = [];
+        const current = new Date(start.getTime());
+        while (current <= end && dates.length < 366) {
+          dates.push(toIsoDate(current));
+          current.setDate(current.getDate() + 1);
+        }
+        return dates;
+      }
+
+      function parseIsoDate(value) {
+        const parts = String(value || "").split("-").map(Number);
+        if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+        const date = new Date(parts[0], parts[1] - 1, parts[2], 12);
+        return date.getFullYear() === parts[0] &&
+          date.getMonth() === parts[1] - 1 && date.getDate() === parts[2]
+          ? date : null;
+      }
+
+      function toIsoDate(date) {
+        return date.getFullYear() + "-" +
+          String(date.getMonth() + 1).padStart(2, "0") + "-" +
+          String(date.getDate()).padStart(2, "0");
+      }
+
+      function formatThaiWeekday(dateText) {
+        const date = parseIsoDate(dateText);
+        return date ? new Intl.DateTimeFormat("th-TH", { weekday:"long" }).format(date) : "";
+      }
+
+      function periodOption(periodCode) {
+        return LEAVE_PERIOD_OPTIONS.find(function(period) {
+          return period.value === periodCode;
+        }) || null;
+      }
+
+      function periodAmount(periodCode) {
+        const period = periodOption(periodCode);
+        return period ? period.amount : 0;
+      }
+
+      function periodLabel(periodCode) {
+        const period = periodOption(periodCode);
+        return period ? period.label : "ไม่ถูกต้อง";
+      }
+
+      function formatPeriodAmount(periodCode) {
+        return periodAmount(periodCode).toLocaleString("th-TH", {
+          minimumFractionDigits:1,
+          maximumFractionDigits:1
+        }) + " วัน";
+      }
+
+      function collectLeaveDateInputs() {
+        return enumerateLeaveDates(
+          elements.leaveStartDate.value,
+          elements.leaveEndDate.value
+        ).map(function(date) {
+          const period = state.leaveDatePeriods[date] || "full";
+          return { date:date, period:period, amount:periodAmount(period) };
+        });
+      }
+
+      function updateLeaveDateTotal() {
+        const dates = collectLeaveDateInputs();
+        const selectedCount = dates.filter(function(item) {
+          return item.period !== "none";
+        }).length;
+        const totalDays = dates.reduce(function(total, item) {
+          return total + periodAmount(item.period);
+        }, 0);
+        elements.leaveDateCount.textContent = selectedCount + " วันที่เลือกลา";
+        elements.leaveTotalDays.textContent = "รวม " + formatTotalLeaveDays(totalDays);
+      }
+
+      function setAllLeaveDatesFull() {
+        enumerateLeaveDates(
+          elements.leaveStartDate.value,
+          elements.leaveEndDate.value
+        ).forEach(function(date) {
+          state.leaveDatePeriods[date] = "full";
+        });
+        renderLeaveDateRows();
+      }
+
+      function formatLeaveDateSelection(dates) {
+        return (dates || []).filter(function(item) {
+          return item.period !== "none";
+        }).map(function(item) {
+          return formatDisplayDate(item.date) + " — " + periodLabel(item.period);
+        }).join("\n");
+      }
+
+      function formatTotalLeaveDays(days) {
+        return Number(days || 0).toLocaleString("th-TH", {
+          maximumFractionDigits:1
+        }) + " วัน";
       }
 
       async function selectLeaveImages(event) {
@@ -986,7 +1250,7 @@
       function formatLeaveDayCount(days, period) {
         const value = Number(days);
         if (value === 0.5) return period || "ครึ่งวัน";
-        if (value === 1) return "เต็มวัน";
+        if (value === 1 && (!period || period === "เต็มวัน")) return "เต็มวัน";
         return value + " วัน";
       }
 
