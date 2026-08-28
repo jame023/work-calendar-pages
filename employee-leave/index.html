@@ -257,6 +257,15 @@
       .loading-overlay.show { opacity:1; pointer-events:auto; }
       .loading-panel { display:flex; align-items:center; gap:12px; max-width:calc(100vw - 32px); padding:15px 18px; border-radius:12px; background:#fff; color:#071b33; box-shadow:0 12px 32px rgb(18 48 90 / 21%); font-size:20px; font-weight:700; line-height:1.4; }
       .loading-spinner { width:22px; height:22px; flex:0 0 22px; border:3px solid #cbd8e3; border-top-color:#1f6feb; border-radius:50%; animation:ui-spin .8s linear infinite; }
+      .notification-modal { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+      .notification-modal.show { opacity:1; pointer-events:auto; }
+      .notification-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+      .notification-modal.show .notification-panel { transform:none; }
+      .notification-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#fff1e8; color:#d85b00; font-size:42px; font-weight:800; }
+      .notification-title { margin-bottom:10px; color:#7d3100; font-size:24px; }
+      .notification-message { margin-bottom:22px; color:#354052; font-size:20px; line-height:1.55; white-space:pre-line; }
+      .notification-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
+      .notification-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
       body.is-busy { overflow:hidden; }
       @media(max-width:700px) {
         .page { padding:10px; }
@@ -407,6 +416,18 @@
     <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
       <div class="loading-panel"><span class="loading-spinner" aria-hidden="true"></span><span>กำลังโหลดข้อมูล…</span></div>
     </div>
+    <div class="notification-modal" id="notificationModal" role="alertdialog"
+      aria-modal="true" aria-labelledby="notificationTitle"
+      aria-describedby="notificationMessage" aria-hidden="true">
+      <div class="notification-panel">
+        <div class="notification-icon" aria-hidden="true">!</div>
+        <h2 class="notification-title" id="notificationTitle">ไม่สามารถส่งคำขอลาได้</h2>
+        <p class="notification-message" id="notificationMessage"></p>
+        <button class="notification-acknowledge" id="notificationAcknowledge" type="button">
+          รับทราบ
+        </button>
+      </div>
+    </div>
     <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
 
     <script>
@@ -444,7 +465,8 @@
         "leaveDateList","leaveDateCount","leaveTotalDays","setAllFullButton",
         "leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
         "cancelledManagerCard","cancelledList",
-        "monthInput","loadButton","calendarGrid","ownRequestList","loadingOverlay","backendFrame"
+        "monthInput","loadButton","calendarGrid","ownRequestList","loadingOverlay",
+        "notificationModal","notificationMessage","notificationAcknowledge","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
       });
@@ -458,6 +480,12 @@
       elements.leaveImages.addEventListener("change", selectLeaveImages);
       elements.loadButton.addEventListener("click", loadData);
       elements.monthInput.addEventListener("change", loadData);
+      elements.notificationAcknowledge.addEventListener("click", hideNotification);
+      document.addEventListener("keydown", function(event) {
+        if (event.key === "Escape" && elements.notificationModal.classList.contains("show")) {
+          hideNotification();
+        }
+      });
 
       async function initialize() {
         try {
@@ -561,7 +589,13 @@
           }
           await loadData();
         } catch (error) {
-          showStatus(messageOf(error), "error");
+          const errorMessage = messageOf(error);
+          if (errorMessage.includes("กรุณาติดต่อออฟฟิตหากต้องการขอลา")) {
+            showStatus("พร้อมรับคำขอลา", "success");
+            showNotification(errorMessage);
+          } else {
+            showStatus(errorMessage, "error");
+          }
         } finally {
           setBusy(false);
         }
@@ -585,7 +619,9 @@
         }
         const confirmed = window.confirm(
           "ยืนยัน" + decision + "คำขอนี้?\n" +
-          "ระบบจะแจ้งผลให้พนักงานทาง LINE"
+          (decision === "อนุมัติ"
+            ? "ระบบจะแจ้งผลให้พนักงานและผู้บริหารทุกคนทาง LINE"
+            : "ระบบจะแจ้งผลให้พนักงานทาง LINE")
         );
         if (!confirmed) return;
         setBusy(true);
@@ -597,13 +633,26 @@
             rejectionReason:rejectionReason
           });
           const notification = result.employeeNotification || {};
+          const managerNotification = result.managerApprovalNotification || {};
+          const notificationErrors = [];
           if (notification.status === "error") {
+            notificationErrors.push("แจ้งพนักงานไม่สำเร็จ: " + notification.error);
+          }
+          if (managerNotification.status === "error") {
+            notificationErrors.push("แจ้งผู้บริหารไม่สำเร็จ: " + managerNotification.error);
+          }
+          if (notificationErrors.length) {
             showStatus(
-              "บันทึกผลแล้ว แต่แจ้งพนักงานไม่สำเร็จ: " + notification.error,
+              "บันทึกผลแล้ว แต่" + notificationErrors.join(" และ "),
               "error"
             );
           } else {
-            showStatus("บันทึกผลและแจ้งพนักงานแล้ว", "success");
+            showStatus(
+              decision === "อนุมัติ"
+                ? "บันทึกผลและแจ้งพนักงานกับผู้บริหารทุกคนแล้ว"
+                : "บันทึกผลและแจ้งพนักงานแล้ว",
+              "success"
+            );
           }
           await loadData();
         } catch (error) {
@@ -1270,6 +1319,19 @@
       function showStatus(message, type) {
         elements.statusBox.textContent = message;
         elements.statusBox.className = "status " + type;
+      }
+
+      function showNotification(message) {
+        elements.notificationMessage.textContent = message;
+        elements.notificationModal.classList.add("show");
+        elements.notificationModal.setAttribute("aria-hidden", "false");
+        elements.notificationAcknowledge.focus();
+      }
+
+      function hideNotification() {
+        elements.notificationModal.classList.remove("show");
+        elements.notificationModal.setAttribute("aria-hidden", "true");
+        elements.submitButton.focus();
       }
 
       function messageOf(error) {
