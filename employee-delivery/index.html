@@ -1,0 +1,669 @@
+<!doctype html><html lang="th"><head><base target="_top"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="../work-calendar-tailwind.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  .save-success-modal { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+  .save-success-modal.show { opacity:1; pointer-events:auto; }
+  .save-success-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+  .save-success-modal.show .save-success-panel { transform:none; }
+  .save-success-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#eaf8ef; color:#16803a; font-size:42px; font-weight:800; }
+  .save-success-title { margin-bottom:22px; color:#145c2c; font-size:24px; }
+  .save-success-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
+  .save-success-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+  .delivery-form-page .card.success .actions { flex-wrap:wrap; }
+  .delivery-form-page .card.success .actions button { flex:1 1 220px; }
+</style>
+    <script>
+      (function() {
+        let busyDepth = 0;
+        let shownAt = 0;
+        let hideTimer = 0;
+        const minimumVisibleMs = 650;
+
+        window.beginLoading = function(message) {
+          busyDepth += 1;
+          window.clearTimeout(hideTimer);
+          hideTimer = 0;
+          window.requestAnimationFrame(function() {
+            const overlay = document.getElementById("loadingOverlay");
+            const label = document.getElementById("loadingMessage");
+            if (!overlay || busyDepth < 1) return;
+            if (label) label.textContent = message || "กำลังโหลดข้อมูล…";
+            if (!overlay.classList.contains("show")) shownAt = performance.now();
+            overlay.classList.add("show");
+            overlay.setAttribute("aria-hidden", "false");
+            document.body.classList.add("is-busy");
+            document.body.setAttribute("aria-busy", "true");
+          });
+        };
+
+        window.endLoading = function() {
+          busyDepth = Math.max(0, busyDepth - 1);
+          if (busyDepth > 0) return;
+          const remaining = Math.max(0, minimumVisibleMs - (performance.now() - shownAt));
+          hideTimer = window.setTimeout(function() {
+            if (busyDepth > 0) return;
+            const overlay = document.getElementById("loadingOverlay");
+            if (overlay) {
+              overlay.classList.remove("show");
+              overlay.setAttribute("aria-hidden", "true");
+            }
+            document.body.classList.remove("is-busy");
+            document.body.setAttribute("aria-busy", "false");
+            hideTimer = 0;
+          }, remaining);
+        };
+      })();
+    </script>
+  </head>
+<body class="delivery-form-page">
+  <header>
+    <div class="app-header">
+      <div class="app-icon">
+        <img src="https://raw.githubusercontent.com/jame023/work-calendar-pages/main/assets/sip-iget-logo.png" alt="SIP i-GET Smart Integration Platform">
+      </div>
+      <div>
+        <h1>บันทึกการส่งของ</h1>
+        <p>กรอกหลังส่งของเสร็จ พร้อมแนบรูปหลักฐาน</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="formCard" class="card">
+      <div class="field">
+        <label for="sender">ชื่อผู้ส่ง <span class="required">*</span></label>
+        <select id="sender">
+          <option value="">กำลังโหลด...</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="orderName">ชื่อออเดอร์ <span class="required">*</span></label>
+        <div class="order-picker">
+          <input id="orderName" type="text" autocomplete="off" placeholder="พิมพ์เพื่อค้นหาชื่อออเดอร์">
+          <div id="orderSuggestions" class="order-suggestions" hidden></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="billNumber">เลขที่บิล <span class="required">*</span></label>
+        <div class="bill-number-field">
+          <span class="bill-prefix" aria-hidden="true">SD</span>
+          <input
+            id="billNumber"
+            type="text"
+            inputmode="numeric"
+            maxlength="9"
+            pattern="[0-9]{9}"
+            placeholder="123456789"
+            autocomplete="off"
+            aria-label="เลขที่บิล ตัวเลข 9 หลักหลัง SD"
+          >
+        </div>
+        <div class="muted">กรอกเฉพาะตัวเลข 9 หลัก ระบบเติม SD ให้อัตโนมัติ</div>
+      </div>
+
+      <div class="field">
+        <label for="photo">รูปหลักฐาน <span class="required">*</span></label>
+        <input
+          id="photo"
+          type="file"
+          accept="image/*"
+          multiple
+        >
+        <div class="muted" id="photoHelp">เลือกได้ 1-10 รูปจากคลังภาพหรือกล้อง ระบบจะย่อรูปก่อนอัปโหลด</div>
+        <div id="previewList" aria-label="ตัวอย่างรูปที่เลือก"></div>
+      </div>
+
+      <div class="field">
+        <label for="note">หมายเหตุ</label>
+        <textarea id="note" maxlength="500" placeholder="ไม่บังคับ"></textarea>
+      </div>
+
+      <div id="status" class="status"></div>
+      <div class="submit-bar">
+        <button id="submitButton" class="primary" type="button">✓ ตรวจสอบและบันทึก</button>
+        <button id="editLatestButton" class="secondary" type="button" disabled>แก้ไขรายการล่าสุดของเครื่องนี้</button>
+        <button id="returnToNewButton" class="secondary" type="button" hidden>กลับไปบันทึกรายการใหม่</button>
+      </div>
+    </section>
+
+    <section id="successCard" class="card success">
+      <h2>บันทึกสำเร็จ</h2>
+      <p id="successText"></p>
+      <div class="actions">
+        <button id="undoButton" class="danger" type="button" disabled>
+          ↩ ยกเลิกรายการล่าสุด
+        </button>
+        <button id="editLatestSuccessButton" class="secondary" type="button">
+          แก้ไขรายการล่าสุดของเครื่องนี้
+        </button>
+        <button id="nextButton" class="secondary" type="button">
+          ＋ บันทึกออเดอร์ถัดไป
+        </button>
+      </div>
+      <div id="successStatus" class="status"></div>
+    </section>
+  </main>
+
+  <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
+
+  <script>
+    var BILL_NUMBER_PATTERN = /^SD[0-9]{9}$/;
+    var MAX_PHOTOS = 10;
+    var config = { senders: [], orders: [], undoWindowMs: 120000 };
+    var DELIVERY_LIFF_ID = '2010715544-0CpN59Ly';
+    var DELIVERY_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/employee-delivery/';
+    var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyS6rNqSMB5NiljC3f6XNxE0GvwUTOoho1yoHiaBRMqEJRXMJt0sdUJT5Qve_pIc3NSDA/exec?bridge=1';
+    var MESSAGE_SOURCE = 'delivery-frontend';
+    var BRIDGE_SOURCE = 'delivery-bridge';
+    var deliveryIdToken = '';
+    var preparedImages = [];
+    var lastSavedRequestId = '';
+    var lastUndoUntil = 0;
+    var undoTimer = null;
+    var editMode = false;
+    var editingRequestId = '';
+    var existingPhotoCount = 0;
+    var pendingCalls = new Map();
+    var bridgeWindow = null;
+    var bridgeLiffId = '';
+    var requestNumber = 0;
+    var resolveBridge;
+    var bridgeReady = new Promise(function(resolve) { resolveBridge = resolve; });
+
+    var senderInput = document.getElementById('sender');
+    var orderInput = document.getElementById('orderName');
+    var orderSuggestions = document.getElementById('orderSuggestions');
+    var billNumberInput = document.getElementById('billNumber');
+
+    senderInput.addEventListener('change', function() {
+      if (senderInput.value) {
+        localStorage.setItem('deliverySender', senderInput.value);
+      } else {
+        localStorage.removeItem('deliverySender');
+      }
+    });
+    orderInput.addEventListener('input', renderOrderSuggestions);
+    orderInput.addEventListener('focus', renderOrderSuggestions);
+
+    billNumberInput.addEventListener('input', function() {
+      billNumberInput.value = billNumberInput.value.replace(/\D/g, '').slice(0, 9);
+    });
+
+    document.getElementById('photo').onchange = handlePhoto;
+    document.getElementById('submitButton').onclick = submitDelivery;
+    document.getElementById('undoButton').onclick = undoLastDelivery;
+    document.getElementById('nextButton').onclick = resetForNext;
+    document.getElementById('editLatestButton').onclick = loadLatestDeliveryForEdit;
+    document.getElementById('returnToNewButton').onclick = returnToNewDelivery;
+    document.getElementById('editLatestSuccessButton').onclick = loadLatestDeliveryForEdit;
+
+    window.addEventListener('message', receiveBridgeMessage);
+
+    beginLoading('กำลังเชื่อมต่อระบบ…');
+    initializeDeliveryAuth()
+      .then(function() {
+        return callBackend('getDeliveryConfig', {});
+      })
+      .then(loadConfig)
+      .catch(function(error) {
+        endLoading();
+        setStatus(messageOf(error), true);
+      });
+
+    function initializeDeliveryAuth() {
+      if (!DELIVERY_LIFF_ID) {
+        return Promise.reject(new Error('ระบบยังไม่ได้ตั้งค่า DELIVERY_LIFF_ID'));
+      }
+      if (!DELIVERY_LIFF_REDIRECT_URI) {
+        return Promise.reject(new Error('ระบบยังไม่พบ URL สำหรับเข้าสู่ระบบ LINE'));
+      }
+      if (!window.liff) {
+        return Promise.reject(new Error('โหลด LIFF ไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ'));
+      }
+      document.getElementById('backendFrame').src = BACKEND_URL;
+      return waitForBridge().then(function() {
+        return liff.init({
+          liffId: bridgeLiffId || DELIVERY_LIFF_ID,
+          withLoginOnExternalBrowser: true
+        });
+      }).then(function() {
+        if (!liff.isLoggedIn()) {
+          liff.login({ redirectUri: DELIVERY_LIFF_REDIRECT_URI });
+          throw new Error('กรุณาเข้าสู่ระบบ LINE');
+        }
+        deliveryIdToken = liff.getIDToken() || '';
+        if (!deliveryIdToken) throw new Error('ไม่พบ LINE ID Token กรุณาเข้าสู่ระบบใหม่');
+      });
+    }
+
+    function loadConfig(value) {
+      endLoading();
+      config = value;
+      senderInput.innerHTML = '<option value="">เลือกชื่อผู้ส่ง</option>';
+
+      config.senders.forEach(function(name) {
+        var option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        senderInput.appendChild(option);
+      });
+      senderInput.value = config.senders[0] || '';
+      senderInput.disabled = true;
+      var savedOrderName = localStorage.getItem('deliveryOrderName') || '';
+      if (config.orders.indexOf(savedOrderName) !== -1) {
+        orderInput.value = savedOrderName;
+      }
+      updateEditButton();
+    }
+
+    function renderOrderSuggestions() {
+      var query = orderInput.value.trim().toLocaleLowerCase('th-TH');
+      var matches = config.orders.filter(function(name) {
+        return !query || name.toLocaleLowerCase('th-TH').indexOf(query) !== -1;
+      });
+      orderSuggestions.innerHTML = '';
+      matches.forEach(function(name) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'order-suggestion';
+        button.textContent = name;
+        button.addEventListener('click', function() {
+          selectOrder(name);
+        });
+        orderSuggestions.appendChild(button);
+      });
+      orderSuggestions.hidden = !matches.length;
+    }
+
+    function selectOrder(name) {
+      orderInput.value = name;
+      localStorage.setItem('deliveryOrderName', name);
+      orderSuggestions.hidden = true;
+    }
+
+    function handlePhoto(event) {
+      var files = Array.prototype.slice.call(event.target.files || []);
+      preparedImages = [];
+      document.getElementById('previewList').innerHTML = '';
+
+      if (!files.length) return;
+      if (files.length > MAX_PHOTOS) {
+        setStatus('เลือกได้สูงสุด ' + MAX_PHOTOS + ' รูป', true);
+        event.target.value = '';
+        return;
+      }
+      if (files.some(function(file) { return !/^image\//.test(file.type); })) {
+        setStatus('กรุณาเลือกเฉพาะไฟล์รูปภาพ', true);
+        event.target.value = '';
+        return;
+      }
+
+      Promise.all(files.map(compressImage))
+        .then(function(images) {
+          preparedImages = images;
+          document.getElementById('previewList').innerHTML = images.map(function(image, index) {
+            return '<img src="' + image.dataUrl + '" alt="รูปหลักฐาน ' + (index + 1) + '">';
+          }).join('');
+          setStatus('เตรียมรูปเรียบร้อย ' + images.length + ' รูป', false);
+        })
+        .catch(function(error) {
+          preparedImages = [];
+          event.target.value = '';
+          document.getElementById('previewList').innerHTML = '';
+          setStatus(messageOf(error), true);
+        });
+    }
+
+    function compressImage(file) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+
+        reader.onerror = function() {
+          reject(new Error('อ่านรูปไม่สำเร็จ'));
+        };
+
+        reader.onload = function() {
+          var image = new Image();
+
+          image.onerror = function() {
+            reject(new Error('เปิดรูปไม่สำเร็จ'));
+          };
+
+          image.onload = function() {
+            var scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+            var canvas = document.createElement('canvas');
+            canvas.width = Math.round(image.width * scale);
+            canvas.height = Math.round(image.height * scale);
+            canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+
+            var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            resolve({
+              mimeType: 'image/jpeg',
+              base64: dataUrl.split(',')[1],
+              dataUrl: dataUrl
+            });
+          };
+
+          image.src = reader.result;
+        };
+
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function submitDelivery() {
+      if (!deliveryIdToken) return setStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE', true);
+      var sender = senderInput.value.trim();
+      var orderName = orderInput.value.trim();
+      var billDigits = billNumberInput.value.trim();
+      var billNumber = 'SD' + billDigits;
+
+      if (!sender) return setStatus('กรุณากรอกชื่อผู้ส่ง', true);
+      if (!orderName) return setStatus('กรุณาเลือกออเดอร์', true);
+      if (!/^[0-9]{9}$/.test(billDigits) || !BILL_NUMBER_PATTERN.test(billNumber)) {
+        return setStatus('กรุณากรอกเลขที่บิลให้ครบ 9 หลัก', true);
+      }
+      if (!preparedImages.length && !editMode) {
+        return setStatus('กรุณาแนบรูปหลักฐานอย่างน้อย 1 รูป', true);
+      }
+
+      var confirmation = [
+        'ชื่อผู้ส่ง: ' + sender,
+        'ออเดอร์: ' + orderName,
+        'เลขที่บิล: ' + billNumber,
+        'รูปหลักฐาน: ' + (preparedImages.length
+          ? preparedImages.length + ' รูป (แทนชุดเดิม)'
+          : existingPhotoCount + ' รูป (ใช้ชุดเดิม)'),
+        '',
+        'ยืนยันบันทึกการส่งของ?'
+      ].join('\n');
+
+      if (!window.confirm(confirmation)) return;
+
+      var button = document.getElementById('submitButton');
+      button.disabled = true;
+      beginLoading('กำลังบันทึกข้อมูล…');
+      setStatus('กำลังอัปโหลดรูปและบันทึก กรุณาอย่าปิดหน้านี้...', false);
+
+      var isEditSubmission = editMode;
+      var requestId = isEditSubmission ? editingRequestId : sessionStorage.getItem('deliveryPendingRequestId');
+      if (!requestId && !isEditSubmission) {
+        requestId = 'delivery_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
+        sessionStorage.setItem('deliveryPendingRequestId', requestId);
+      }
+      if (isEditSubmission && localStorage.getItem('deliveryLastSavedRequestId') !== editingRequestId) {
+        button.disabled = false;
+        endLoading();
+        return setStatus('Browser นี้บันทึกรายการใหม่กว่าแล้ว กรุณาโหลดรายการล่าสุดใหม่ก่อนแก้ไข', true);
+      }
+
+      var payload = {
+        requestId: requestId,
+        sender: sender,
+        orderName: orderName,
+        billNumber: billNumber,
+        note: document.getElementById('note').value.trim(),
+        images: preparedImages.map(function(image) {
+          return { mimeType: image.mimeType, base64: image.base64 };
+        })
+      };
+      callBackend(isEditSubmission ? 'updateDelivery' : 'saveDelivery', payload)
+        .then(function(result) {
+          endLoading();
+          showSaveSuccessModal();
+          if (!isEditSubmission) sessionStorage.removeItem('deliveryPendingRequestId');
+          lastSavedRequestId = result.requestId;
+          localStorage.setItem('deliveryLastSavedRequestId', result.requestId);
+          lastUndoUntil = Number(result.undoUntil) || 0;
+
+          document.getElementById('formCard').style.display = 'none';
+          document.getElementById('successCard').style.display = 'block';
+          document.getElementById('successText').textContent =
+            result.orderName + ' | ' + result.billNumber + ' | ' +
+            new Date(result.completedAt).toLocaleString('th-TH');
+
+          button.disabled = false;
+          updateUndoButton();
+          updateEditButton();
+        })
+        .catch(function(error) {
+          endLoading();
+          setStatus('บันทึกไม่สำเร็จ: ' + messageOf(error), true);
+          button.disabled = false;
+        });
+    }
+
+    function undoLastDelivery() {
+      if (!deliveryIdToken) return showSuccessStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE', true);
+      if (!lastSavedRequestId || Date.now() > lastUndoUntil) {
+        return showSuccessStatus('หมดเวลายกเลิกแล้ว', true);
+      }
+      if (!window.confirm('ยืนยันยกเลิกรายการล่าสุดและลบรูปหลักฐาน?')) return;
+
+      var button = document.getElementById('undoButton');
+      button.disabled = true;
+      beginLoading('กำลังยกเลิกรายการ…');
+      showSuccessStatus('กำลังยกเลิก...', false);
+
+      callBackend('undoDelivery', { requestId: lastSavedRequestId })
+        .then(function(result) {
+          endLoading();
+          lastSavedRequestId = '';
+          lastUndoUntil = 0;
+          if (localStorage.getItem('deliveryLastSavedRequestId') === result.requestId) {
+            localStorage.removeItem('deliveryLastSavedRequestId');
+          }
+          showSuccessStatus('ยกเลิกรายการ ' + result.orderName + ' แล้ว', false);
+          updateUndoButton();
+          updateEditButton();
+        })
+        .catch(function(error) {
+          endLoading();
+          showSuccessStatus('ยกเลิกไม่สำเร็จ: ' + messageOf(error), true);
+          updateUndoButton();
+        });
+    }
+
+    function updateUndoButton() {
+      var button = document.getElementById('undoButton');
+      var remaining = lastUndoUntil - Date.now();
+      if (undoTimer) clearTimeout(undoTimer);
+
+      if (!lastSavedRequestId || remaining <= 0) {
+        button.disabled = true;
+        button.textContent = '↩ ยกเลิกรายการล่าสุด';
+        return;
+      }
+
+      button.disabled = false;
+      button.textContent = '↩ ยกเลิกรายการล่าสุด (' + Math.ceil(remaining / 1000) + ' วิ)';
+      undoTimer = setTimeout(updateUndoButton, 1000);
+    }
+
+    function resetForNext() {
+      editMode = false;
+      editingRequestId = '';
+      existingPhotoCount = 0;
+      document.getElementById('formCard').style.display = 'block';
+      document.getElementById('successCard').style.display = 'none';
+      var savedOrderName = localStorage.getItem('deliveryOrderName') || '';
+      orderInput.value = config.orders.indexOf(savedOrderName) !== -1 ? savedOrderName : '';
+      orderSuggestions.hidden = true;
+      document.getElementById('billNumber').value = '';
+      document.getElementById('photo').value = '';
+      document.getElementById('previewList').innerHTML = '';
+      document.getElementById('note').value = '';
+      preparedImages = [];
+      document.getElementById('submitButton').textContent = '✓ ตรวจสอบและบันทึก';
+      document.getElementById('editLatestButton').hidden = false;
+      document.getElementById('returnToNewButton').hidden = true;
+      document.getElementById('photoHelp').textContent = 'เลือกได้ 1-10 รูปจากคลังภาพหรือกล้อง ระบบจะย่อรูปก่อนอัปโหลด';
+      updateEditButton();
+      setStatus('', false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function loadLatestDeliveryForEdit() {
+      if (!deliveryIdToken) return setStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE', true);
+      var requestId = localStorage.getItem('deliveryLastSavedRequestId') || '';
+      if (!requestId) return setStatus('ยังไม่มีรายการล่าสุดที่ Browser นี้บันทึกสำเร็จ', true);
+      document.getElementById('formCard').style.display = 'block';
+      document.getElementById('successCard').style.display = 'none';
+      var button = document.getElementById('editLatestButton');
+      button.disabled = true;
+      beginLoading('กำลังโหลดรายการล่าสุด…');
+      callBackend('getDeliveryForEdit', { requestId: requestId })
+        .then(function(result) {
+          endLoading();
+          editMode = true;
+          editingRequestId = result.requestId;
+          existingPhotoCount = Number(result.photoCount) || 0;
+          senderInput.value = result.sender;
+          orderInput.value = result.orderName;
+          billNumberInput.value = String(result.billNumber || '').replace(/^SD/, '');
+          document.getElementById('note').value = result.note || '';
+          document.getElementById('photo').value = '';
+          document.getElementById('previewList').innerHTML = '';
+          preparedImages = [];
+          document.getElementById('submitButton').textContent = '✓ ตรวจสอบและบันทึกการแก้ไข';
+          button.hidden = true;
+          document.getElementById('returnToNewButton').hidden = false;
+          document.getElementById('photoHelp').textContent =
+            'มีรูปเดิม ' + existingPhotoCount + ' รูป หากไม่เลือกรูปใหม่ระบบจะเก็บรูปเดิมไว้';
+          setStatus('กำลังแก้ไขรายการล่าสุดของ Browser นี้', false);
+        })
+        .catch(function(error) {
+          endLoading();
+          updateEditButton();
+          setStatus('โหลดรายการแก้ไขไม่สำเร็จ: ' + messageOf(error), true);
+        });
+    }
+
+    function returnToNewDelivery() {
+      resetForNext();
+      setStatus('พร้อมบันทึกรายการใหม่', false);
+    }
+
+    function updateEditButton() {
+      var disabled = !localStorage.getItem('deliveryLastSavedRequestId');
+      document.getElementById('editLatestButton').disabled = disabled;
+      document.getElementById('editLatestSuccessButton').disabled = disabled;
+    }
+
+    function receiveBridgeMessage(event) {
+      var data = event.data;
+      var frame = document.getElementById('backendFrame');
+      if (!data || data.source !== BRIDGE_SOURCE ||
+          !frame.contentWindow || event.source !== frame.contentWindow) return;
+      if (data.type === 'ready') {
+        bridgeWindow = event.source;
+        bridgeLiffId = String(data.liffId || '');
+        if (!bridgeLiffId) {
+          setStatus('Bridge ไม่ส่ง LIFF ID', true);
+          return;
+        }
+        resolveBridge();
+        return;
+      }
+      if (data.type !== 'response' || event.source !== bridgeWindow) return;
+      var request = pendingCalls.get(data.id);
+      if (!request) return;
+      clearTimeout(request.timer);
+      pendingCalls.delete(data.id);
+      data.ok ? request.resolve(data.result) : request.reject(new Error(data.error));
+    }
+
+    function waitForBridge() {
+      return Promise.race([
+        bridgeReady,
+        new Promise(function(resolve, reject) {
+          setTimeout(function() {
+            reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+          }, 15000);
+        })
+      ]);
+    }
+
+    function callBackend(action, payload) {
+      return new Promise(function(resolve, reject) {
+        if (!bridgeWindow) {
+          reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+          return;
+        }
+        var id = 'request-' + (++requestNumber);
+        var timer = setTimeout(function() {
+          pendingCalls.delete(id);
+          reject(new Error('Apps Script ตอบกลับช้าเกินกำหนด'));
+        }, 60000);
+        pendingCalls.set(id, { resolve: resolve, reject: reject, timer: timer });
+        bridgeWindow.postMessage({
+          source: MESSAGE_SOURCE,
+          id: id,
+          action: action,
+          idToken: deliveryIdToken,
+          payload: payload || {}
+        }, '*');
+      });
+    }
+
+    function setStatus(text, isError) {
+      var box = document.getElementById('status');
+      box.textContent = text;
+      box.className = text ? 'status show ' + (isError ? 'error' : 'ok') : 'status';
+    }
+
+    function showSuccessStatus(text, isError) {
+      var box = document.getElementById('successStatus');
+      box.textContent = text;
+      box.className = 'status show ' + (isError ? 'error' : 'ok');
+    }
+
+    function messageOf(error) {
+      return error && error.message ? error.message : String(error || 'เกิดข้อผิดพลาด');
+    }
+
+    var saveSuccessReturnFocus = null;
+    function showSaveSuccessModal() {
+      saveSuccessReturnFocus = document.activeElement;
+      var modal = document.getElementById('saveSuccessModal');
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      document.getElementById('saveSuccessAcknowledge').focus();
+    }
+
+    function hideSaveSuccessModal() {
+      var modal = document.getElementById('saveSuccessModal');
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      if (saveSuccessReturnFocus && saveSuccessReturnFocus.focus) saveSuccessReturnFocus.focus();
+    }
+
+    document.addEventListener('click', function(event) {
+      if (!event.target.closest('.order-picker')) orderSuggestions.hidden = true;
+    });
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && document.getElementById('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
+    });
+  </script>
+    <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
+      <div class="save-success-panel">
+        <div class="save-success-icon" aria-hidden="true">✓</div>
+        <h2 class="save-success-title" id="saveSuccessTitle">บันทึกเสร็จแล้ว</h2>
+        <button class="save-success-acknowledge" id="saveSuccessAcknowledge" type="button" onclick="hideSaveSuccessModal()">รับทราบ</button>
+      </div>
+    </div>
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
+      <div class="loading-panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span id="loadingMessage">กำลังโหลดข้อมูล…</span>
+      </div>
+    </div>
+</body>
+</html>
