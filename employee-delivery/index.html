@@ -559,9 +559,7 @@
 
     function receiveBridgeMessage(event) {
       var data = event.data;
-      var frame = document.getElementById('backendFrame');
-      if (!data || data.source !== BRIDGE_SOURCE ||
-          !frame.contentWindow || event.source !== frame.contentWindow) return;
+      if (!data || data.source !== BRIDGE_SOURCE) return;
       if (data.type === 'ready') {
         bridgeWindow = event.source;
         bridgeLiffId = String(data.liffId || '');
