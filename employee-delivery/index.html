@@ -17,6 +17,42 @@
   .delivery-form-page .card.success .actions { flex-wrap:wrap; }
   .delivery-form-page .card.success .actions button { flex:1 1 220px; }
 </style>
+<style id="delivery-mobile-size-fix">
+  @media (max-width:700px) {
+    .delivery-form-page {
+      font-size:16px !important;
+      line-height:1.5 !important;
+    }
+    .delivery-form-page :where(h1,h2,h3,p,span,strong,label,div,td,th,a) {
+      font-size:inherit !important;
+      line-height:1.45 !important;
+    }
+    .delivery-form-page h1 { font-size:28px !important; line-height:1.15 !important; }
+    .delivery-form-page h2 { font-size:24px !important; line-height:1.25 !important; }
+    .delivery-form-page h3 { font-size:18px !important; line-height:1.3 !important; }
+    .delivery-form-page header p { font-size:16px !important; }
+    .delivery-form-page label { font-size:16px !important; }
+    .delivery-form-page input,
+    .delivery-form-page select {
+      height:48px !important;
+      font-size:16px !important;
+    }
+    .delivery-form-page textarea {
+      min-height:104px !important;
+      font-size:16px !important;
+      line-height:1.45 !important;
+    }
+    .delivery-form-page button {
+      min-height:48px !important;
+      font-size:16px !important;
+      line-height:1.25 !important;
+    }
+    .delivery-form-page .save-success-icon {
+      font-size:42px !important;
+      line-height:1 !important;
+    }
+  }
+</style>
     <script>
       (function() {
         let busyDepth = 0;
