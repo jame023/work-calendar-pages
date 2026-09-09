@@ -48,6 +48,41 @@
       .error { background:#fdecea; color:var(--red); }
       #app { display:none; }
       .card { margin-top:18px; padding:22px; }
+      .quota-card-heading {
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:12px;
+      }
+      .quota-card-heading h2 { margin-bottom:3px; }
+      .quota-month { margin:0; color:#627083; }
+      .quota-grid {
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:10px;
+        margin-top:12px;
+      }
+      .quota-item {
+        border:1px solid #cbd9e8;
+        border-radius:13px;
+        padding:14px;
+        background:#f8fbff;
+      }
+      .quota-item.full {
+        border-color:#e7b6b0;
+        background:#fff7f6;
+      }
+      .quota-item h3 { margin-bottom:7px; color:var(--navy); }
+      .quota-count { margin:0; color:#294e72; font-weight:750; }
+      .quota-remaining {
+        display:block;
+        margin-top:6px;
+        color:var(--green);
+        font-size:20px;
+      }
+      .quota-item.full .quota-remaining { color:var(--red); }
+      .quota-detail { margin:7px 0 0; color:#627083; font-size:14px; }
+      .quota-note { margin:12px 0 0; color:#627083; font-size:13px; }
       .form-grid {
         display:grid;
         grid-template-columns:repeat(2,minmax(0,1fr));
@@ -271,6 +306,7 @@
         .page { padding:10px; }
         .header,.card { padding:14px; border-radius:12px; }
         .form-grid,.calendar-toolbar { grid-template-columns:1fr; }
+        .quota-grid { grid-template-columns:1fr; }
         .leave-date-selector-head { align-items:stretch; flex-direction:column; }
         .set-all-full { width:100%; }
         .leave-date-row { grid-template-columns:minmax(0,1fr) auto; }
@@ -325,6 +361,16 @@
       <div class="status info" id="statusBox">กำลังเชื่อมต่อระบบ…</div>
 
       <div id="app">
+        <section class="card quota-card" aria-labelledby="quotaHeading">
+          <div class="quota-card-heading">
+            <div>
+              <h2 id="quotaHeading">โควตาการลา</h2>
+              <p class="quota-month" id="quotaMonthLabel">กำลังโหลดเดือน…</p>
+            </div>
+          </div>
+          <div class="quota-grid" id="quotaList"></div>
+          <p class="quota-note" id="quotaNote" aria-live="polite">กำลังโหลดโควตา…</p>
+        </section>
         <section class="card">
           <h2>ส่งคำขอลา</h2>
           <form id="leaveForm">
@@ -442,6 +488,7 @@
         ownRequests:[],
         pendingRequests:[],
         cancelledRequests:[],
+        quotaSummary:null,
         leaveDatePeriods:{}
       };
       const LEAVE_PERIOD_OPTIONS = [
@@ -465,7 +512,8 @@
         "leaveDateList","leaveDateCount","leaveTotalDays","setAllFullButton",
         "leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
         "cancelledManagerCard","cancelledList",
-        "monthInput","loadButton","calendarGrid","ownRequestList","loadingOverlay",
+        "monthInput","loadButton","calendarGrid","ownRequestList","quotaMonthLabel",
+        "quotaList","quotaNote","loadingOverlay",
         "notificationModal","notificationMessage","notificationAcknowledge","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
@@ -517,6 +565,8 @@
 
       async function loadData() {
         const month = elements.monthInput.value || currentMonthText();
+        state.quotaSummary = null;
+        renderQuotaSummary();
         setBusy(true);
         showStatus("กำลังโหลดข้อมูลการลา…", "info");
         try {
@@ -532,12 +582,24 @@
             (state.role === "manager" ? " · ผู้บริหาร" : " · พนักงาน");
           fillLeaveTypes(result.leaveTypes || []);
           renderAll();
+          await loadQuotaSummary(state.month);
           showStatus("โหลดข้อมูลแล้ว", "success");
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
           setBusy(false);
         }
+      }
+
+      async function loadQuotaSummary(month) {
+        try {
+          state.quotaSummary = await callBackend("getLeaveQuotaSummary", {
+            month:month
+          });
+        } catch (error) {
+          state.quotaSummary = { month:month, error:messageOf(error) };
+        }
+        renderQuotaSummary();
       }
 
       async function submitLeave(event) {
@@ -710,6 +772,7 @@
       }
 
       function renderAll() {
+        renderQuotaSummary();
         elements.managerCard.classList.toggle("show", state.role === "manager");
         elements.cancelledManagerCard.classList.toggle("show", state.role === "manager");
         renderRequests(elements.pendingList, state.pendingRequests, true, true,
@@ -719,6 +782,72 @@
         renderRequests(elements.ownRequestList, state.ownRequests, false, false,
           "ยังไม่มีคำขอลา");
         renderCalendar();
+      }
+
+      function renderQuotaSummary() {
+        if (!state.quotaSummary) {
+          elements.quotaMonthLabel.textContent = "กำลังโหลดเดือน…";
+          elements.quotaList.replaceChildren();
+          elements.quotaNote.textContent = "กำลังโหลดโควตา…";
+          return;
+        }
+
+        elements.quotaMonthLabel.textContent =
+          "เดือน " + formatQuotaMonth(state.quotaSummary.month);
+        elements.quotaList.replaceChildren();
+        if (state.quotaSummary.error) {
+          const error = document.createElement("p");
+          error.className = "status error";
+          error.textContent = "โหลดโควตาไม่สำเร็จ: " + state.quotaSummary.error;
+          elements.quotaList.appendChild(error);
+          elements.quotaNote.textContent = "ระบบบล็อกโควตาที่ backend ตามเดิม";
+          return;
+        }
+
+        elements.quotaList.appendChild(renderQuotaEntry(
+          state.quotaSummary.personalLeave,
+          "ลากิจ",
+          "personal"
+        ));
+        elements.quotaList.appendChild(renderQuotaEntry(
+          state.quotaSummary.sickWithoutCertificate,
+          "ลาป่วยไม่มีใบรับรองแพทย์",
+          "sick"
+        ));
+        elements.quotaNote.textContent =
+          "นับคำขอที่รออนุมัติหรืออนุมัติแล้ว · ปฏิเสธและยกเลิกไม่ถูกนับ";
+      }
+
+      function renderQuotaEntry(quota, label, kind) {
+        const used = Number(quota.usedRequests) || 0;
+        const max = Number(quota.maxRequests) || 0;
+        const remaining = Math.max(0, Number(quota.remainingRequests) || 0);
+        const item = document.createElement("article");
+        item.className = "quota-item" + (remaining === 0 ? " full" : "");
+
+        const title = document.createElement("h3");
+        title.textContent = label;
+        item.appendChild(title);
+
+        const count = document.createElement("p");
+        count.className = "quota-count";
+        count.textContent = "ใช้แล้ว " + used + " / " + max + " คำขอ";
+        item.appendChild(count);
+
+        const remainingText = document.createElement("strong");
+        remainingText.className = "quota-remaining";
+        remainingText.textContent = remaining > 0
+          ? "เหลือ " + remaining + " คำขอ"
+          : "เต็มโควตาเดือนนี้";
+        item.appendChild(remainingText);
+
+        const detail = document.createElement("p");
+        detail.className = "quota-detail";
+        detail.textContent = kind === "personal"
+          ? "สูงสุด " + Number(quota.maxDaysPerRequest) + " วันต่อคำขอ"
+          : "นับเฉพาะกรณีไม่มีรูปเอกสารประกอบ";
+        item.appendChild(detail);
+        return item;
       }
 
       function renderRequests(container, rows, showDecision, showEmployeeName, emptyText) {
@@ -1288,6 +1417,15 @@
       function formatDisplayDate(isoDate) {
         const parts = String(isoDate || "").split("-");
         return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : "-";
+      }
+
+      function formatQuotaMonth(monthText) {
+        const parts = String(monthText || "").split("-").map(Number);
+        if (parts.length !== 2 || !parts[0] || !parts[1]) return monthText || "-";
+        return new Intl.DateTimeFormat("th-TH", {
+          month:"long",
+          year:"numeric"
+        }).format(new Date(parts[0], parts[1] - 1, 1, 12));
       }
 
       function formatDisplayDateRange(startDate, endDate) {
