@@ -572,6 +572,7 @@
         try {
           const result = await callBackend("getLeaveAppData", { month:month });
           state.role = result.profile.role;
+          state.canDecideLeave = result.profile.canDecideLeave === true;
           state.month = result.month;
           state.calendar = result.calendar || [];
           state.ownRequests = result.ownRequests || [];
@@ -773,7 +774,7 @@
 
       function renderAll() {
         renderQuotaSummary();
-        elements.managerCard.classList.toggle("show", state.role === "manager");
+        elements.managerCard.classList.toggle("show", state.canDecideLeave === true);
         elements.cancelledManagerCard.classList.toggle("show", state.role === "manager");
         renderRequests(elements.pendingList, state.pendingRequests, true, true,
           "ไม่มีคำขอรออนุมัติ");
