@@ -289,7 +289,7 @@
 
     beginLoading('กำลังเชื่อมต่อระบบ…');
     initializeProductionAuth()
-      .then(function() { return callBackend('getProductionConfig', {}); })
+      .then(function() { throw new Error(productionLineTokenDiagnostics()); })
       .then(function(result) {
         endLoading();
         sessionStorage.removeItem(PRODUCTION_LINE_REAUTH_KEY);
@@ -737,3 +737,4 @@
 }
 </style>
     
+  
