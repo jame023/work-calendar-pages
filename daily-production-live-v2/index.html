@@ -513,7 +513,7 @@
             throw new Error('กรุณาเข้าสู่ระบบ LINE');
           }
           return waitForProductionLineTokens().then(function(hasTokens) {
-            if (!hasTokens) throw new Error(productionLineTokenDiagnostics());
+            if (!hasTokens) throw new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]');
           });
         });
     }
@@ -531,17 +531,6 @@
       return readUntilReady();
     }
 
-    function productionLineTokenDiagnostics() {
-      var loggedIn = 'unknown';
-      var inClient = 'unknown';
-      var idLength = 'unavailable';
-      var accessLength = 'unavailable';
-      try { if (typeof liff.isLoggedIn === 'function') loggedIn = String(liff.isLoggedIn()); } catch (error) { loggedIn = 'error'; }
-      try { if (typeof liff.isInClient === 'function') inClient = String(liff.isInClient()); } catch (error) { inClient = 'error'; }
-      try { if (typeof liff.getIDToken === 'function') idLength = String(liff.getIDToken() || '').length; } catch (error) { idLength = 'error'; }
-      try { if (typeof liff.getAccessToken === 'function') accessLength = String(liff.getAccessToken() || '').length; } catch (error) { accessLength = 'error'; }
-      return 'LINE_DEBUG:TOKEN_STATE [loggedIn=' + loggedIn + ', inClient=' + inClient + ', idTokenLength=' + idLength + ', accessTokenLength=' + accessLength + ']';
-    }
 
     function refreshProductionLineTokens() {      if (!window.liff) return false;      if (typeof liff.isLoggedIn === 'function' && !liff.isLoggedIn()) return false;      var nextIdToken = '';      try {        if (typeof liff.getIDToken === 'function') nextIdToken = liff.getIDToken() || '';      } catch (error) {}      productionIdToken = String(nextIdToken || '').trim();      productionAccessToken = '';      return !!productionIdToken;    }
 
@@ -600,7 +589,7 @@
 
     function callBackend(action, payload) {
       if (!productionIdToken && !refreshProductionLineTokens()) {
-        return Promise.reject(new Error(productionLineTokenDiagnostics()));
+        return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
       }
       var scriptApi = null;
       if (scriptApi) {
