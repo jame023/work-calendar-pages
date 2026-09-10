@@ -543,22 +543,7 @@
       return 'LINE_DEBUG:TOKEN_STATE [loggedIn=' + loggedIn + ', inClient=' + inClient + ', idTokenLength=' + idLength + ', accessTokenLength=' + accessLength + ']';
     }
 
-    function refreshProductionLineTokens() {
-      if (!window.liff) return false;
-      if (typeof liff.isLoggedIn === 'function' && !liff.isLoggedIn()) return false;
-
-      var nextIdToken = '';
-      var nextAccessToken = '';
-      try {
-        if (typeof liff.getIDToken === 'function') nextIdToken = liff.getIDToken() || '';
-      } catch (error) {}
-      try {
-        if (typeof liff.getAccessToken === 'function') nextAccessToken = liff.getAccessToken() || '';
-      } catch (error) {}
-      productionIdToken = String(nextIdToken || '').trim();
-      productionAccessToken = String(nextAccessToken || '').trim();
-      return !!(productionIdToken || productionAccessToken);
-    }
+    function refreshProductionLineTokens() {      if (!window.liff) return false;      if (typeof liff.isLoggedIn === 'function' && !liff.isLoggedIn()) return false;      var nextIdToken = '';      try {        if (typeof liff.getIDToken === 'function') nextIdToken = liff.getIDToken() || '';      } catch (error) {}      productionIdToken = String(nextIdToken || '').trim();      productionAccessToken = '';      return !!productionIdToken;    }
 
     function isProductionPermissionError(message) {
       var text = String(message || '');
