@@ -265,6 +265,7 @@
       var isLineSessionError = message.indexOf('LINE_AUTH:TOKEN_MISSING') !== -1 ||
         message.indexOf('LINE_AUTH:TOKEN_EXPIRED') !== -1 ||
         message.indexOf('LINE_AUTH:INVALID_ID_TOKEN') !== -1 ||
+        message.indexOf('LINE_AUTH:VERIFY_REJECTED') !== -1 ||
         message.indexOf('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่') !== -1 ||
         message.indexOf('การยืนยันตัวตน LINE ไม่ถูกต้องหรือหมดอายุ') !== -1 ||
         message.indexOf('LINE Token หมดอายุ') !== -1;
@@ -289,6 +290,7 @@
       .then(function() { return callBackend('getProductionConfig', {}); })
       .then(function(result) {
         endLoading();
+        sessionStorage.removeItem(PRODUCTION_LINE_REAUTH_KEY);
         config = result;
         byId('productionDate').value = result.defaultDate;
         byId('operatorName').innerHTML = '<option value="">เลือกชื่อผู้บันทึก</option>';
@@ -435,6 +437,7 @@
         })
         .catch(function(error) {
           endLoading();
+          if (recoverProductionLineSession(error)) return;
           byId('editLatestButton').disabled = false;
           setStatus('โหลดรายการแก้ไขไม่สำเร็จ: ' + (error && error.message ? error.message : String(error)), 'error');
         })
