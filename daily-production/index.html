@@ -77,7 +77,41 @@
         };
       })();
     </script>
-  </head>
+  <style>
+  /* Keep the daily production form compact on phones; desktop sizing is unchanged. */
+  @media (max-width:640px) {
+    .production-form-page { font-size:16px !important; }
+    .production-form-page header h1 { font-size:22px !important; line-height:1.2 !important; }
+    .production-form-page header p { font-size:13px !important; line-height:1.35 !important; }
+    .production-form-page > header .container,
+    .production-form-page > main.container { width:100% !important; max-width:none !important; margin-inline:0 !important; padding-left:10px !important; padding-right:10px !important; }
+    .production-form-page > main.container { padding-top:12px !important; }
+    .production-form-page #productionForm { gap:12px !important; margin-inline:0 !important; }
+    .production-form-page #productionForm > .section { padding:14px !important; border-radius:12px !important; }
+    .production-form-page .section-title { margin-bottom:12px !important; font-size:20px !important; line-height:1.3 !important; }
+    .production-form-page .field-grid,
+    .production-form-page .number-grid { gap:10px !important; }
+    .production-form-page .field-grid label,
+    .production-form-page .number-grid label,
+    .production-form-page label { font-size:14px !important; line-height:1.35 !important; gap:5px !important; }
+    .production-form-page input,
+    .production-form-page select { height:46px !important; min-height:46px !important; padding:0 10px !important; font-size:16px !important; line-height:1.2 !important; }
+    .production-form-page textarea { min-height:88px !important; padding:9px 10px !important; font-size:16px !important; line-height:1.35 !important; }
+    .production-form-page .summary-card { margin-top:12px !important; padding:10px !important; }
+    .production-form-page .summary-grid { gap:7px !important; }
+    .production-form-page .summary-item { padding:8px !important; }
+    .production-form-page .summary-item span { font-size:12px !important; line-height:1.3 !important; }
+    .production-form-page .summary-item strong { margin-top:3px !important; font-size:15px !important; line-height:1.3 !important; }
+    .production-form-page #saveButton,
+    .production-form-page .edit-actions button { min-height:48px !important; padding:8px 12px !important; font-size:16px !important; line-height:1.25 !important; }
+    .production-form-page #statusMessage { margin-top:0 !important; padding:8px 10px !important; font-size:14px !important; line-height:1.35 !important; }
+    .production-form-page .help-text { font-size:13px !important; line-height:1.35 !important; }
+    .production-form-page .notification-title { font-size:20px !important; }
+    .production-form-page .notification-message { font-size:15px !important; }
+    .production-form-page .notification-acknowledge { min-height:48px !important; font-size:16px !important; }
+  }
+</style>
+</head>
 <body class="production-form-page">
   <header>
     <div class='container header-row'>
