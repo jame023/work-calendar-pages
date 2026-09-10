@@ -289,7 +289,7 @@
 
     beginLoading('กำลังเชื่อมต่อระบบ…');
     initializeProductionAuth()
-      .then(function() { throw new Error(productionLineTokenDiagnostics()); })
+      .then(function() { return callBackend('getProductionConfig', {}); })
       .then(function(result) {
         endLoading();
         sessionStorage.removeItem(PRODUCTION_LINE_REAUTH_KEY);
@@ -614,7 +614,7 @@
     }
 
     function callBackend(action, payload) {
-      if (!refreshProductionLineTokens()) {
+      if (!productionIdToken && !productionAccessToken && !refreshProductionLineTokens()) {
         return Promise.reject(new Error(productionLineTokenDiagnostics()));
       }
       var scriptApi = window.google && window.google['script']
@@ -737,4 +737,5 @@
 }
 </style>
     
+  
   
