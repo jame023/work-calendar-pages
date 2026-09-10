@@ -472,9 +472,13 @@
       var data = event.data;
       if (!data || data.source !== BRIDGE_SOURCE) return;
       if (data.type === 'ready') {
-        if (backendFrame && event.source !== backendFrame.contentWindow) return;
+        
         bridgeWindow = event.source;
         bridgeLiffId = String(data.liffId || '');
+        if (!bridgeLiffId) {
+          setStatus('Bridge ไม่ส่ง LIFF ID', 'error');
+          return;
+        }
         resolveBridge();
         return;
       }
