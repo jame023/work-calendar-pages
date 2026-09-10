@@ -513,7 +513,7 @@
             throw new Error('กรุณาเข้าสู่ระบบ LINE');
           }
           return waitForProductionLineTokens().then(function(hasTokens) {
-            if (!hasTokens) throw new Error('LINE_AUTH:TOKEN_MISSING ไม่พบ LINE Token กรุณาเข้าสู่ระบบใหม่');
+            if (!hasTokens) throw new Error(productionLineTokenDiagnostics());
           });
         });
     }
@@ -529,6 +529,18 @@
         });
       }
       return readUntilReady();
+    }
+
+    function productionLineTokenDiagnostics() {
+      var loggedIn = 'unknown';
+      var inClient = 'unknown';
+      var idLength = 'unavailable';
+      var accessLength = 'unavailable';
+      try { if (typeof liff.isLoggedIn === 'function') loggedIn = String(liff.isLoggedIn()); } catch (error) { loggedIn = 'error'; }
+      try { if (typeof liff.isInClient === 'function') inClient = String(liff.isInClient()); } catch (error) { inClient = 'error'; }
+      try { if (typeof liff.getIDToken === 'function') idLength = String(liff.getIDToken() || '').length; } catch (error) { idLength = 'error'; }
+      try { if (typeof liff.getAccessToken === 'function') accessLength = String(liff.getAccessToken() || '').length; } catch (error) { accessLength = 'error'; }
+      return 'LINE_AUTH:TOKEN_MISSING [loggedIn=' + loggedIn + ', inClient=' + inClient + ', idTokenLength=' + idLength + ', accessTokenLength=' + accessLength + ']';
     }
 
     function refreshProductionLineTokens() {
@@ -603,7 +615,7 @@
 
     function callBackend(action, payload) {
       if (!refreshProductionLineTokens()) {
-        return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
+        return Promise.reject(new Error(productionLineTokenDiagnostics()));
       }
       var scriptApi = window.google && window.google['script']
         ? window.google['script']['run']
