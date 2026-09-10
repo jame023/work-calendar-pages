@@ -614,7 +614,7 @@
     }
 
     function callBackend(action, payload) {
-      if (!(productionIdToken || productionAccessToken) && !refreshProductionLineTokens()) {
+      if (!productionIdToken && !refreshProductionLineTokens()) {
         return Promise.reject(new Error(productionLineTokenDiagnostics()));
       }
       var scriptApi = null;
