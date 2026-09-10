@@ -492,6 +492,8 @@
         : request.reject(new Error(data.error || 'เกิดข้อผิดพลาด'));
     }
 
+    window.addEventListener('message', receiveBridgeMessage);
+
     function waitForBridge() {
       return Promise.race([
         bridgeReady,
