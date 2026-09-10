@@ -617,9 +617,7 @@
       if (!productionIdToken && !productionAccessToken && !refreshProductionLineTokens()) {
         return Promise.reject(new Error(productionLineTokenDiagnostics()));
       }
-      var scriptApi = window.google && window.google['script']
-        ? window.google['script']['run']
-        : null;
+      var scriptApi = null;
       if (scriptApi) {
         return new Promise(function(resolve, reject) {
           var success = function(result) { resolve(result); };
