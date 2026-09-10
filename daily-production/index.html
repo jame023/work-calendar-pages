@@ -192,6 +192,7 @@
     var BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbwn86jpgVafVYdUG2P7gQkmqx2NCODgtfI4jvNDpehYYjJSa68l7QYTJ9_Kwe_ZEB9LIw/exec?bridge=1';
     var MESSAGE_SOURCE = 'production-frontend';
     var BRIDGE_SOURCE = 'production-bridge';
+    var PRODUCTION_LINE_REAUTH_KEY = 'production-line-reauth-attempt';
     var productionIdToken = '';
     var pendingCalls = new Map();
     var bridgeWindow = null;
@@ -249,6 +250,7 @@
     function showFailure(error) {
       endLoading();
       var message = error && error.message ? error.message : String(error);
+      if (recoverProductionLineSession(error)) return;
       if (isProductionPermissionError(message)) {
         disableProductionForm();
         setStatus('คุณไม่มีสิทธิ์ใช้งานคำสั่งนี้', 'error');
@@ -256,6 +258,30 @@
         return;
       }
       setStatus('บันทึกไม่สำเร็จ: ' + message, 'error');
+    }
+
+    function recoverProductionLineSession(error) {
+      var message = error && error.message ? error.message : String(error || '');
+      var isLineSessionError = message.indexOf('LINE_AUTH:TOKEN_MISSING') !== -1 ||
+        message.indexOf('LINE_AUTH:TOKEN_EXPIRED') !== -1 ||
+        message.indexOf('LINE_AUTH:INVALID_ID_TOKEN') !== -1 ||
+        message.indexOf('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่') !== -1 ||
+        message.indexOf('การยืนยันตัวตน LINE ไม่ถูกต้องหรือหมดอายุ') !== -1 ||
+        message.indexOf('LINE Token หมดอายุ') !== -1;
+      if (!isLineSessionError || !window.liff || typeof liff.login !== 'function') return false;
+      if (sessionStorage.getItem(PRODUCTION_LINE_REAUTH_KEY) === '1') {
+        sessionStorage.removeItem(PRODUCTION_LINE_REAUTH_KEY);
+        return false;
+      }
+
+      sessionStorage.setItem(PRODUCTION_LINE_REAUTH_KEY, '1');
+      productionIdToken = '';
+      setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…');
+      try {
+        if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
+      } catch (logoutError) {}
+      liff.login({ redirectUri: PRODUCTION_LIFF_REDIRECT_URI });
+      return true;
     }
 
     beginLoading('กำลังเชื่อมต่อระบบ…');
@@ -482,7 +508,7 @@
             throw new Error('กรุณาเข้าสู่ระบบ LINE');
           }
           productionIdToken = liff.getIDToken() || '';
-          if (!productionIdToken) throw new Error('ไม่พบ LINE ID Token กรุณาเข้าสู่ระบบใหม่');
+          if (!productionIdToken) throw new Error('LINE_AUTH:TOKEN_MISSING ไม่พบ LINE ID Token กรุณาเข้าสู่ระบบใหม่');
         });
     }
 
