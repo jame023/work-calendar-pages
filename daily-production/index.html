@@ -194,6 +194,7 @@
     var BRIDGE_SOURCE = 'production-bridge';
     var PRODUCTION_LINE_REAUTH_KEY = 'production-line-reauth-attempt';
     var productionIdToken = '';
+    var productionAccessToken = '';
     var pendingCalls = new Map();
     var bridgeWindow = null;
     var bridgeLiffId = '';
@@ -277,6 +278,7 @@
 
       sessionStorage.setItem(PRODUCTION_LINE_REAUTH_KEY, '1');
       productionIdToken = '';
+      productionAccessToken = '';
       setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…');
       try {
         if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
@@ -511,7 +513,8 @@
             throw new Error('กรุณาเข้าสู่ระบบ LINE');
           }
           productionIdToken = liff.getIDToken() || '';
-          if (!productionIdToken) throw new Error('LINE_AUTH:TOKEN_MISSING ไม่พบ LINE ID Token กรุณาเข้าสู่ระบบใหม่');
+          productionAccessToken = typeof liff.getAccessToken === 'function' ? (liff.getAccessToken() || '') : '';
+          if (!productionIdToken && !productionAccessToken) throw new Error('LINE_AUTH:TOKEN_MISSING ไม่พบ LINE Token กรุณาเข้าสู่ระบบใหม่');
         });
     }
 
@@ -580,13 +583,13 @@
             .withSuccessHandler(success)
             .withFailureHandler(failure);
           if (action === 'getProductionConfig') {
-            runner.getProductionConfig(productionIdToken);
+            runner.getProductionConfig(productionIdToken, productionAccessToken);
           } else if (action === 'saveDailyProduction') {
-            runner.saveDailyProduction(payload || {}, productionIdToken);
+            runner.saveDailyProduction(payload || {}, productionIdToken, productionAccessToken);
           } else if (action === 'getDailyProductionForEdit') {
-            runner.getDailyProductionForEdit(payload.requestId, productionIdToken);
+            runner.getDailyProductionForEdit(payload.requestId, productionIdToken, productionAccessToken);
           } else if (action === 'updateDailyProduction') {
-            runner.updateDailyProduction(payload || {}, productionIdToken);
+            runner.updateDailyProduction(payload || {}, productionIdToken, productionAccessToken);
           } else {
             reject(new Error('ไม่รองรับคำสั่งนี้'));
           }
@@ -609,6 +612,7 @@
           id: id,
           action: action,
           idToken: productionIdToken,
+          accessToken: productionAccessToken,
           payload: payload || {}
         }, '*');
       });
