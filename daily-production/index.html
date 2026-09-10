@@ -8,9 +8,9 @@
   <meta http-equiv='Pragma' content='no-cache'>
   <meta http-equiv='Expires' content='0'>
   <title>บันทึกยอดผลิตประจำวัน</title>
+  <script src='https://static.line-scdn.net/liff/edge/2/sdk.js'></script>
   <link rel="stylesheet" href="tailwind.css">
   <style>
-    .backend-frame { position:fixed; width:1px; height:1px; border:0; opacity:0; pointer-events:none; }
     .save-success-modal { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
     .save-success-modal.show { opacity:1; pointer-events:auto; }
     .save-success-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
@@ -22,6 +22,18 @@
     .edit-actions { display:grid; gap:12px; margin-top:12px; }
     .edit-actions button { min-height:52px; }
     .edit-actions button[hidden] { display:none; }
+    .notification-modal { position:fixed; inset:0; z-index:220; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+    .notification-modal.show { opacity:1; pointer-events:auto; }
+    .notification-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+    .notification-modal.show .notification-panel { transform:none; }
+    .notification-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#fff1e8; color:#d85b00; font-size:42px; font-weight:800; }
+    .notification-title { margin:0 0 10px; color:#7d3100; font-size:24px; line-height:1.25; }
+    .notification-message { margin:0 0 22px; color:#354052; font-size:18px; line-height:1.55; white-space:pre-line; }
+    .notification-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:18px; font-weight:800; cursor:pointer; }
+    .notification-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+    #productionForm.access-denied { opacity:.82; }
+    .backend-frame { position:fixed; width:1px; height:1px; border:0; opacity:0; pointer-events:none; }
+    @media (max-width:700px) { .notification-panel { padding:24px 18px 18px; } .notification-title { font-size:22px; } .notification-message { font-size:16px; } .notification-acknowledge { min-height:48px; font-size:16px; } }
   </style>
     <script>
       (function() {
@@ -67,7 +79,6 @@
     </script>
   </head>
 <body class="production-form-page">
-  <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
   <header>
     <div class='container header-row'>
       <div class='app-title'>
@@ -139,20 +150,22 @@
       <div id='statusMessage' class='status' role='status'>กำลังโหลดแบบฟอร์ม...</div>
     </form>
   </main>
+  <iframe class='backend-frame' id='backendFrame' title='Apps Script backend'></iframe>
 
   <script>
+    var PRODUCTION_LIFF_ID = '2010715544-0CpN59Ly';
+    var PRODUCTION_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/daily-production/';
     var BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbwn86jpgVafVYdUG2P7gQkmqx2NCODgtfI4jvNDpehYYjJSa68l7QYTJ9_Kwe_ZEB9LIw/exec?bridge=1';
     var MESSAGE_SOURCE = 'production-frontend';
     var BRIDGE_SOURCE = 'production-bridge';
+    var productionIdToken = '';
     var pendingCalls = new Map();
     var bridgeWindow = null;
+    var bridgeLiffId = '';
     var requestNumber = 0;
     var resolveBridge;
     var bridgeReady = new Promise(function(resolve) { resolveBridge = resolve; });
-    var backendFrame = document.getElementById('backendFrame');
-
-    window.addEventListener('message', receiveBridgeMessage);
-    backendFrame.src = BACKEND_URL;
+    var backendFrame = byId('backendFrame');
     var config = null;
     var editMode = false;
     var editingRequestId = '';
@@ -193,52 +206,6 @@
       return requestId;
     }
 
-    function receiveBridgeMessage(event) {
-      var data = event.data;
-      if (!data || data.source !== BRIDGE_SOURCE) return;
-      if (data.type === 'ready') {
-        if (event.source !== backendFrame.contentWindow) return;
-        bridgeWindow = event.source;
-        resolveBridge();
-        return;
-      }
-      if (data.type !== 'response' || event.source !== bridgeWindow) return;
-      var request = pendingCalls.get(data.id);
-      if (!request) return;
-      clearTimeout(request.timer);
-      pendingCalls.delete(data.id);
-      data.ok ? request.resolve(data.result) : request.reject(new Error(data.error || 'เกิดข้อผิดพลาด'));
-    }
-
-    function waitForBridge() {
-      return Promise.race([
-        bridgeReady,
-        new Promise(function(resolve, reject) {
-          setTimeout(function() { reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ')); }, 15000);
-        })
-      ]);
-    }
-
-    function callBackend(action, payload) {
-      return new Promise(function(resolve, reject) {
-        if (!bridgeWindow) {
-          reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
-          return;
-        }
-        var id = 'request-' + (++requestNumber);
-        var timer = setTimeout(function() {
-          pendingCalls.delete(id);
-          reject(new Error('Apps Script ตอบกลับช้าเกินกำหนด'));
-        }, 60000);
-        pendingCalls.set(id, { resolve: resolve, reject: reject, timer: timer });
-        bridgeWindow.postMessage({
-          source: MESSAGE_SOURCE,
-          id: id,
-          action: action,
-          payload: payload || {}
-        }, '*');
-      });
-    }
     function setStatus(message, type) {
       var status = byId('statusMessage');
       status.className = 'status' + (type ? ' ' + type : '');
@@ -247,26 +214,34 @@
 
     function showFailure(error) {
       endLoading();
-      setStatus('โหลดแบบฟอร์มไม่สำเร็จ: ' + (error && error.message ? error.message : String(error)), 'error');
+      var message = error && error.message ? error.message : String(error);
+      if (isProductionPermissionError(message)) {
+        disableProductionForm();
+        setStatus('คุณไม่มีสิทธิ์ใช้งานคำสั่งนี้', 'error');
+        showNotification('คุณไม่มีสิทธิ์ใช้งานคำสั่งนี้\nเมนูนี้เปิดให้เฉพาะพนักงานกลุ่มงาน ผลิต');
+        return;
+      }
+      setStatus('บันทึกไม่สำเร็จ: ' + message, 'error');
     }
 
     beginLoading('กำลังเชื่อมต่อระบบ…');
-    waitForBridge()
+    initializeProductionAuth()
       .then(function() { return callBackend('getProductionConfig', {}); })
       .then(function(result) {
         endLoading();
         config = result;
         byId('productionDate').value = result.defaultDate;
+        byId('operatorName').innerHTML = '<option value="">เลือกชื่อผู้บันทึก</option>';
         result.operators.forEach(function(operator) {
           var option = document.createElement('option');
           option.value = operator;
           option.textContent = operator;
           byId('operatorName').appendChild(option);
         });
-        var savedOperator = localStorage.getItem('productionOperatorName') || '';
-        if (result.operators.indexOf(savedOperator) !== -1) {
-          byId('operatorName').value = savedOperator;
-        }
+        byId('operatorName').value = result.user && result.user.name
+          ? result.user.name
+          : (result.operators[0] || '');
+        byId('operatorName').disabled = true;
         result.machines.forEach(function(machine) {
           var option = document.createElement('option');
           option.value = machine.key;
@@ -402,7 +377,8 @@
           endLoading();
           byId('editLatestButton').disabled = false;
           setStatus('โหลดรายการแก้ไขไม่สำเร็จ: ' + (error && error.message ? error.message : String(error)), 'error');
-        });
+        })
+        ;
     }
 
     function returnToNewProduction() {
@@ -447,6 +423,149 @@
     byId('produced').addEventListener('input', updateSummary);
     byId('defective').addEventListener('input', updateSummary);
 
+    function initializeProductionAuth() {
+      if (!PRODUCTION_LIFF_ID) {
+        return Promise.reject(new Error('ระบบยังไม่ได้ตั้งค่า PRODUCTION_LIFF_ID'));
+      }
+      if (!window.liff) {
+        return Promise.reject(new Error('โหลด LIFF ไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ'));
+      }
+      var bridgePromise = Promise.resolve();
+      if (BACKEND_URL && backendFrame) {
+        backendFrame.src = BACKEND_URL;
+        bridgePromise = waitForBridge();
+      }
+      return bridgePromise
+        .then(function() {
+          return liff.init({
+            liffId: bridgeLiffId || PRODUCTION_LIFF_ID,
+            withLoginOnExternalBrowser: true
+          });
+        })
+        .then(function() {
+          if (!liff.isLoggedIn()) {
+            liff.login({ redirectUri: PRODUCTION_LIFF_REDIRECT_URI });
+            throw new Error('กรุณาเข้าสู่ระบบ LINE');
+          }
+          productionIdToken = liff.getIDToken() || '';
+          if (!productionIdToken) throw new Error('ไม่พบ LINE ID Token กรุณาเข้าสู่ระบบใหม่');
+        });
+    }
+
+    function isProductionPermissionError(message) {
+      var text = String(message || '');
+      return text.indexOf('ไม่มีสิทธิ์บันทึกยอดผลิต') !== -1 ||
+        text.indexOf('ไม่ได้อยู่ในรายชื่อพนักงาน Active') !== -1;
+    }
+
+    function disableProductionForm() {
+      var form = byId('productionForm');
+      if (!form) return;
+      form.classList.add('access-denied');
+      form.querySelectorAll('input,select,textarea,button').forEach(function(control) {
+        control.disabled = true;
+      });
+      byId('statusMessage').setAttribute('tabindex', '-1');
+    }
+
+    function receiveBridgeMessage(event) {
+      var data = event.data;
+      if (!data || data.source !== BRIDGE_SOURCE) return;
+      if (data.type === 'ready') {
+        if (backendFrame && event.source !== backendFrame.contentWindow) return;
+        bridgeWindow = event.source;
+        bridgeLiffId = String(data.liffId || '');
+        resolveBridge();
+        return;
+      }
+      if (data.type !== 'response' || event.source !== bridgeWindow) return;
+      var request = pendingCalls.get(data.id);
+      if (!request) return;
+      clearTimeout(request.timer);
+      pendingCalls.delete(data.id);
+      data.ok
+        ? request.resolve(data.result)
+        : request.reject(new Error(data.error || 'เกิดข้อผิดพลาด'));
+    }
+
+    function waitForBridge() {
+      return Promise.race([
+        bridgeReady,
+        new Promise(function(resolve, reject) {
+          setTimeout(function() {
+            reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+          }, 15000);
+        })
+      ]);
+    }
+
+    function callBackend(action, payload) {
+      var scriptApi = window.google && window.google['script']
+        ? window.google['script']['run']
+        : null;
+      if (scriptApi) {
+        return new Promise(function(resolve, reject) {
+          var success = function(result) { resolve(result); };
+          var failure = function(error) { reject(error); };
+          var runner = scriptApi
+            .withSuccessHandler(success)
+            .withFailureHandler(failure);
+          if (action === 'getProductionConfig') {
+            runner.getProductionConfig(productionIdToken);
+          } else if (action === 'saveDailyProduction') {
+            runner.saveDailyProduction(payload || {}, productionIdToken);
+          } else if (action === 'getDailyProductionForEdit') {
+            runner.getDailyProductionForEdit(payload.requestId, productionIdToken);
+          } else if (action === 'updateDailyProduction') {
+            runner.updateDailyProduction(payload || {}, productionIdToken);
+          } else {
+            reject(new Error('ไม่รองรับคำสั่งนี้'));
+          }
+        });
+      }
+
+      return new Promise(function(resolve, reject) {
+        if (!bridgeWindow) {
+          reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+          return;
+        }
+        var id = 'request-' + (++requestNumber);
+        var timer = setTimeout(function() {
+          pendingCalls.delete(id);
+          reject(new Error('Apps Script ตอบกลับช้าเกินกำหนด'));
+        }, 60000);
+        pendingCalls.set(id, { resolve: resolve, reject: reject, timer: timer });
+        bridgeWindow.postMessage({
+          source: MESSAGE_SOURCE,
+          id: id,
+          action: action,
+          idToken: productionIdToken,
+          payload: payload || {}
+        }, '*');
+      });
+    }
+
+    var pendingNotificationMessage = '';
+    function showNotification(message) {
+      var modal = byId('notificationModal');
+      if (!modal) {
+        pendingNotificationMessage = message;
+        return;
+      }
+      byId('notificationMessage').textContent = message;
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      byId('notificationAcknowledge').focus();
+    }
+
+    function hideNotification() {
+      var modal = byId('notificationModal');
+      if (!modal) return;
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      byId('statusMessage').focus();
+    }
+
     var saveSuccessReturnFocus = null;
     function showSaveSuccessModal() {
       saveSuccessReturnFocus = document.activeElement;
@@ -465,8 +584,17 @@
 
     document.addEventListener('keydown', function(event) {
       if (event.key === 'Escape' && byId('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
+      if (event.key === 'Escape' && byId('notificationModal').classList.contains('show')) hideNotification();
     });
   </script>
+    <div class="notification-modal" id="notificationModal" role="alertdialog" aria-modal="true" aria-labelledby="notificationTitle" aria-describedby="notificationMessage" aria-hidden="true">
+      <div class="notification-panel">
+        <div class="notification-icon" aria-hidden="true">!</div>
+        <h2 class="notification-title" id="notificationTitle">ไม่สามารถใช้งานคำสั่งนี้ได้</h2>
+        <p class="notification-message" id="notificationMessage"></p>
+        <button class="notification-acknowledge" id="notificationAcknowledge" type="button" onclick="hideNotification()">รับทราบ</button>
+      </div>
+    </div>
     <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
       <div class="save-success-panel">
         <div class="save-success-icon" aria-hidden="true">✓</div>
