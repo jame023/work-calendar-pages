@@ -279,6 +279,7 @@
       sessionStorage.setItem(PRODUCTION_LINE_REAUTH_KEY, '1');
       productionIdToken = '';
       productionAccessToken = '';
+
       setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…');
       try {
         if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
@@ -532,7 +533,12 @@
     }
 
 
-    function refreshProductionLineTokens() {      if (!window.liff) return false;      if (typeof liff.isLoggedIn === 'function' && !liff.isLoggedIn()) return false;      var nextIdToken = '';      try {        if (typeof liff.getIDToken === 'function') nextIdToken = liff.getIDToken() || '';      } catch (error) {}      productionIdToken = String(nextIdToken || '').trim();      productionAccessToken = '';      return !!productionIdToken;    }
+    function refreshProductionLineTokens() {      if (!window.liff) return false;      if (typeof liff.isLoggedIn === 'function' && !liff.isLoggedIn()) return false;      var nextIdToken = '';      try {        if (typeof liff.getIDToken === 'function') nextIdToken = liff.getIDToken() || '';      } catch (error) {}      productionIdToken = String(nextIdToken || '').trim();
+      var nextAccessToken = '';
+      try {
+        if (typeof liff.getAccessToken === 'function') nextAccessToken = liff.getAccessToken() || '';
+      } catch (error) {}
+      productionAccessToken = String(nextAccessToken || '').trim();      return !!productionIdToken;    }
 
     function isProductionPermissionError(message) {
       var text = String(message || '');
