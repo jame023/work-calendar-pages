@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang='th'>
+<head>
+  <base target='_top'>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover'>
+  <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate'>
+  <meta http-equiv='Pragma' content='no-cache'>
+  <meta http-equiv='Expires' content='0'>
+  <title>บันทึกยอดผลิตประจำวัน</title>
+  <link rel="stylesheet" href="tailwind.css">
+  <style>
+    .backend-frame { position:fixed; width:1px; height:1px; border:0; opacity:0; pointer-events:none; }
+    .save-success-modal { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+    .save-success-modal.show { opacity:1; pointer-events:auto; }
+    .save-success-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+    .save-success-modal.show .save-success-panel { transform:none; }
+    .save-success-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#eaf8ef; color:#16803a; font-size:42px; font-weight:800; }
+    .save-success-title { margin-bottom:22px; color:#145c2c; font-size:24px; }
+    .save-success-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
+    .save-success-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+    .edit-actions { display:grid; gap:12px; margin-top:12px; }
+    .edit-actions button { min-height:52px; }
+    .edit-actions button[hidden] { display:none; }
+  </style>
+    <script>
+      (function() {
+        let busyDepth = 0;
+        let shownAt = 0;
+        let hideTimer = 0;
+        const minimumVisibleMs = 650;
+
+        window.beginLoading = function(message) {
+          busyDepth += 1;
+          window.clearTimeout(hideTimer);
+          hideTimer = 0;
+          window.requestAnimationFrame(function() {
+            const overlay = document.getElementById("loadingOverlay");
+            const label = document.getElementById("loadingMessage");
+            if (!overlay || busyDepth < 1) return;
+            if (label) label.textContent = message || "กำลังโหลดข้อมูล…";
+            if (!overlay.classList.contains("show")) shownAt = performance.now();
+            overlay.classList.add("show");
+            overlay.setAttribute("aria-hidden", "false");
+            document.body.classList.add("is-busy");
+            document.body.setAttribute("aria-busy", "true");
+          });
+        };
+
+        window.endLoading = function() {
+          busyDepth = Math.max(0, busyDepth - 1);
+          if (busyDepth > 0) return;
+          const remaining = Math.max(0, minimumVisibleMs - (performance.now() - shownAt));
+          hideTimer = window.setTimeout(function() {
+            if (busyDepth > 0) return;
+            const overlay = document.getElementById("loadingOverlay");
+            if (overlay) {
+              overlay.classList.remove("show");
+              overlay.setAttribute("aria-hidden", "true");
+            }
+            document.body.classList.remove("is-busy");
+            document.body.setAttribute("aria-busy", "false");
+            hideTimer = 0;
+          }, remaining);
+        };
+      })();
+    </script>
+  </head>
+<body class="production-form-page">
+  <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
+  <header>
+    <div class='container header-row'>
+      <div class='app-title'>
+        <div class='app-icon'>
+          <img src='https://raw.githubusercontent.com/jame023/work-calendar-pages/main/assets/sip-iget-logo.png' alt='SIP I-GET'>
+        </div>
+        <div><h1>บันทึกยอดผลิตประจำวัน</h1><p>เลือกเครื่องจักร แล้วกรอกยอดสรุปประจำวัน หน่วยเป็นชิ้น</p></div>
+      </div>
+    </div>
+  </header>
+
+  <main class='container'>
+    <form id='productionForm' class='panel'>
+      <section class='section'>
+        <h2 class='section-title'>1. ข้อมูลทั่วไป</h2>
+        <div class='field-grid'>
+          <label>
+            วันที่ผลิต
+            <input id='productionDate' type='date' required>
+          </label>
+          <label>
+            ชื่อผู้บันทึก
+            <select id='operatorName' required>
+              <option value=''>-- เลือกชื่อผู้บันทึก --</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class='section'>
+        <h2 class='section-title'>2. เลือกเครื่องจักร</h2>
+        <label>
+          เครื่องจักร
+          <select id='machineKey' required>
+            <option value=''>-- เลือกเครื่องจักร --</option>
+          </select>
+        </label>
+      </section>
+
+      <section class='section'>
+        <h2 class='section-title'>3. กรอกยอดผลิต</h2>
+        <div class='number-grid'>
+          <label>ผลิตได้ (ชิ้น)<input id='produced' type='number' min='1' step='1' inputmode='numeric' required></label>
+          <label>ของเสีย (ชิ้น)<input id='defective' type='number' min='0' step='1' inputmode='numeric' value='0' required></label>
+        </div>
+        <div class='summary-card'>
+          <div class='summary-grid'>
+            <div class='summary-item'><span>เครื่องจักร</span><strong id='selectedMachine'>ยังไม่ได้เลือก</strong></div>
+            <div class='summary-item'><span>ผลิตทั้งหมด</span><strong id='summaryProduced'>0 ชิ้น</strong></div>
+            <div class='summary-item'><span>ของดี</span><strong id='summaryGood'>0 ชิ้น</strong></div>
+            <div class='summary-item'><span>อัตราของเสีย</span><strong id='summaryRate'>0.00%</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class='section'>
+        <label>
+          หมายเหตุ
+          <textarea id='note' maxlength='500' placeholder='เช่น เครื่องหยุดซ่อม วัตถุดิบมีปัญหา หรือเหตุการณ์สำคัญ'></textarea>
+        </label>
+        <p class='help-text'>วันเดียวกันบันทึกได้ไม่จำกัดจำนวนครั้ง</p>
+      </section>
+
+      <button id='saveButton' type='submit'>ตรวจสอบและบันทึกยอด</button>
+      <div class='edit-actions'>
+        <button id='editLatestButton' type='button' disabled>แก้ไขรายการล่าสุดของเครื่องนี้</button>
+        <button id='returnToNewButton' type='button' hidden>กลับไปบันทึกรายการใหม่</button>
+      </div>
+      <div id='statusMessage' class='status' role='status'>กำลังโหลดแบบฟอร์ม...</div>
+    </form>
+  </main>
+
+  <script>
+    var BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbwn86jpgVafVYdUG2P7gQkmqx2NCODgtfI4jvNDpehYYjJSa68l7QYTJ9_Kwe_ZEB9LIw/exec?bridge=1';
+    var MESSAGE_SOURCE = 'production-frontend';
+    var BRIDGE_SOURCE = 'production-bridge';
+    var pendingCalls = new Map();
+    var bridgeWindow = null;
+    var requestNumber = 0;
+    var resolveBridge;
+    var bridgeReady = new Promise(function(resolve) { resolveBridge = resolve; });
+    var backendFrame = document.getElementById('backendFrame');
+
+    window.addEventListener('message', receiveBridgeMessage);
+    backendFrame.src = BACKEND_URL;
+    var config = null;
+    var editMode = false;
+    var editingRequestId = '';
+    var editScreenDefectiveAdded = 0;
+
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
+    function getSelectedMachine() {
+      var machineKey = byId('machineKey').value;
+      return config.machines.filter(function(machine) {
+        return machine.key === machineKey;
+      })[0] || null;
+    }
+
+    function updateSummary() {
+      if (!config) return;
+      var machine = getSelectedMachine();
+      var produced = Number(byId('produced').value || 0);
+      var enteredDefective = Number(byId('defective').value || 0);
+      var defective = enteredDefective + (editMode ? editScreenDefectiveAdded : 0);
+      var good = Math.max(0, produced - defective);
+      var rate = produced ? defective / produced * 100 : 0;
+
+      byId('selectedMachine').textContent = machine ? machine.label : 'ยังไม่ได้เลือก';
+      byId('summaryProduced').textContent = produced + ' ชิ้น';
+      byId('summaryGood').textContent = good + ' ชิ้น';
+      byId('summaryRate').textContent = rate.toFixed(2) + '%';
+    }
+
+    function getRequestId() {
+      var requestId = sessionStorage.getItem('productionRequestId');
+      if (!requestId) {
+        requestId = 'production_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        sessionStorage.setItem('productionRequestId', requestId);
+      }
+      return requestId;
+    }
+
+    function receiveBridgeMessage(event) {
+      var data = event.data;
+      if (!data || data.source !== BRIDGE_SOURCE) return;
+      if (data.type === 'ready') {
+        if (event.source !== backendFrame.contentWindow) return;
+        bridgeWindow = event.source;
+        resolveBridge();
+        return;
+      }
+      if (data.type !== 'response' || event.source !== bridgeWindow) return;
+      var request = pendingCalls.get(data.id);
+      if (!request) return;
+      clearTimeout(request.timer);
+      pendingCalls.delete(data.id);
+      data.ok ? request.resolve(data.result) : request.reject(new Error(data.error || 'เกิดข้อผิดพลาด'));
+    }
+
+    function waitForBridge() {
+      return Promise.race([
+        bridgeReady,
+        new Promise(function(resolve, reject) {
+          setTimeout(function() { reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ')); }, 15000);
+        })
+      ]);
+    }
+
+    function callBackend(action, payload) {
+      return new Promise(function(resolve, reject) {
+        if (!bridgeWindow) {
+          reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+          return;
+        }
+        var id = 'request-' + (++requestNumber);
+        var timer = setTimeout(function() {
+          pendingCalls.delete(id);
+          reject(new Error('Apps Script ตอบกลับช้าเกินกำหนด'));
+        }, 60000);
+        pendingCalls.set(id, { resolve: resolve, reject: reject, timer: timer });
+        bridgeWindow.postMessage({
+          source: MESSAGE_SOURCE,
+          id: id,
+          action: action,
+          payload: payload || {}
+        }, '*');
+      });
+    }
+    function setStatus(message, type) {
+      var status = byId('statusMessage');
+      status.className = 'status' + (type ? ' ' + type : '');
+      status.textContent = message;
+    }
+
+    function showFailure(error) {
+      endLoading();
+      setStatus('โหลดแบบฟอร์มไม่สำเร็จ: ' + (error && error.message ? error.message : String(error)), 'error');
+    }
+
+    beginLoading('กำลังเชื่อมต่อระบบ…');
+    waitForBridge()
+      .then(function() { return callBackend('getProductionConfig', {}); })
+      .then(function(result) {
+        endLoading();
+        config = result;
+        byId('productionDate').value = result.defaultDate;
+        result.operators.forEach(function(operator) {
+          var option = document.createElement('option');
+          option.value = operator;
+          option.textContent = operator;
+          byId('operatorName').appendChild(option);
+        });
+        var savedOperator = localStorage.getItem('productionOperatorName') || '';
+        if (result.operators.indexOf(savedOperator) !== -1) {
+          byId('operatorName').value = savedOperator;
+        }
+        result.machines.forEach(function(machine) {
+          var option = document.createElement('option');
+          option.value = machine.key;
+          option.textContent = machine.label;
+          byId('machineKey').appendChild(option);
+        });
+        var savedMachineKey = localStorage.getItem('productionMachineKey') || '';
+        if (result.machines.some(function(machine) { return machine.key === savedMachineKey; })) {
+          byId('machineKey').value = savedMachineKey;
+        }
+        updateSummary();
+        byId('editLatestButton').disabled = !localStorage.getItem('productionLastSavedRequestId');
+        setStatus('พร้อมกรอกยอดผลิต');
+      })
+      .catch(showFailure);
+
+    byId('productionForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      if (!config) return;
+
+      var machine = getSelectedMachine();
+      var produced = Number(byId('produced').value || 0);
+      var defective = Number(byId('defective').value || 0);
+      if (!machine) {
+        setStatus('กรุณาเลือกเครื่องจักร', 'error');
+        return;
+      }
+      if (defective > produced) {
+        setStatus('จำนวนของเสียมากกว่าจำนวนผลิต', 'error');
+        return;
+      }
+
+      var payload = {
+        date: byId('productionDate').value,
+        operator: byId('operatorName').value.trim(),
+        machineKey: machine.key,
+        produced: produced,
+        defective: defective,
+        note: byId('note').value.trim(),
+        requestId: editMode ? editingRequestId : getRequestId()
+      };
+      if (editMode && localStorage.getItem('productionLastSavedRequestId') !== editingRequestId) {
+        setStatus('Browser นี้บันทึกรายการใหม่กว่าแล้ว กรุณาโหลด "รายการล่าสุด" ใหม่ก่อนแก้ไข', 'error');
+        return;
+      }
+      var isEditSubmission = editMode;
+      var totalDefective = defective + (isEditSubmission ? editScreenDefectiveAdded : 0);
+      if (!window.confirm(
+        'ยืนยันยอดวันที่ ' + payload.date + '\n\n' + machine.label +
+        '\nผลิต ' + produced + ' ชิ้น\nเสียที่กรอก ' + defective + ' ชิ้น' +
+        (isEditSubmission && editScreenDefectiveAdded > 0
+          ? '\nเสียจาก Screen +' + editScreenDefectiveAdded + ' ชิ้น\nเสียรวม ' + totalDefective + ' ชิ้น'
+          : '') +
+        '\n\nกรุณาตรวจสอบข้อมูลให้ถูกต้องก่อนยืนยัน'
+      )) return;
+
+      byId('saveButton').disabled = true;
+      byId('returnToNewButton').disabled = true;
+      beginLoading(isEditSubmission ? 'กำลังบันทึกการแก้ไข…' : 'กำลังบันทึกข้อมูล…');
+      setStatus(isEditSubmission ? 'กำลังบันทึกการแก้ไข กรุณาอย่าปิดหน้าเว็บ...' : 'กำลังบันทึก กรุณาอย่าปิดหน้าเว็บ...');
+      callBackend(isEditSubmission ? 'updateDailyProduction' : 'saveDailyProduction', payload)
+        .then(function(result) {
+          endLoading();
+          showSaveSuccessModal();
+          if (!isEditSubmission) {
+            localStorage.setItem('productionLastSavedRequestId', payload.requestId);
+            sessionStorage.removeItem('productionRequestId');
+          }
+          setStatus(
+            (isEditSubmission ? 'แก้ไขรายการสำเร็จ' : (result.duplicate ? 'รายการนี้บันทึกไว้แล้ว' : 'บันทึกสำเร็จ')) +
+            '\n' + result.machineLabel + ' | ผลิต ' + result.produced +
+            ' ชิ้น | เสีย ' + result.defective + ' ชิ้น | ของดี ' + result.good +
+            ' ชิ้น | ของเสีย ' + (result.defectRate * 100).toFixed(2) + '%' +
+            (Number(result.screenDefectiveAdded || 0) > 0
+              ? '\nรวมเสียจากหน้า Screen +' + result.screenDefectiveAdded + ' ชิ้น'
+              : ''),
+            'ok'
+          );
+          byId('saveButton').disabled = false;
+          byId('returnToNewButton').disabled = false;
+        })
+        .catch(function(error) {
+          showFailure(error);
+          byId('saveButton').disabled = false;
+          byId('returnToNewButton').disabled = false;
+        });
+    });
+
+    function loadLatestProductionForEdit() {
+      if (!config) return;
+      var requestId = localStorage.getItem('productionLastSavedRequestId') || '';
+      if (!requestId) {
+        setStatus('ยังไม่มีรายการล่าสุดที่ Browser นี้บันทึกสำเร็จ', 'error');
+        return;
+      }
+
+      byId('editLatestButton').disabled = true;
+      beginLoading('กำลังโหลดรายการล่าสุด…');
+      setStatus('กำลังโหลดรายการล่าสุดของ Browser นี้...');
+      callBackend('getDailyProductionForEdit', { requestId: requestId })
+        .then(function(result) {
+          endLoading();
+          byId('editLatestButton').disabled = false;
+          if (!result || !result.found) {
+            setStatus('ไม่พบรายการล่าสุดของ Browser นี้ใน Daily_Production', 'error');
+            return;
+          }
+
+          editMode = true;
+          editingRequestId = result.requestId;
+          editScreenDefectiveAdded = Number(result.screenDefectiveAdded || 0);
+          byId('productionDate').value = result.date;
+          byId('operatorName').value = result.operator;
+          byId('machineKey').value = result.machineKey;
+          byId('produced').value = result.produced;
+          byId('defective').value = result.enteredDefective;
+          byId('note').value = result.note || '';
+          byId('productionDate').disabled = editScreenDefectiveAdded > 0;
+          byId('machineKey').disabled = editScreenDefectiveAdded > 0;
+          byId('saveButton').textContent = 'ตรวจสอบและบันทึกการแก้ไข';
+          byId('editLatestButton').hidden = true;
+          byId('returnToNewButton').hidden = false;
+          updateSummary();
+          setStatus(
+            'กำลังแก้ไขรายการล่าสุดของ Browser นี้' +
+            (editScreenDefectiveAdded > 0
+              ? '\nรายการนี้มีเสียจาก Screen ' + editScreenDefectiveAdded + ' ชิ้น จึงเปลี่ยนวันที่และเครื่องจักรไม่ได้'
+              : ''),
+            'ok'
+          );
+        })
+        .catch(function(error) {
+          endLoading();
+          byId('editLatestButton').disabled = false;
+          setStatus('โหลดรายการแก้ไขไม่สำเร็จ: ' + (error && error.message ? error.message : String(error)), 'error');
+        });
+    }
+
+    function returnToNewProduction() {
+      editMode = false;
+      editingRequestId = '';
+      editScreenDefectiveAdded = 0;
+      byId('productionDate').disabled = false;
+      byId('machineKey').disabled = false;
+      byId('productionDate').value = config.defaultDate;
+      byId('operatorName').value = localStorage.getItem('productionOperatorName') || '';
+      byId('machineKey').value = localStorage.getItem('productionMachineKey') || '';
+      byId('produced').value = '';
+      byId('defective').value = 0;
+      byId('note').value = '';
+      byId('saveButton').textContent = 'ตรวจสอบและบันทึกยอด';
+      byId('editLatestButton').hidden = false;
+      byId('returnToNewButton').hidden = true;
+      updateSummary();
+      setStatus('พร้อมบันทึกรายการใหม่');
+    }
+
+    byId('editLatestButton').addEventListener('click', loadLatestProductionForEdit);
+    byId('returnToNewButton').addEventListener('click', returnToNewProduction);
+
+    byId('machineKey').addEventListener('change', function() {
+      var machineKey = byId('machineKey').value;
+      if (machineKey) {
+        localStorage.setItem('productionMachineKey', machineKey);
+      } else {
+        localStorage.removeItem('productionMachineKey');
+      }
+      updateSummary();
+    });
+    byId('operatorName').addEventListener('change', function() {
+      var operator = byId('operatorName').value;
+      if (operator) {
+        localStorage.setItem('productionOperatorName', operator);
+      } else {
+        localStorage.removeItem('productionOperatorName');
+      }
+    });
+    byId('produced').addEventListener('input', updateSummary);
+    byId('defective').addEventListener('input', updateSummary);
+
+    var saveSuccessReturnFocus = null;
+    function showSaveSuccessModal() {
+      saveSuccessReturnFocus = document.activeElement;
+      var modal = byId('saveSuccessModal');
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      byId('saveSuccessAcknowledge').focus();
+    }
+
+    function hideSaveSuccessModal() {
+      var modal = byId('saveSuccessModal');
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      if (saveSuccessReturnFocus && saveSuccessReturnFocus.focus) saveSuccessReturnFocus.focus();
+    }
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && byId('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
+    });
+  </script>
+    <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
+      <div class="save-success-panel">
+        <div class="save-success-icon" aria-hidden="true">✓</div>
+        <h2 class="save-success-title" id="saveSuccessTitle">บันทึกเสร็จแล้ว</h2>
+        <button class="save-success-acknowledge" id="saveSuccessAcknowledge" type="button" onclick="hideSaveSuccessModal()">รับทราบ</button>
+      </div>
+    </div>
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
+      <div class="loading-panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span id="loadingMessage">กำลังโหลดข้อมูล…</span>
+      </div>
+    </div>
+</body>
+</html>
