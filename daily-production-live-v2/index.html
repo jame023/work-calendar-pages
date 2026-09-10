@@ -512,10 +512,23 @@
             liff.login({ redirectUri: PRODUCTION_LIFF_REDIRECT_URI });
             throw new Error('กรุณาเข้าสู่ระบบ LINE');
           }
-          productionIdToken = liff.getIDToken() || '';
-          productionAccessToken = typeof liff.getAccessToken === 'function' ? (liff.getAccessToken() || '') : '';
+          refreshProductionLineTokens();
           if (!productionIdToken && !productionAccessToken) throw new Error('LINE_AUTH:TOKEN_MISSING ไม่พบ LINE Token กรุณาเข้าสู่ระบบใหม่');
         });
+    }
+
+    function refreshProductionLineTokens() {
+      if (!window.liff) return false;
+      try {
+        if (typeof liff.isLoggedIn === 'function' && !liff.isLoggedIn()) return false;
+        productionIdToken = typeof liff.getIDToken === 'function' ? (liff.getIDToken() || '') : '';
+        productionAccessToken = typeof liff.getAccessToken === 'function' ? (liff.getAccessToken() || '') : '';
+      } catch (error) {
+        productionIdToken = '';
+        productionAccessToken = '';
+        return false;
+      }
+      return !!(productionIdToken || productionAccessToken);
     }
 
     function isProductionPermissionError(message) {
@@ -572,6 +585,7 @@
     }
 
     function callBackend(action, payload) {
+      refreshProductionLineTokens();
       var scriptApi = window.google && window.google['script']
         ? window.google['script']['run']
         : null;
