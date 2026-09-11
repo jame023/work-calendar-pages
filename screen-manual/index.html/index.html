@@ -1,0 +1,747 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style id="tailwind-build">
+*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }
+::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:Noto Sans Thai,Leelawadee UI,Tahoma,sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}
+b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}*{box-sizing:border-box}html{background:#eef3f7}
+body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leelawadee UI,Tahoma,sans-serif;color:#102a43;background:linear-gradient(180deg,#dff2ff,#f7fafc 300px,#eef3f7);font-variant-numeric:tabular-nums}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:wait;opacity:.65}:focus-visible{outline:3px solid rgba(14,165,233,.36);outline-offset:3px}header{position:sticky;top:0;z-index:40;color:#fff;background:linear-gradient(115deg,#071b33,#123f6d 64%,#096f91);border-bottom:4px solid #16c4e5;box-shadow:0 10px 28px rgba(7,27,51,.22)}.container,.wrap{width:min(1440px,calc(100% - 32px));margin-inline:auto}.app-header,.header-row,.topbar{min-height:94px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding-block:14px}.app-title,.brand-title{display:flex;align-items:center;gap:16px;min-width:0}.app-icon,.app-mark{flex:0 0 144px;width:144px;height:67.5px;padding:3px;overflow:hidden;background:#fff;border:1px solid #cbd8e3;border-radius:12px;box-shadow:0 7px 20px rgba(7,27,51,.09)}.app-icon img,.app-mark img{display:block;width:100%;height:100%;-o-object-fit:contain;object-fit:contain;border-radius:9px}header h1{margin:0;font-size:clamp(28px,3vw,40px);line-height:1.15;letter-spacing:-.025em}header p{margin:5px 0 0;color:#d8edf8;font-size:18px;line-height:1.4}main{display:grid;gap:20px;padding:22px 0 calc(40px + env(safe-area-inset-bottom))}body>main:not(.wrap):not(.container){width:min(880px,calc(100% - 32px));margin-inline:auto}.actions{display:flex;align-items:center;gap:10px}.chart-card,.filter-card,.overview-summary,.panel,.production-summary,.section,.table-wrap{overflow:hidden;background:hsla(0,0%,100%,.98);border:1px solid #d5e3ed;border-radius:16px;box-shadow:0 12px 30px rgba(7,27,51,.09)}
+.filter-card,.overview-summary,.panel,.production-summary{padding:20px}.filter-card,.panel{border-top:5px solid #2563eb}.overview-summary{border-top:5px solid #0ea5e9}.production-summary{border-top:5px solid #10b981}.daily-summary,.table-wrap{border-top:5px solid #0891b2}.chart-card{border-top:5px solid #7c3aed}.filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:end}.filters label{display:grid;gap:7px;font-weight:700;color:#334e68}input,select{width:100%;height:44px;min-width:0;padding:0 12px;color:#102a43;background:#f8fbfd;border:1px solid #b9cbd8;border-radius:10px}input:hover,select:hover{border-color:#5b93b7}button{min-height:48px;padding:8px 18px;color:#fff;font-weight:800;background:linear-gradient(135deg,#087fce,#075fa8);border:0;border-radius:11px;box-shadow:0 7px 16px rgba(6,118,206,.23);transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}button:hover{filter:brightness(1.06);box-shadow:0 10px 20px rgba(6,118,206,.28);transform:translateY(-1px)}button:active{transform:translateY(1px)}.button-row,.filter-action-row{display:flex;gap:10px;margin-top:12px}.button-row button,.filter-action-row button{flex:1 1 0}.filter-status,.filter-summary,.range-label,.status{margin:12px 0 0;padding:10px 12px;color:#36566f;background:#eef7fd;border-left:4px solid #0ea5e9;border-radius:8px}.\!status{margin:12px 0 0!important;padding:10px 12px!important;color:#36566f!important;background:#eef7fd!important;border-left:4px solid #0ea5e9!important;border-radius:8px!important}.error,.filter-status.error,.status.error{color:#9f1239;background:#fff1f2;border-color:#e11d48}.\!status.error{color:#9f1239!important;background:#fff1f2!important;border-color:#e11d48!important}
+.chart-head,.section-head,.summary-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}.chart-head,.section-head{padding:17px 20px;background:linear-gradient(90deg,#f4f9fc,#fff);border-bottom:1px solid #dbe7ef}.chart-head h2,.section-head h2,.section-title,.summary-heading h2{margin:0;color:#0b2949;font-size:25px;line-height:1.25;letter-spacing:-.02em}.section-head p,.sub{margin:3px 0 0;color:#627d98}.updated-pill{padding:7px 11px;color:#075985;font-weight:700;background:#e0f2fe;border:1px solid #bae6fd;border-radius:999px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0 0}.metric{position:relative;min-height:112px;overflow:hidden;padding:18px;background:linear-gradient(145deg,#fff,#f2f9fe);border:1px solid #d8e5ee;border-radius:14px;box-shadow:0 7px 18px rgba(7,27,51,.07)}.metric:nth-child(2){background:linear-gradient(145deg,#fff,#ecfdf5)}.metric:nth-child(3){background:linear-gradient(145deg,#fff,#fff1f2)}.metric:nth-child(4),.metric:nth-child(5){background:linear-gradient(145deg,#fff,#f5f3ff)}.metric:after{position:absolute;inset:auto 18px 0;height:4px;content:"";background:#0ea5e9;border-radius:4px 4px 0 0}.metric:nth-child(2):after{background:#10b981}.metric:nth-child(3):after{background:#ef4444}.metric:nth-child(4):after,.metric:nth-child(5):after{background:#8b5cf6}.metric .label,.metric span{color:#526d82;font-weight:800}.metric .value,.metric strong{display:block;margin-top:8px;color:#0b3b68;font-size:clamp(28px,3vw,38px);font-weight:900;line-height:1.15}.card.success{border-top-color:#10b981;background:linear-gradient(145deg,#fff,#f0fdf4)}.title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
+.field-grid,.form-grid,.number-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field,.field-grid label,.number-grid label{display:grid;align-content:start;gap:7px;color:#334e68;font-weight:800}.field.full-width,.full-width{grid-column:1/-1}textarea{width:100%;min-height:101.25px;padding:11px 12px;color:#102a43;font:inherit;resize:vertical;background:#f8fbfd;border:1px solid #b9cbd8;border-radius:10px}textarea:hover{border-color:#5b93b7}.required{color:#be123c}.clean-sub,.help-text,.muted{color:#627d98}.summary,.summary-card{padding:16px;background:linear-gradient(145deg,#eff8ff,#f0fdf4);border:1px solid #c9dce9;border-radius:13px}.primary{background:linear-gradient(135deg,#087fce,#075fa8)}.secondary{color:#12305a;background:#e7f2fa;border:1px solid #a9c8dc;box-shadow:none}.danger{color:#fff;background:linear-gradient(135deg,#e11d48,#be123c);box-shadow:0 7px 16px rgba(190,18,60,.2)}.day-close-status{padding:11px 12px;color:#075985;background:#e0f2fe;border-radius:9px}#previewList{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}#previewList img{display:block;width:100%;aspect-ratio:4/3;-o-object-fit:cover;object-fit:cover;border:1px solid #cbd8e3;border-radius:10px}.delivery-form-page #formCard>.field{position:relative;padding:20px;background:#fff;border:1px solid #d5e3ed;border-top:6px solid #0ea5e9;border-radius:16px;box-shadow:0 12px 28px rgba(7,27,51,.09)}.delivery-form-page #formCard>.field:nth-child(2){border-top-color:#2563eb}.delivery-form-page #formCard>.field:nth-child(3){border-top-color:#7c3aed}.delivery-form-page #formCard>.field:nth-child(4){grid-column:1/-1;border-top-color:#10b981;background:linear-gradient(145deg,#fff,#f0fdf4)}
+.delivery-form-page #formCard>.field:nth-child(5){grid-column:1/-1;border-top-color:#f59e0b;background:linear-gradient(145deg,#fff,#fffaf0)}.delivery-form-page #formCard>.\!status{grid-column:1/-1!important}.delivery-form-page #formCard>.status,.delivery-form-page #formCard>.submit-bar{grid-column:1/-1}.delivery-form-page #formCard>.\!status:empty{display:none!important}.delivery-form-page #formCard>.status:empty{display:none}.production-form-page #productionForm>.section{position:relative;overflow:hidden;padding:22px;background:#fff;border:1px solid #d5e3ed;border-radius:17px;box-shadow:0 12px 30px rgba(7,27,51,.09)}.production-form-page #productionForm>.section:first-child{border-top:7px solid #0ea5e9}.production-form-page #productionForm>.section:nth-child(2){border-top:7px solid #2563eb;background:linear-gradient(145deg,#fff,#f3f7ff)}.production-form-page #productionForm>.section:nth-child(3){border-top:7px solid #10b981;background:linear-gradient(145deg,#fff,#f1fcf6)}.production-form-page #productionForm>.section:nth-child(4){border-top:7px solid #f59e0b;background:linear-gradient(145deg,#fff,#fffaf0)}.dashboard-03 .panel{padding:22px;border-top:7px solid #2563eb;background:linear-gradient(145deg,#fff,#f2f8ff)}.dashboard-03 .filters{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.dashboard-03 .filters label{position:relative;min-width:0;padding:16px;background:#fff;border:1px solid #d5e3ed;border-top:5px solid #0ea5e9;border-radius:14px;box-shadow:0 8px 20px rgba(7,27,51,.07)}.dashboard-03 .filters label:nth-child(2){border-top-color:#2563eb}.dashboard-03 .filters label:nth-child(3){border-top-color:#7c3aed}.dashboard-03 .filters input{margin-top:8px;background:#f8fbfd;border:2px solid #b9cbd8}.dashboard-03 .metrics{margin-top:0}
+.dashboard-03 .section-head{padding:15px 18px;background:linear-gradient(90deg,#eaf5fc,#fff);border:1px solid #d5e3ed;border-left:7px solid #0891b2;border-radius:13px}.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}table{width:100%;min-width:900px;border-collapse:collapse}th{color:#fff;text-align:left;white-space:nowrap;background:#12305a}td,th{padding:13px 12px}td{color:#243b53;border-bottom:1px solid #dce7ef;vertical-align:top}tbody tr:nth-child(2n){background:#f5f9fc}tbody tr:hover{background:#e8f6ff}td.number,th.number{text-align:right}.chart-empty,.empty{padding:28px 18px;color:#627d98;text-align:center}.daily-card-list{display:grid;gap:16px;padding:16px}.daily-record-card{overflow:hidden;background:#fff;border:1px solid #d5e3ed;border-radius:15px;box-shadow:0 8px 22px rgba(7,27,51,.08)}.daily-record-head{position:static;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 17px;color:#fff;background:linear-gradient(110deg,#0b3b68,#087f9f);border:0;box-shadow:none}.daily-record-head span{color:#d9f3fb;font-weight:700}.daily-record-head strong{font-size:24px}.daily-record-group{padding:15px 17px}.daily-record-group+.daily-record-group{border-top:1px solid #dce7ef}.daily-record-group.production{background:#f7fbf9}.daily-record-group-title{margin-bottom:10px;color:#36566f;font-weight:900}.daily-primary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.daily-production-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.daily-record-item{min-width:0;padding:12px;background:#f2f8fc;border:1px solid #d8e5ee;border-radius:11px}.daily-record-item.success{background:#ecfdf5;border-color:#a7f3d0}.daily-record-item.danger{background:#fff1f2;border-color:#fecdd3}
+.daily-record-item.warning{background:#fff7ed;border-color:#fed7aa}.daily-record-label{color:#526d82;font-weight:800}.daily-record-value{margin-top:5px;overflow-wrap:anywhere;color:#0b3b68;font-size:26px;font-weight:900;line-height:1.2}.daily-record-item.success .daily-record-value{color:#047857}.daily-record-item.danger .daily-record-value{color:#be123c}.daily-record-item.warning .daily-record-value{color:#c2410c}.daily-record-note{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:13px 17px;color:#526d82;background:#f8fafc;border-top:1px solid #dce7ef}.daily-record-note strong{color:#334e68}.chart-body{padding:18px;overflow-x:auto}.legend{display:flex;flex-wrap:wrap;gap:12px}.legend-item{display:flex;align-items:center;gap:7px;color:#526d82}.legend-swatch{width:18px;height:5px;border-radius:999px}.grid-line{stroke:#dce7ef}.axis,.chart-label{fill:#627d98}.chart-value{fill:#102a43;font-weight:800}.loading-overlay{position:fixed;inset:0;z-index:100;display:none;place-items:center;padding:20px;background:rgba(7,27,51,.48);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}.loading-overlay.is-visible,.loading-overlay[aria-hidden=false]{display:grid}.loading-panel{min-width:min(340px,90vw);padding:24px;color:#0b2949;text-align:center;background:#fff;border:1px solid #cbd8e3;border-radius:16px;box-shadow:0 22px 50px rgba(7,27,51,.22)}.loading-spinner{display:block;width:44px;height:44px;margin:0 auto 13px;border:5px solid #ccebf8;border-top-color:#0676ce;border-radius:50%;animation:dashboard-spin .8s linear infinite}.visible{visibility:visible}.hidden{display:none}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}
+@keyframes dashboard-spin{to{transform:rotate(1turn)}}@media (max-width:1400px) and (pointer:coarse),(max-width:960px){body{font-size:90px;line-height:1.35}.container,.wrap{width:100%}.app-header,.header-row,.topbar{min-height:82px;padding:10px 12px}.app-header,.header-row{justify-content:flex-start}header h1{font-size:25px}header p{font-size:18px}main{gap:14px;padding-top:14px}body>main:not(.wrap):not(.container){width:100%}main>*{margin-inline:7px!important;width:auto!important}.chart-card,.filter-card,.overview-summary,.panel,.production-summary,.section,.table-wrap{border-radius:14px}.filter-card,.overview-summary,.panel,.production-summary{padding:15px}.actions{flex:1 1 auto;justify-content:flex-end}.actions,.actions select{min-width:0}.filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}input,select{height:180px}button{min-height:216px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.metric{min-height:104px;padding:14px}.metric .value,.metric strong{font-size:28px}.chart-head,.section-head,.summary-heading{align-items:flex-start}.chart-head,.section-head{padding:14px}.chart-head h2,.section-head h2,.section-title,.summary-heading h2{font-size:23px}.machine-grid{grid-template-columns:1fr;gap:10px}.card,.machine-card{padding:15px}.card{margin-inline:7px;border-radius:14px}.field-grid,.form-grid,.number-grid{grid-template-columns:1fr;gap:12px}.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.submit-bar{grid-template-columns:1fr}.table-wrap{overflow-x:auto}.daily-card-list{padding:10px}.daily-record-head{align-items:flex-start;padding:13px 14px}.daily-record-head strong{font-size:30px}.daily-record-group{padding:13px}.daily-primary-grid,.daily-production-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.daily-record-item{padding:11px}.daily-record-label{font-size:24px}.daily-record-value{font-size:30px}.daily-record-note{grid-template-columns:1fr;padding:13px}table{min-width:760px}.delivery-table{display:block;min-width:0}.delivery-table thead{display:none}#deliveryRows{display:grid;gap:10px;padding:10px}#deliveryRows tr{display:block;overflow:hidden;padding:12px;background:#fff;border:1px solid #d5e3ed;border-top:5px solid #0891b2;border-radius:13px;box-shadow:0 7px 18px rgba(7,27,51,.07)}#deliveryRows td{display:grid;grid-template-columns:minmax(115px,.8fr) minmax(0,1.2fr);gap:10px;padding:10px 0;text-align:right;white-space:normal;border-bottom:1px solid #dce7ef}#deliveryRows td:before{color:#526d82;font-weight:800;text-align:left;content:attr(data-label)}#deliveryRows td:last-child{border-bottom:0}.photo-cell{grid-template-columns:1fr!important;text-align:left!important}#previewList,.photo-list{grid-template-columns:repeat(2,minmax(0,1fr))}.delivery-form-page>main{width:100%}.delivery-form-page #formCard{grid-template-columns:1fr;margin-inline:8px;gap:14px}.delivery-form-page #formCard>.field{grid-column:1!important;padding:18px}.delivery-form-page .submit-bar{grid-column:1}.production-form-page #productionForm{margin-inline:8px!important}.production-form-page #productionForm>.section{padding:18px}.production-form-page .section-title{font-size:45px}.production-form-page .summary-grid{grid-template-columns:1fr}.dashboard-03 .panel{margin-inline:8px;padding:16px}.dashboard-03 .filters{grid-template-columns:1fr}.dashboard-03 .filters label{padding:16px}.dashboard-03 .button-row{grid-template-columns:1fr}.dashboard-03 .filter-status{padding:14px}}@media (max-width:560px){.topbar{align-items:stretch;flex-direction:column}
+.topbar .app-icon,.topbar .app-mark{align-self:flex-start}.actions{width:100%}.actions button,.actions select{flex:1 1 0}.filters{grid-template-columns:1fr}.button-row,.filter-action-row{display:grid;grid-template-columns:1fr}.chart-head,.section-head,.summary-heading{flex-direction:column}.updated-pill{align-self:flex-start}.metric .value,.metric strong{font-size:25px}.daily-primary-grid,.daily-production-grid{grid-template-columns:1fr}}@media (prefers-reduced-motion:reduce){*,:after,:before{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}@media (max-width:1400px) and (pointer:coarse),(max-width:960px){body,body :where(h1,h2,h3,h4,p,span,strong,label,div,td,th,a){font-size:24px!important;line-height:1.45!important}body input,body select{height:56px!important}body button,body input,body select{font-size:24px!important;line-height:1.2!important}body button{min-height:64px!important}body textarea{min-height:120px!important;font-size:24px!important;line-height:1.45!important}.screen-form-page,.screen-form-page :where(h1,h2,h3,h4,p,span,strong,label,div,td,th,a){font-size:42px!important}.screen-form-page input,.screen-form-page select{height:96px!important;font-size:42px!important}.screen-form-page button{min-height:108px!important;font-size:42px!important}.screen-form-page textarea{min-height:198px!important;font-size:42px!important}}
+</style>
+  <style>
+    .save-success-modal { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+    .save-success-modal.show { opacity:1; pointer-events:auto; }
+    .save-success-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+    .save-success-modal.show .save-success-panel { transform:none; }
+    .save-success-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#eaf8ef; color:#16803a; font-size:42px; font-weight:800; }
+    .save-success-title { margin-bottom:22px; color:#145c2c; font-size:24px; }
+    .save-success-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
+    .save-success-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+    .screen-form-page .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+    @media (max-width:960px) { .screen-form-page .actions { grid-template-columns:1fr; } }
+    .backend-frame { position:fixed; width:1px; height:1px; left:0; bottom:0; border:0; opacity:0; pointer-events:none; }
+  </style>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"><\/script>
+    <script>
+      (function() {
+        let busyDepth = 0;
+        let shownAt = 0;
+        let hideTimer = 0;
+        const minimumVisibleMs = 650;
+
+        window.beginLoading = function(message) {
+          busyDepth += 1;
+          window.clearTimeout(hideTimer);
+          hideTimer = 0;
+          window.requestAnimationFrame(function() {
+            const overlay = document.getElementById("loadingOverlay");
+            const label = document.getElementById("loadingMessage");
+            if (!overlay || busyDepth < 1) return;
+            if (label) label.textContent = message || "กำลังโหลดข้อมูล…";
+            if (!overlay.classList.contains("show")) shownAt = performance.now();
+            overlay.classList.add("show");
+            overlay.setAttribute("aria-hidden", "false");
+            document.body.classList.add("is-busy");
+            document.body.setAttribute("aria-busy", "true");
+          });
+        };
+
+        window.endLoading = function() {
+          busyDepth = Math.max(0, busyDepth - 1);
+          if (busyDepth > 0) return;
+          const remaining = Math.max(0, minimumVisibleMs - (performance.now() - shownAt));
+          hideTimer = window.setTimeout(function() {
+            if (busyDepth > 0) return;
+            const overlay = document.getElementById("loadingOverlay");
+            if (overlay) {
+              overlay.classList.remove("show");
+              overlay.setAttribute("aria-hidden", "true");
+            }
+            document.body.classList.remove("is-busy");
+            document.body.setAttribute("aria-busy", "false");
+            hideTimer = 0;
+          }, remaining);
+        };
+      })();
+    <\/script>
+  </head>
+<body class="screen-form-page">
+  <header>
+    <div class="wrap topbar">
+      <div class="title-row">
+        <div class="app-mark">
+          <img src="https://raw.githubusercontent.com/jame023/work-calendar-pages/main/assets/sip-iget-logo.png" alt="SIP i-GET Smart Integration Platform">
+        </div>
+        <div>
+          <h1>บันทึกข้อมูล Screen</h1>
+          <div class="sub clean-sub">กรอกจำนวนแพ็คที่ได้และจำนวนขวดที่เสียของวันนี้</div>
+        </div>
+      </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel">
+      <div class="summary" aria-label="Current entry summary">
+        <div class="metric">
+          <span>วันที่</span>
+          <strong id="summaryDate">-</strong>
+        </div>
+        <div class="metric">
+          <span>เครื่องจักร</span>
+          <strong id="summarySheet">-</strong>
+        </div>
+      </div>
+
+      <div id="dayCloseStatus" class="day-close-status">กำลังตรวจสอบสถานะปิดยอด...</div>
+
+      <div class="form-grid">
+        <label class="field full-width">
+          ชื่อผู้กรอกจากบัญชี LINE <span aria-hidden="true">*</span>
+          <select id="operatorName" required>
+            <option value="">กำลังยืนยันตัวตน...</option>
+          </select>
+          <small class="help-text">ระบบจะใช้ชื่อจากบัญชี LINE ที่ยืนยันแล้ว ไม่สามารถเลือกแทนบัญชีอื่นได้</small>
+        </label>
+        <label class="field">
+          วันที่
+          <input id="entryDate" type="date" readonly>
+        </label>
+        <label class="field">
+          เครื่องจักร
+          <select id="entrySheet" onchange="syncSummary(); syncProductionDamageFields()">
+            <option value="">กำลังโหลด...</option>
+          </select>
+        </label>
+        <label class="field">
+          จำนวนแพ็คที่ได้ของวันนี้
+          <input id="enteredPack" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+        </label>
+        <label class="field">
+          จำนวนเสียจากสกรีน
+          <input id="missingBottles" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+        </label>
+        <label class="field">
+          จำนวนเสียจากผลิต
+          <input id="productionDamagedBottles" type="number" min="0" step="1" inputmode="numeric" placeholder="0" oninput="syncProductionDamageFields()">
+        </label>
+        <div class="field" id="productionMachineField" hidden>
+          เครื่องผลิตที่จะเพิ่มยอดเสีย
+          <strong id="productionMachineLabel">-</strong>
+        </div>
+        <label class="field full-width">
+          หมายเหตุ
+          <textarea id="entryNote" maxlength="500" placeholder="กรอกหมายเหตุ (ถ้ามี)"></textarea>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="saveButton" onclick="saveEntry()">ตรวจสอบและบันทึก</button>
+        <button class="secondary" type="button" onclick="clearNumbers()">ล้างค่า</button>
+        <button class="secondary" id="undoButton" type="button" onclick="undoLastEntry()" disabled>ยกเลิกรายการล่าสุด</button>
+        <button class="secondary" id="editLatestButton" type="button" onclick="loadLatestEntryForEdit()" disabled>แก้ไขรายการล่าสุดของเครื่องนี้</button>
+        <button class="secondary" id="returnToNewButton" type="button" onclick="returnToNewEntry()" hidden>กลับไปบันทึกรายการใหม่</button>
+      </div>
+      <div id="status" class="status">พร้อมบันทึกข้อมูล</div>
+    </section>
+  </main>
+  <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
+
+  <script>
+    var SCREEN_LIFF_ID = '2010715544-2HJjI8Oh';
+    var SCREEN_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/screen-manual/index.html';
+    var SCREEN_BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbyNPX3FcS_1SPg3VQ_r4tPzgzx1YCGdkucq9IiyFM0iEnpT_KVS1ag61CJgCyTbq3e7/exec?bridge=1&v=71';
+    var SCREEN_MESSAGE_SOURCE = 'screen-frontend';
+    var SCREEN_BRIDGE_SOURCE = 'screen-bridge';
+    var SCREEN_LINE_REAUTH_KEY = 'screen-line-reauth-attempt';
+    var screenIdToken = '';
+    var screenUserName = '';
+    var screenConfig = null;
+    var lastSavedRequestId = '';
+    var lastUndoUntil = 0;
+    var undoTimer = null;
+    var currentDayClosed = false;
+    var editMode = false;
+    var editingRequestId = '';
+    var editLocksMachine = false;
+
+    function loadConfig() {
+      beginLoading('กำลังยืนยันตัวตน LINE…');
+      initializeScreenAuth()
+        .then(function() {
+          return callScreenBackend('getEntryConfig', {});
+        })
+        .then(function(config) {
+          endLoading();
+          screenConfig = config;
+          screenUserName = config.user && config.user.name
+            ? config.user.name
+            : (config.operators || [])[0] || '';
+          document.getElementById('entryDate').value = config.defaultDate || '';
+          renderMachineOptions(config.machines || []);
+          renderOperatorOptions(screenUserName ? [screenUserName] : []);
+          var operatorSelect = document.getElementById('operatorName');
+          operatorSelect.value = screenUserName;
+          operatorSelect.disabled = true;
+          syncSummary();
+          document.getElementById('enteredPack').focus();
+        })
+        .catch(function(error) {
+          endLoading();
+          if (!handleScreenError(error)) {
+            disableManualForm();
+            setStatus('โหลดข้อมูลไม่สำเร็จ: ' + getErrorMessage(error), true);
+          }
+        });
+    }
+
+    function initializeScreenAuth() {
+      if (!SCREEN_LIFF_ID) {
+        return Promise.reject(new Error('ระบบยังไม่ได้ตั้งค่า SCREEN_LIFF_ID'));
+      }
+      if (!window.liff) {
+        return Promise.reject(new Error('โหลด LIFF ไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ'));
+      }
+      var bridgePromise = Promise.resolve();
+      if (SCREEN_BACKEND_URL && backendFrame) {
+        backendFrame.src = SCREEN_BACKEND_URL;
+        bridgePromise = waitForScreenBridge();
+      }
+      return bridgePromise
+        .then(function() {
+          return liff.init({
+            liffId: screenBridgeLiffId || SCREEN_LIFF_ID,
+            withLoginOnExternalBrowser: true
+          });
+        })
+        .then(function() {
+          if (!liff.isLoggedIn()) {
+            liff.login({ redirectUri: SCREEN_LIFF_REDIRECT_URI });
+            throw new Error('กรุณาเข้าสู่ระบบ LINE');
+          }
+          screenIdToken = liff.getIDToken() || '';
+          if (!screenIdToken) {
+            throw new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]');
+          }
+        });
+    }
+
+    var pendingScreenCalls = new Map();
+    var screenBridgeWindow = null;
+    var screenBridgeLiffId = '';
+    var screenRequestNumber = 0;
+    var resolveScreenBridge;
+    var screenBridgeReady = new Promise(function(resolve) {
+      resolveScreenBridge = resolve;
+    });
+    var backendFrame = document.getElementById('backendFrame');
+
+    function receiveScreenBridgeMessage(event) {
+      var data = event.data;
+      if (!data || data.source !== SCREEN_BRIDGE_SOURCE) return;
+      if (data.type === 'ready') {
+        screenBridgeWindow = event.source;
+        screenBridgeLiffId = String(data.liffId || '');
+        if (!screenBridgeLiffId) {
+          setStatus('Bridge ไม่ส่ง LIFF ID', true);
+          return;
+        }
+        resolveScreenBridge();
+        return;
+      }
+      if (data.type !== 'response' || event.source !== screenBridgeWindow) return;
+      var request = pendingScreenCalls.get(data.id);
+      if (!request) return;
+      clearTimeout(request.timer);
+      pendingScreenCalls.delete(data.id);
+      data.ok
+        ? request.resolve(data.result)
+        : request.reject(new Error(data.error || 'เกิดข้อผิดพลาด'));
+    }
+
+    window.addEventListener('message', receiveScreenBridgeMessage);
+
+    function waitForScreenBridge() {
+      return Promise.race([
+        screenBridgeReady,
+        new Promise(function(resolve, reject) {
+          setTimeout(function() {
+            reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+          }, 15000);
+        })
+      ]);
+    }
+
+    function callScreenBackend(action, payload) {
+      if (!screenIdToken) {
+        return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
+      }
+      return new Promise(function(resolve, reject) {
+        if (!screenBridgeWindow) {
+          reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+          return;
+        }
+        var id = 'screen-request-' + (++screenRequestNumber);
+        var timer = setTimeout(function() {
+          pendingScreenCalls.delete(id);
+          reject(new Error('Apps Script ตอบกลับช้าเกินกำหนด'));
+        }, 60000);
+        pendingScreenCalls.set(id, {
+          resolve: resolve,
+          reject: reject,
+          timer: timer
+        });
+        screenBridgeWindow.postMessage({
+          source: SCREEN_MESSAGE_SOURCE,
+          id: id,
+          action: action,
+          idToken: screenIdToken,
+          payload: payload || {}
+        }, '*');
+      });
+    }
+
+    function handleScreenError(error) {
+      var message = getErrorMessage(error);
+      if (recoverScreenLineSession(error)) return true;
+      if (isScreenPermissionError(message)) {
+        disableManualForm();
+        setStatus('คุณไม่มีสิทธิ์ใช้งานหน้ากรอกข้อมูล Screen', true);
+        return true;
+      }
+      return false;
+    }
+
+    function recoverScreenLineSession(error) {
+      var message = getErrorMessage(error);
+      var isLineSessionError = message.indexOf('LINE_AUTH:TOKEN_MISSING') !== -1 ||
+        message.indexOf('LINE_AUTH:TOKEN_EXPIRED') !== -1 ||
+        message.indexOf('LINE_AUTH:INVALID_ID_TOKEN') !== -1 ||
+        message.indexOf('LINE_AUTH:VERIFY_REJECTED') !== -1 ||
+        message.indexOf('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่') !== -1 ||
+        message.indexOf('การยืนยันตัวตน LINE ไม่ถูกต้องหรือหมดอายุ') !== -1 ||
+        message.indexOf('LINE Token หมดอายุ') !== -1;
+      if (!isLineSessionError || !window.liff || typeof liff.login !== 'function') return false;
+      if (sessionStorage.getItem(SCREEN_LINE_REAUTH_KEY) === '1') {
+        sessionStorage.removeItem(SCREEN_LINE_REAUTH_KEY);
+        return false;
+      }
+      sessionStorage.setItem(SCREEN_LINE_REAUTH_KEY, '1');
+      screenIdToken = '';
+      setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…');
+      try {
+        if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
+      } catch (logoutError) {}
+      liff.login({ redirectUri: SCREEN_LIFF_REDIRECT_URI });
+      return true;
+    }
+
+    function isScreenPermissionError(message) {
+      var text = String(message || '');
+      return text.indexOf('ไม่มีสิทธิ์บันทึกข้อมูล Screen') !== -1 ||
+        text.indexOf('ไม่ได้อยู่ในรายชื่อพนักงาน Active') !== -1 ||
+        text.indexOf('ยังไม่มี Employee_Name') !== -1;
+    }
+
+    function disableManualForm() {
+      document.querySelectorAll('input, select, textarea, button').forEach(function(control) {
+        control.disabled = true;
+      });
+    }
+
+    function renderOperatorOptions(operators) {
+      var selector = document.getElementById('operatorName');
+      selector.innerHTML = '<option value="">กำลังยืนยัน...</option>' +
+        operators.map(function(name) {
+          return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+        }).join('');
+    }
+
+    function syncProductionDamageFields() {
+      var hasProductionDamage = Number(document.getElementById('productionDamagedBottles').value || 0) > 0;
+      document.getElementById('productionMachineField').hidden = !hasProductionDamage;
+      var option = document.getElementById('entrySheet').selectedOptions[0];
+      document.getElementById('productionMachineLabel').textContent =
+        option ? (option.getAttribute('data-production-label') || '-') : '-';
+    }
+
+    function renderMachineOptions(machines) {
+      var selector = document.getElementById('entrySheet');
+      selector.innerHTML = machines.map(function(machine) {
+        return '<option value="' + escapeHtml(machine.sheetName) + '" data-production-label="' +
+          escapeHtml(machine.productionMachineLabel || '') + '">' +
+          escapeHtml(machine.label) + '</option>';
+      }).join('');
+    }
+
+    function syncSummary() {
+      document.getElementById('summaryDate').textContent =
+        document.getElementById('entryDate').value || '-';
+      var machineSelector = document.getElementById('entrySheet');
+      document.getElementById('summarySheet').textContent =
+        machineSelector.selectedIndex >= 0 ? machineSelector.options[machineSelector.selectedIndex].text : '-';
+      loadDailyCloseStatus();
+    }
+
+    function loadDailyCloseStatus() {
+      var date = document.getElementById('entryDate').value;
+      var sheet = document.getElementById('entrySheet').value;
+      if (!date || !sheet || !screenIdToken) return;
+
+      document.getElementById('saveButton').disabled = true;
+      beginLoading('กำลังตรวจสอบข้อมูล…');
+      document.getElementById('dayCloseStatus').className = 'day-close-status';
+      document.getElementById('dayCloseStatus').textContent = 'กำลังตรวจสอบสถานะปิดยอด...';
+      callScreenBackend('getDailyCloseStatus', { date: date, sheet: sheet })
+        .then(function(result) {
+          endLoading();
+          renderDailyCloseStatus(result);
+        })
+        .catch(function(error) {
+          endLoading();
+          if (handleScreenError(error)) return;
+          currentDayClosed = true;
+          document.getElementById('dayCloseStatus').className = 'day-close-status closed';
+          document.getElementById('dayCloseStatus').textContent =
+            'ตรวจสอบสถานะไม่สำเร็จ: ' + getErrorMessage(error);
+          updateUndoButton();
+          updateEditButton();
+        });
+    }
+
+    function renderDailyCloseStatus(result) {
+      currentDayClosed = !!result.closed;
+      var status = document.getElementById('dayCloseStatus');
+      var detail = result.operator
+        ? ' โดย ' + result.operator + (result.timestamp ? ' เวลา ' + new Date(result.timestamp).toLocaleString('th-TH') : '')
+        : '';
+      status.className = 'day-close-status' + (currentDayClosed ? ' closed' : '');
+      status.textContent = currentDayClosed ? 'ปิดยอดแล้ว' + detail : 'เปิดรับข้อมูล Manual';
+      document.getElementById('saveButton').disabled = currentDayClosed;
+      updateUndoButton();
+      updateEditButton();
+    }
+
+    function saveEntry() {
+      var button = document.getElementById('saveButton');
+      var date = document.getElementById('entryDate').value;
+      var sheet = document.getElementById('entrySheet').value;
+      var enteredPack = document.getElementById('enteredPack').value;
+      var missingBottles = document.getElementById('missingBottles').value;
+      var productionDamagedBottles = document.getElementById('productionDamagedBottles').value;
+      var note = document.getElementById('entryNote').value;
+      var operatorName = document.getElementById('operatorName').value.trim();
+
+      if (!screenIdToken) {
+        setStatus('กรุณาเข้าสู่ระบบผ่าน LINE ก่อนบันทึก', true);
+        return;
+      }
+
+      if (currentDayClosed) {
+        setStatus('วันนี้ปิดยอดแล้ว กรุณาเปิดยอดก่อนบันทึก', true);
+        return;
+      }
+
+      if (!date) {
+        setStatus('วันที่ยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ', true);
+        return;
+      }
+
+      if (!operatorName) {
+        setStatus('กรุณาเลือกชื่อผู้กรอก', true);
+        document.getElementById('operatorName').focus();
+        return;
+      }
+
+      if (!enteredPack && !missingBottles && !productionDamagedBottles) {
+        setStatus('กรอกจำนวนแพ็ค จำนวนเสียจากสกรีน หรือจำนวนเสียจากผลิตอย่างน้อย 1 ช่อง', true);
+        return;
+      }
+      var confirmation = [
+        'กรุณาตรวจสอบข้อมูลก่อนบันทึก',
+        '',
+        'ชื่อผู้กรอก: ' + operatorName,
+        'วันที่: ' + date,
+        'เครื่องจักร: ' + document.getElementById('summarySheet').textContent,
+        'จำนวนแพ็คที่ได้ของวันนี้: +' + (enteredPack || '0'),
+        'จำนวนเสียจากสกรีน: +' + (missingBottles || '0'),
+        'จำนวนเสียจากผลิต: +' + (productionDamagedBottles || '0'),
+        Number(productionDamagedBottles || 0) > 0 ? 'เพิ่มยอดเสียที่: ' + document.getElementById('productionMachineLabel').textContent : '',
+        'หมายเหตุ: ' + (note.trim() || '-')
+      ].join('\n');
+      if (!window.confirm(confirmation)) {
+        setStatus('ยกเลิกก่อนบันทึก สามารถแก้ไขข้อมูลแล้วลองใหม่ได้', false);
+        return;
+      }
+
+      var isEditSubmission = editMode;
+      var requestId = isEditSubmission ? editingRequestId : getPendingRequestId();
+      if (isEditSubmission && localStorage.getItem('manualLastSavedRequestId') !== editingRequestId) {
+        setStatus('Browser นี้บันทึกรายการใหม่กว่าแล้ว กรุณาโหลดรายการล่าสุดใหม่ก่อนแก้ไข', true);
+        return;
+      }
+
+      button.disabled = true;
+      beginLoading('กำลังบันทึกข้อมูล…');
+      setStatus('กำลังบันทึก กรุณาอย่าปิดหน้านี้...', false);
+      var successHandler = function(result) {
+          endLoading();
+          showSaveSuccessModal();
+          setStatus(
+            (isEditSubmission ? 'แก้ไขรายการสำเร็จ: ' :
+              (result.duplicate ? 'รายการนี้ถูกบันทึกไว้แล้ว: ' : 'บันทึกสำเร็จ: ')) +
+            result.sheetName + ' | แพ็ครวมวันนี้ ' + result.enteredPackTotal +
+            ' | จำนวนขวดจาก Pack ' + result.bottlesFromPackTotal +
+            ' | เสียจากสกรีนรวม ' + result.missingBottlesTotal +
+            (Number(result.productionDamagedAdded || 0) > 0
+              ? ' | รอรวมเสียจากผลิต ' + result.productionDamagedAdded + ' (' + result.productionMachineLabel + ')'
+              : ''),
+            false,
+            true
+          );
+          if (!isEditSubmission) sessionStorage.removeItem('counterPendingRequestId');
+          lastSavedRequestId = result.requestId;
+          localStorage.setItem('manualLastSavedRequestId', result.requestId);
+          lastUndoUntil = Number(result.undoUntil) || 0;
+          updateUndoButton();
+          updateEditButton();
+          if (!isEditSubmission) clearNumbers();
+          button.disabled = false;
+        };
+      var failureHandler = function(error) {
+          endLoading();
+          if (handleScreenError(error)) return;
+          setStatus('บันทึกไม่สำเร็จ: ' + getErrorMessage(error), true);
+          button.disabled = false;
+        };
+      var savePayload = {
+        requestId: requestId,
+        date: date,
+        sheetName: sheet,
+        enteredPack: enteredPack,
+        missingBottles: missingBottles,
+        productionDamagedBottles: productionDamagedBottles,
+        note: note,
+        operatorName: operatorName
+      };
+      var savePromise = isEditSubmission
+        ? callScreenBackend('updateManualEntry', savePayload)
+        : callScreenBackend('saveManualEntry', savePayload);
+      savePromise.then(successHandler).catch(failureHandler);
+    }
+
+    function loadLatestEntryForEdit() {
+      var requestId = localStorage.getItem('manualLastSavedRequestId') || '';
+      if (!requestId) {
+        setStatus('ยังไม่มีรายการล่าสุดที่ Browser นี้บันทึกสำเร็จ', true);
+        return;
+      }
+      var button = document.getElementById('editLatestButton');
+      button.disabled = true;
+      beginLoading('กำลังโหลดรายการล่าสุด…');
+      callScreenBackend('getManualEntryForEdit', { requestId: requestId })
+        .then(function(result) {
+          endLoading();
+          editMode = true;
+          editingRequestId = result.requestId;
+          editLocksMachine = result.lockMachine === true;
+          document.getElementById('entryDate').value = result.date;
+          document.getElementById('entrySheet').value = result.sheetName;
+          document.getElementById('operatorName').value = screenUserName;
+          document.getElementById('enteredPack').value = result.enteredPack;
+          document.getElementById('missingBottles').value = result.missingBottles;
+          document.getElementById('productionDamagedBottles').value = result.productionDamagedBottles;
+          document.getElementById('entryNote').value = result.note || '';
+          document.getElementById('entrySheet').disabled = editLocksMachine;
+          document.getElementById('saveButton').textContent = 'ตรวจสอบและบันทึกการแก้ไข';
+          button.hidden = true;
+          document.getElementById('returnToNewButton').hidden = false;
+          syncSummary();
+          syncProductionDamageFields();
+          setStatus('กำลังแก้ไขรายการล่าสุดของ Browser นี้' +
+            (editLocksMachine ? ' | รายการนี้ผูกยอดเสียจากผลิต จึงเปลี่ยนเครื่องจักรไม่ได้' : ''), false);
+        })
+        .catch(function(error) {
+          endLoading();
+          updateEditButton();
+          if (handleScreenError(error)) return;
+          setStatus('โหลดรายการแก้ไขไม่สำเร็จ: ' + getErrorMessage(error), true);
+        });
+    }
+
+    function returnToNewEntry() {
+      editMode = false;
+      editingRequestId = '';
+      editLocksMachine = false;
+      document.getElementById('entrySheet').disabled = false;
+      document.getElementById('saveButton').textContent = 'ตรวจสอบและบันทึก';
+      document.getElementById('editLatestButton').hidden = false;
+      document.getElementById('returnToNewButton').hidden = true;
+      clearNumbers();
+      updateEditButton();
+      setStatus('พร้อมบันทึกรายการใหม่', false);
+    }
+
+    function updateEditButton() {
+      var button = document.getElementById('editLatestButton');
+      button.disabled = !localStorage.getItem('manualLastSavedRequestId');
+    }
+
+    function getPendingRequestId() {
+      var requestId = sessionStorage.getItem('counterPendingRequestId');
+      if (!requestId) {
+        requestId = 'manual_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
+        sessionStorage.setItem('counterPendingRequestId', requestId);
+      }
+      return requestId;
+    }
+
+    function undoLastEntry() {
+      var operatorName = document.getElementById('operatorName').value.trim();
+      if (currentDayClosed) {
+        setStatus('วันนี้ปิดยอดแล้ว กรุณาเปิดยอดก่อนยกเลิกรายการ', true);
+        return;
+      }
+      if (!lastSavedRequestId || Date.now() > lastUndoUntil) {
+        setStatus('หมดเวลายกเลิกรายการล่าสุดแล้ว', true);
+        updateUndoButton();
+        return;
+      }
+      if (!window.confirm('ยืนยันยกเลิกรายการล่าสุดและคืนยอดเดิม?')) return;
+
+      var button = document.getElementById('undoButton');
+      button.disabled = true;
+      beginLoading('กำลังยกเลิกรายการ…');
+      setStatus('กำลังยกเลิกรายการล่าสุด...', false);
+      var successHandler = function(result) {
+          endLoading();
+          setStatus(
+            'ยกเลิกรายการแล้ว: ' + result.sheetName +
+            ' | แพ็ครวมวันนี้ ' + result.enteredPackTotal +
+            ' | จำนวนขวดจาก Pack ' + result.bottlesFromPackTotal +
+            ' | เสียจากสกรีนรวม ' + result.missingBottlesTotal +
+            (Number(result.productionDamageUndone || 0) > 0
+              ? ' | คืนเสียจากผลิต ' + result.productionDamageUndone + ' (' + result.productionMachineLabel + ')'
+              : ''),
+            false,
+            true
+          );
+          lastSavedRequestId = '';
+          lastUndoUntil = 0;
+          if (localStorage.getItem('manualLastSavedRequestId') === result.requestId) {
+            localStorage.removeItem('manualLastSavedRequestId');
+          }
+          updateUndoButton();
+          updateEditButton();
+        };
+      var failureHandler = function(error) {
+          endLoading();
+          if (handleScreenError(error)) return;
+          setStatus('ยกเลิกไม่สำเร็จ: ' + getErrorMessage(error), true);
+          updateUndoButton();
+        };
+      callScreenBackend('undoManualEntry', {
+        requestId: lastSavedRequestId,
+        operatorName: operatorName
+      }).then(successHandler).catch(failureHandler);
+    }
+
+    function updateUndoButton() {
+      var button = document.getElementById('undoButton');
+      var remaining = lastUndoUntil - Date.now();
+      if (undoTimer) clearTimeout(undoTimer);
+      if (currentDayClosed || !lastSavedRequestId || remaining <= 0) {
+        button.disabled = true;
+        button.textContent = currentDayClosed ? 'ปิดยอดแล้ว' : 'ยกเลิกรายการล่าสุด';
+        return;
+      }
+      button.disabled = false;
+      button.textContent = 'ยกเลิกรายการล่าสุด (' + Math.ceil(remaining / 1000) + ' วิ)';
+      undoTimer = setTimeout(updateUndoButton, 1000);
+    }
+
+    function clearNumbers() {
+      document.getElementById('enteredPack').value = '';
+      document.getElementById('missingBottles').value = '';
+      document.getElementById('entryNote').value = '';
+      document.getElementById('enteredPack').focus();
+    }
+
+    function setStatus(message, isError, isOk) {
+      var status = document.getElementById('status');
+      status.className = 'status' + (isError ? ' error' : '') + (isOk ? ' ok' : '');
+      status.textContent = normalizeStatusMessage(message, isError, isOk);
+    }
+
+    function normalizeStatusMessage(message, isError, isOk) {
+      var text = String(message || '');
+      return text || (isError ? 'เกิดข้อผิดพลาด กรุณาลองใหม่' : 'กำลังทำรายการ...');
+    }
+
+    function getErrorMessage(error) {
+      return error && error.message ? error.message : String(error);
+    }
+
+    function escapeHtml(value) {
+      return String(value === undefined || value === null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    var saveSuccessReturnFocus = null;
+    function showSaveSuccessModal() {
+      saveSuccessReturnFocus = document.activeElement;
+      var modal = document.getElementById('saveSuccessModal');
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      document.getElementById('saveSuccessAcknowledge').focus();
+    }
+
+    function hideSaveSuccessModal() {
+      var modal = document.getElementById('saveSuccessModal');
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      if (saveSuccessReturnFocus && saveSuccessReturnFocus.focus) saveSuccessReturnFocus.focus();
+    }
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape' && document.getElementById('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
+    });
+
+    document.getElementById('status').textContent = 'พร้อมบันทึกข้อมูล';
+    loadConfig();
+  <\/script>
+    <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
+      <div class="save-success-panel">
+        <div class="save-success-icon" aria-hidden="true">✓</div>
+        <h2 class="save-success-title" id="saveSuccessTitle">บันทึกเสร็จแล้ว</h2>
+        <button class="save-success-acknowledge" id="saveSuccessAcknowledge" type="button" onclick="hideSaveSuccessModal()">รับทราบ</button>
+      </div>
+    </div>
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
+      <div class="loading-panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span id="loadingMessage">กำลังโหลดข้อมูล…</span>
+      </div>
+    </div>
+</body>
+</html>
+
+
+
