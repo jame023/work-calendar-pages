@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+  <!-- Screen manual static GitHub Pages fix -->
   <meta charset="utf-8">
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -35,7 +36,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     @media (max-width:960px) { .screen-form-page .actions { grid-template-columns:1fr; } }
     .backend-frame { position:fixed; width:1px; height:1px; left:0; bottom:0; border:0; opacity:0; pointer-events:none; }
   </style>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"><\/script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
       (function() {
         let busyDepth = 0;
@@ -77,7 +78,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
           }, remaining);
         };
       })();
-    <\/script>
+    </script>
   </head>
 <body class="screen-form-page">
   <header>
@@ -726,7 +727,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
 
     document.getElementById('status').textContent = 'พร้อมบันทึกข้อมูล';
     loadConfig();
-  <\/script>
+  </script>
     <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
       <div class="save-success-panel">
         <div class="save-success-icon" aria-hidden="true">✓</div>
@@ -742,6 +743,4 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     </div>
 </body>
 </html>
-
-
 
