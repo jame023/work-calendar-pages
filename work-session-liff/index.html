@@ -548,9 +548,9 @@ button:disabled {
   function receiveWorkSessionBridgeMessage(event) {
     var data = event.data;
     if (!data || data.source !== WORK_SESSION_BRIDGE_SOURCE) return;
-    if (WORK_SESSION_BACKEND_URL && event.origin !== new URL(WORK_SESSION_BACKEND_URL).origin) return;
+    if (!isAllowedWorkSessionBridgeOrigin(event.origin)) return;
     if (data.type === 'ready') {
-      if (backendFrame && event.source !== backendFrame.contentWindow) return;
+      if (!event.source) return;
       workSessionBridgeWindow = event.source;
       workSessionBridgeLiffId = String(data.liffId || '');
       if (!workSessionBridgeLiffId) {
@@ -568,6 +568,14 @@ button:disabled {
     data.ok
       ? request.resolve(data.result)
       : request.reject(new Error(data.error || 'เกิดข้อผิดพลาด'));
+  }
+
+  function isAllowedWorkSessionBridgeOrigin(origin) {
+    if (!origin) return false;
+    if (WORK_SESSION_BACKEND_URL && origin === new URL(WORK_SESSION_BACKEND_URL).origin) {
+      return true;
+    }
+    return /^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/i.test(origin);
   }
 
   window.addEventListener('message', receiveWorkSessionBridgeMessage);
