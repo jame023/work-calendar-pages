@@ -370,9 +370,8 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
       sessionStorage.setItem(SCREEN_LINE_REAUTH_KEY, '1');
       screenIdToken = '';
       setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…');
-      try {
-        if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
-      } catch (logoutError) {}
+      // Keep LIFF's remembered account session so login can reuse it instead
+      // of forcing a fresh identity prompt on every token recovery.
       liff.login({ redirectUri: SCREEN_LIFF_REDIRECT_URI });
       return true;
     }
