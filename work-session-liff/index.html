@@ -366,6 +366,15 @@ button:active {
       .access-denied-message { margin:0 0 18px; color:#5f4638; font-size:16px; line-height:1.55; }
       .access-denied-acknowledge { width:100%; min-height:50px; border:0; border-radius:12px; background:#b54708; color:#fff; font-size:16px; font-weight:800; cursor:pointer; }
       .access-denied-acknowledge:focus-visible { outline:4px solid rgb(181 71 8 / 24%); outline-offset:3px; }
+      .work-session-error-modal { position:fixed; inset:0; z-index:220; display:grid; place-items:center; padding:16px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+      .work-session-error-modal.show { opacity:1; pointer-events:auto; }
+      .work-session-error-panel { width:min(100%,380px); padding:24px 20px 18px; border:1px solid #f1b5b5; border-radius:18px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+      .work-session-error-modal.show .work-session-error-panel { transform:none; }
+      .work-session-error-icon { display:grid; place-items:center; width:56px; height:56px; margin:0 auto 14px; border-radius:50%; background:#fff0f0; color:#b42318; font-size:30px; font-weight:900; }
+      .work-session-error-title { margin:0 0 10px; color:#8b1e1e; font-size:22px; }
+      .work-session-error-message { margin:0 0 18px; color:#5f3434; font-size:16px; line-height:1.55; overflow-wrap:anywhere; }
+      .work-session-error-acknowledge { width:100%; min-height:50px; border:0; border-radius:12px; background:#b42318; color:#fff; font-size:16px; font-weight:800; cursor:pointer; }
+      .work-session-error-acknowledge:focus-visible { outline:4px solid rgb(180 35 24 / 24%); outline-offset:3px; }
       .backend-frame { position:absolute; width:1px; height:1px; border:0; opacity:0; pointer-events:none; }
       .loading-overlay { position:fixed; inset:0; z-index:100; display:none; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); backdrop-filter:blur(4px); }
       .loading-overlay[aria-hidden="false"] { display:grid; }
@@ -377,6 +386,10 @@ button:active {
         .access-denied-icon { width:52px; height:52px; margin-bottom:12px; font-size:28px; }
         .access-denied-title { font-size:20px; }
         .access-denied-message { font-size:14px; }
+        .work-session-error-panel { padding:20px 16px 16px; border-radius:16px; }
+        .work-session-error-icon { width:52px; height:52px; margin-bottom:12px; font-size:28px; }
+        .work-session-error-title { font-size:20px; }
+        .work-session-error-message { font-size:14px; }
       }
     </style>
   <style id="tailwind-build"></style>
@@ -560,7 +573,9 @@ button:active {
     }
     sessionStorage.setItem(WORK_SESSION_LINE_REAUTH_KEY, '1');
     workSessionIdToken = '';
-    setStatus('เซสชัน LINE หมดอายุ · กำลังเชื่อมต่อบัญชีเดิมใหม่…');
+    var recoveryMessage = 'เซสชัน LINE หมดอายุหรือไม่ถูกต้อง · กำลังเชื่อมต่อบัญชีเดิมใหม่…';
+    setStatus(recoveryMessage);
+    showWorkSessionErrorModal(recoveryMessage);
     try {
       if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
       liff.login({ redirectUri: WORK_SESSION_LIFF_REDIRECT_URI });
@@ -730,6 +745,7 @@ button:active {
   function setStatus(text, type) {
     byId('status').className = 'status ' + (type || '');
     byId('status').textContent = text;
+    if (type === 'error') showWorkSessionErrorModal(text);
   }
 
   function setButtonsDisabled(disabled) {
@@ -1034,7 +1050,7 @@ button:active {
     var message = workSessionErrorMessage(error);
     if (isWorkSessionPermissionError(message)) {
       setButtonsDisabled(true);
-      setStatus('บัญชีนี้ไม่มีสิทธิ์ใช้งาน', 'error');
+      setStatus('บัญชีนี้ไม่มีสิทธิ์ใช้งาน');
       showWorkSessionPermissionModal();
       return;
     }
@@ -1045,6 +1061,7 @@ button:active {
 
   var saveSuccessReturnFocus = null;
   var workSessionPermissionReturnFocus = null;
+  var workSessionErrorReturnFocus = null;
   function showSaveSuccessModal() {
     saveSuccessReturnFocus = document.activeElement;
     var modal = byId('saveSuccessModal');
@@ -1058,6 +1075,29 @@ button:active {
     modal.classList.remove('show');
     modal.setAttribute('aria-hidden', 'true');
     if (saveSuccessReturnFocus && saveSuccessReturnFocus.focus) saveSuccessReturnFocus.focus();
+  }
+
+  function showWorkSessionErrorModal(message) {
+    var modal = byId('errorModal');
+    if (!modal) {
+      window.setTimeout(function() { showWorkSessionErrorModal(message); }, 0);
+      return;
+    }
+    workSessionErrorReturnFocus = document.activeElement;
+    byId('errorMessage').textContent = String(message || 'เกิดข้อผิดพลาด');
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+    byId('errorAcknowledge').focus();
+  }
+
+  function hideWorkSessionErrorModal() {
+    var modal = byId('errorModal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    if (workSessionErrorReturnFocus && workSessionErrorReturnFocus.focus) {
+      workSessionErrorReturnFocus.focus();
+    }
   }
 
   function showWorkSessionPermissionModal() {
@@ -1097,6 +1137,10 @@ button:active {
       hideWorkSessionPermissionModal();
       return;
     }
+    if (byId('errorModal').classList.contains('show')) {
+      hideWorkSessionErrorModal();
+      return;
+    }
     if (byId('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
   });
   loadPage();
@@ -1107,6 +1151,14 @@ button:active {
         <h2 class="access-denied-title" id="permissionTitle">ไม่มีสิทธิ์ใช้งาน</h2>
         <p class="access-denied-message" id="permissionMessage">บัญชี LINE นี้ยังไม่ได้รับสิทธิ์ใช้งานหน้าเริ่ม/จบงาน กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดสิทธิ์ให้บัญชีนี้</p>
         <button class="access-denied-acknowledge" id="permissionAcknowledge" type="button" onclick="hideWorkSessionPermissionModal()">รับทราบ</button>
+      </div>
+    </div>
+    <div class="work-session-error-modal" id="errorModal" role="alertdialog" aria-modal="true" aria-labelledby="errorTitle" aria-describedby="errorMessage" aria-hidden="true">
+      <div class="work-session-error-panel">
+        <div class="work-session-error-icon" aria-hidden="true">!</div>
+        <h2 class="work-session-error-title" id="errorTitle">เกิดข้อผิดพลาด</h2>
+        <p class="work-session-error-message" id="errorMessage">เกิดข้อผิดพลาด กรุณาลองใหม่</p>
+        <button class="work-session-error-acknowledge" id="errorAcknowledge" type="button" onclick="hideWorkSessionErrorModal()">รับทราบ</button>
       </div>
     </div>
     <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
