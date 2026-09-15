@@ -491,6 +491,8 @@ button:active {
   var WORK_SESSION_BACKEND_URL = new URLSearchParams(window.location.search).get('package07Candidate') === '1'
     ? 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbz7CJLCjuZMpv7MFbcBhp49MHNYdILFDA_GbYhtpv8WpXxKs-8ALaFEZmSpjx7e86n2Bw/exec?bridge=1&v=candidate-1'
     : 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbzTH2TSsaACBOMJY1qSESwlbwUwJQZmfTE8rQOI3JZ5wG9oSH26seMxu-OAtAzPWgo/exec?bridge=1&v=4';
+  var WORK_SESSION_TEST_BYPASS_CONFIRMATION =
+    new URLSearchParams(window.location.search).get('candidateTestBypass') === '1';
   var WORK_SESSION_MESSAGE_SOURCE = 'work-session-liff-frontend';
   var WORK_SESSION_BRIDGE_SOURCE = 'work-session-liff-bridge';
   var WORK_SESSION_LINE_REAUTH_KEY = 'work-session-line-reauth-attempt';
@@ -893,7 +895,7 @@ button:active {
   }
 
   function startWork() {
-    if (!confirm('ยืนยันเริ่มงานตามข้อมูลที่เลือก?')) return;
+    if (!WORK_SESSION_TEST_BYPASS_CONFIRMATION && !confirm('ยืนยันเริ่มงานตามข้อมูลที่เลือก?')) return;
     setButtonsDisabled(true);
     beginLoading('กำลังบันทึกข้อมูล…');
     setStatus('กำลังบันทึก...');
@@ -926,7 +928,7 @@ button:active {
       setStatus('กรุณากรอกจำนวนสกรีนตอนปิดงานเป็นจำนวนเต็มมากกว่า 0', 'error');
       return;
     }
-    if (!confirm('ยืนยันจบงานของ ' + employee + '?')) return;
+    if (!WORK_SESSION_TEST_BYPASS_CONFIRMATION && !confirm('ยืนยันจบงานของ ' + employee + '?')) return;
     setButtonsDisabled(true);
     beginLoading('กำลังบันทึกข้อมูล…');
     setStatus('กำลังจบงาน...');
