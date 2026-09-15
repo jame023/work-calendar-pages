@@ -39,8 +39,10 @@ header {
   gap:16px
 }
 .app-icon {
+  width:104px;
   min-width:104px;
   height:48px;
+  flex:0 0 auto;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -49,6 +51,12 @@ header {
   border-radius:12px;
   background:#ffffff2b;
   font-weight:800
+}
+.app-icon img {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain
 }
 .wrap {
   width:min(760px,calc(100% - 24px));
@@ -178,6 +186,16 @@ button {
 button:disabled {
   opacity:.55
 }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline:3px solid #7db7ff;
+  outline-offset:2px
+}
+button:active {
+  transform:translateY(1px)
+}
 .status {
   min-height:30px;
   margin:14px 0 0;
@@ -209,6 +227,18 @@ button:disabled {
   display:block;
   color:var(--muted)
 }
+#activeList:empty::before {
+  content:'ยังไม่มีงานที่กำลังทำ';
+  display:block;
+  padding:4px 0;
+  color:var(--muted);
+  font-size:14px
+}
+#editLatestButton,
+#saveEditButton,
+#returnToNewButton {
+  grid-column:1 / -1
+}
 @media(max-width:700px),(hover:none) and (pointer:coarse) {
   body {
     font-size:16px
@@ -222,19 +252,19 @@ button:disabled {
   .header-row {
     align-items:center;
     flex-direction:row;
-    gap:10px
+    gap:8px
   }
   .app-icon {
-    min-width:86px;
-    height:42px;
-    padding:0 8px;
-    border-radius:11px;
-    font-size:14px
+    width:72px;
+    min-width:72px;
+    height:34px;
+    padding:3px 6px;
+    border-radius:9px
   }
   h1 {
-    font-size:26px
+    font-size:24px
   }
-  header p { font-size:14px; }
+  header p { font-size:13px; }
   .panel,.active {
     margin-top:10px;
     padding:13px 12px;
@@ -288,6 +318,24 @@ button:disabled {
   .session span,.status {
     font-size:14px
   }
+  .save-success-panel {
+    padding:22px 18px 18px;
+    border-radius:16px
+  }
+  .save-success-icon {
+    width:56px;
+    height:56px;
+    margin-bottom:14px;
+    font-size:32px
+  }
+  .save-success-title {
+    margin-bottom:18px;
+    font-size:18px
+  }
+  .save-success-acknowledge {
+    min-height:48px;
+    font-size:16px
+  }
 }
 
 @media(min-width:701px) and (max-width:960px) {
@@ -317,63 +365,6 @@ button:disabled {
       @keyframes work-session-spin { to { transform:rotate(1turn); } }
     </style>
   <style id="tailwind-build"></style>
-  <style id="mobile-final-overrides" media="not all" data-legacy-style="disabled">
-    @media (hover: none) and (pointer: coarse), (max-width: 960px) {
-      header .header-row {
-        display: flex !important;
-        align-items: center !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 12px !important;
-      }
-      header .header-row > .app-icon {
-        width: 196px !important;
-        min-width: 196px !important;
-        height: 94px !important;
-        flex: 0 0 196px !important;
-        padding: 3px !important;
-      }
-      header .header-row > div:last-child {
-        min-width: 0 !important;
-        flex: 1 1 0 !important;
-      }
-      header h1 {
-        font-size: 56px !important;
-        line-height: 1.15 !important;
-      }
-      header p {
-        font-size: 48px !important;
-        line-height: 1.35 !important;
-      }
-      button,
-      .order-suggestion {
-        min-height: 152px !important;
-        height: auto !important;
-        padding: 24px 28px !important;
-        font-size: 44px !important;
-        line-height: 1.4 !important;
-      }
-      .work-form-page label {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 16px !important;
-        margin-bottom: 28px !important;
-        font-size: 50px !important;
-        line-height: 1.45 !important;
-      }
-      .work-form-page input,
-      .work-form-page select,
-      .work-form-page textarea {
-        min-height: 136px !important;
-        padding: 22px 24px !important;
-        font-size: 50px !important;
-        line-height: 1.4 !important;
-      }
-      .work-form-page textarea {
-        min-height: 260px !important;
-      }
-    }
-  </style>
     <script>
       (function() {
         let busyDepth = 0;
