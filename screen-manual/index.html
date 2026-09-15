@@ -168,6 +168,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     var SCREEN_MESSAGE_SOURCE = 'screen-frontend';
     var SCREEN_BRIDGE_SOURCE = 'screen-bridge';
     var SCREEN_LINE_REAUTH_KEY = 'screen-line-reauth-attempt';
+    var SCREEN_LAST_VERIFIED_LINE_USER_ID_KEY = 'screen-last-verified-line-user-id';
     var screenIdToken = '';
     var screenUserName = '';
     var screenConfig = null;
@@ -188,6 +189,8 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
         .then(function(config) {
           endLoading();
           screenConfig = config;
+          // Remember only the verified account identifier; authorization still uses the fresh ID token.
+          rememberScreenLineUserId();
           screenUserName = config.user && config.user.name
             ? config.user.name
             : (config.operators || [])[0] || '';
@@ -207,6 +210,22 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
             setStatus('โหลดข้อมูลไม่สำเร็จ: ' + getErrorMessage(error), true);
           }
         });
+    }
+
+    // This runs after getEntryConfig succeeds, so the account has passed the
+    // server-side allowlist check. The stored value is only a re-entry hint.
+    function rememberScreenLineUserId() {
+      var lineUserId = '';
+      try {
+        if (typeof liff.getDecodedIDToken === 'function') {
+          var decoded = liff.getDecodedIDToken();
+          lineUserId = String(decoded && decoded.sub || '').trim();
+        }
+      } catch (error) {}
+      if (!lineUserId || lineUserId.length > 200) return;
+      try {
+        localStorage.setItem(SCREEN_LAST_VERIFIED_LINE_USER_ID_KEY, lineUserId);
+      } catch (error) {}
     }
 
     function initializeScreenAuth() {
@@ -230,6 +249,14 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
         })
         .then(function() {
           if (!liff.isLoggedIn()) {
+            var hasRememberedLineUserId = false;
+            try {
+              hasRememberedLineUserId = !!String(localStorage.getItem(SCREEN_LAST_VERIFIED_LINE_USER_ID_KEY) || '').trim();
+            } catch (error) {}
+            setStatus(
+              hasRememberedLineUserId ? 'กำลังเชื่อมต่อบัญชี LINE เดิม…' : 'กำลังเข้าสู่ระบบ LINE…',
+              false
+            );
             liff.login({ redirectUri: SCREEN_LIFF_REDIRECT_URI });
             throw new Error('กรุณาเข้าสู่ระบบ LINE');
           }
