@@ -482,6 +482,7 @@ button:disabled {
   var WORK_SESSION_LAST_VERIFIED_LINE_USER_ID_KEY = 'work-session-last-verified-line-user-id';
   var workSessionIdToken = '';
   var workSessionBridgeWindow = null;
+  var workSessionBridgeOrigin = '';
   var workSessionBridgeLiffId = '';
   var workSessionRequestNumber = 0;
   var workSessionPendingCalls = new Map();
@@ -548,10 +549,11 @@ button:disabled {
   function receiveWorkSessionBridgeMessage(event) {
     var data = event.data;
     if (!data || data.source !== WORK_SESSION_BRIDGE_SOURCE) return;
-    if (!isAllowedWorkSessionBridgeOrigin(event.origin) ||
-        !isWorkSessionBridgeSource(event.source)) return;
+    if (!isAllowedWorkSessionBridgeOrigin(event.origin)) return;
     if (data.type === 'ready') {
+      if (!event.source) return;
       workSessionBridgeWindow = event.source;
+      workSessionBridgeOrigin = String(event.origin || '');
       workSessionBridgeLiffId = String(data.liffId || '');
       if (!workSessionBridgeLiffId) {
         setStatus('Bridge ไม่ส่ง LIFF ID', 'error');
@@ -577,21 +579,6 @@ button:disabled {
       return true;
     }
     return /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/i.test(origin);
-  }
-
-  function isWorkSessionBridgeSource(source) {
-    if (!source || !backendFrame) return false;
-    var current = source;
-    for (var depth = 0; depth < 5; depth += 1) {
-      if (current === backendFrame.contentWindow) return true;
-      try {
-        if (!current.parent || current.parent === current) return false;
-        current = current.parent;
-      } catch (error) {
-        return false;
-      }
-    }
-    return false;
   }
 
   window.addEventListener('message', receiveWorkSessionBridgeMessage);
@@ -701,7 +688,9 @@ button:disabled {
           action: action,
           idToken: workSessionIdToken,
           payload: payload || {}
-        }, WORK_SESSION_BACKEND_URL ? new URL(WORK_SESSION_BACKEND_URL).origin : '*');
+        }, workSessionBridgeOrigin && workSessionBridgeOrigin !== 'null'
+          ? workSessionBridgeOrigin
+          : '*');
       });
     });
   }
