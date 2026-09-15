@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>เริ่ม/จบงาน</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+:root {
+  --blue:#1769d2;
+  --deep:#12335f;
+  --teal:#087b72;
+  --bg:#f3f6fa;
+  --card:#fff;
+  --line:#d8e1ec;
+  --text:#172033;
+  --muted:#64748b;
+  --red:#b42318
+}
+* {
+  box-sizing:border-box
+}
+body {
+  margin:0;
+  background:linear-gradient(180deg,#dcecff,var(--bg) 45%);
+  color:var(--text);
+  font-family:"Noto Sans Thai","Leelawadee UI",Tahoma,sans-serif;
+  font-size:18px
+}
+header {
+  padding:24px 16px;
+  color:#fff;
+  background:linear-gradient(135deg,var(--deep),var(--blue),var(--teal))
+}
+.header-row {
+  display:flex;
+  align-items:center;
+  gap:16px
+}
+.app-icon {
+  min-width:128px;
+  height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 14px;
+  border:1px solid #ffffff55;
+  border-radius:16px;
+  background:#ffffff2b;
+  font-weight:800
+}
+.wrap {
+  width:min(760px,calc(100% - 24px));
+  margin:auto
+}
+h1 {
+  margin:0;
+  font-size:34px
+}
+header p {
+  margin:6px 0 0
+}
+.panel,.active {
+  margin-top:18px;
+  padding:20px;
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:0 10px 28px #12335f18
+}
+label {
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  margin-top:16px;
+  color:var(--muted);
+  font-weight:700
+}
+input,select,textarea,button {
+  width:100%;
+  min-height:58px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  color:var(--text);
+  font:inherit
+}
+textarea {
+  min-height:110px;
+  resize:vertical
+}
+.buttons {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:18px
+}
+.screen-fields {
+  display:none;
+  grid-template-columns:2fr 1fr;
+  gap:12px
+}
+.screen-fields.visible {
+  display:grid
+}
+.screen-fields.visible:not(.closing) {
+  grid-template-columns:1fr
+}
+.order-picker {
+  position:relative
+}
+.order-suggestions {
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  left:0;
+  z-index:30;
+  max-height:280px;
+  overflow-y:auto;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 16px 32px rgba(15,51,87,.2)
+}
+.order-suggestion {
+  min-height:52px;
+  padding:10px 14px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:0;
+  background:#fff;
+  color:var(--text);
+  text-align:left
+}
+.order-suggestion:last-child {
+  border-bottom:0
+}
+.order-suggestion:hover,.order-suggestion:active {
+  background:#eaf3ff
+}
+.quantity-control {
+  position:relative
+}
+.quantity-control input {
+  padding-right:72px;
+  text-align:center;
+  font-size:24px;
+  font-weight:800;
+  color:var(--deep)
+}
+.quantity-unit {
+  position:absolute;
+  top:50%;
+  right:18px;
+  transform:translateY(-50%);
+  color:var(--muted);
+  font-weight:800;
+  pointer-events:none
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  margin:0;
+  appearance:none
+}
+button {
+  border:0;
+  background:var(--blue);
+  color:#fff;
+  font-weight:800;
+  cursor:pointer
+}
+.end {
+  background:var(--red)
+}
+button:disabled {
+  opacity:.55
+}
+.status {
+  min-height:30px;
+  margin:14px 0 0;
+  color:var(--muted)
+}
+.status.ok {
+  color:var(--teal);
+  font-weight:800
+}
+.status.error {
+  color:var(--red);
+  font-weight:800
+}
+.active h2 {
+  margin:0 0 12px
+}
+.session {
+  padding:14px;
+  margin-top:10px;
+  border-radius:12px;
+  background:#eef8f6
+}
+.session strong {
+  display:block;
+  font-size:22px
+}
+.session span {
+  display:block;
+  color:var(--muted)
+}
+@media(max-width:700px),(hover:none) and (pointer:coarse) {
+  body {
+    font-size:30px
+  }
+  .wrap {
+    width:100%
+  }
+  header {
+    padding:calc(20px + env(safe-area-inset-top)) 16px 22px
+  }
+  .header-row {
+    align-items:flex-start;
+    flex-direction:column
+  }
+  .app-icon {
+    min-width:172px;
+    height:72px;
+    font-size:28px
+  }
+  h1 {
+    font-size:48px
+  }
+  .panel,.active {
+    margin:0;
+    padding:20px 16px;
+    border-radius:0;
+    border-left:0;
+    border-right:0
+  }
+  .active {
+    margin-top:14px
+  }
+  label {
+    font-size:28px
+  }
+  input,select,textarea,button {
+    min-height:94px;
+    font-size:34px;
+    border-radius:16px
+  }
+  .buttons {
+    grid-template-columns:1fr
+  }
+  .screen-fields.visible {
+    grid-template-columns:1fr
+  }
+  .order-suggestions {
+    max-height:420px;
+    border-radius:16px
+  }
+  .order-suggestion {
+    min-height:88px;
+    padding:14px 18px;
+    font-size:34px
+  }
+  .quantity-control input {
+    padding-right:110px;
+    font-size:42px
+  }
+  .quantity-unit {
+    right:24px;
+    font-size:30px
+  }
+  button {
+    min-height:108px;
+    font-size:38px
+  }
+  .session strong {
+    font-size:34px
+  }
+  .session span,.status {
+    font-size:28px
+  }
+}
+
+@media(max-width:960px) {
+  .header-row {
+    align-items:center;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    gap:12px;
+  }
+  .header-row>div:last-child { min-width:0; flex:1 1 auto; }
+  button,.order-suggestion { min-height:152px; padding:24px 28px; }
+}
+    </style>
+    <style>
+      .save-success-modal { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+      .save-success-modal.show { opacity:1; pointer-events:auto; }
+      .save-success-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+      .save-success-modal.show .save-success-panel { transform:none; }
+      .save-success-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#eaf8ef; color:#16803a; font-size:42px; font-weight:800; }
+      .save-success-title { margin-bottom:22px; color:#145c2c; font-size:24px; }
+      .save-success-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
+      .save-success-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+      .backend-frame { position:absolute; width:1px; height:1px; border:0; opacity:0; pointer-events:none; }
+      .loading-overlay { position:fixed; inset:0; z-index:100; display:none; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); backdrop-filter:blur(4px); }
+      .loading-overlay[aria-hidden="false"] { display:grid; }
+      .loading-panel { min-width:min(340px,90vw); padding:24px; color:#0b2949; text-align:center; background:#fff; border:1px solid #cbd8e3; border-radius:16px; box-shadow:0 22px 50px rgb(7 27 51 / 22%); }
+      .loading-spinner { display:block; width:44px; height:44px; margin:0 auto 13px; border:5px solid #ccebf8; border-top-color:#0676ce; border-radius:50%; animation:work-session-spin .8s linear infinite; }
+      @keyframes work-session-spin { to { transform:rotate(1turn); } }
+    </style>
+  <style id="tailwind-build"></style>
+  <style id="mobile-final-overrides" media="not all" data-legacy-style="disabled">
+    @media (hover: none) and (pointer: coarse), (max-width: 960px) {
+      header .header-row {
+        display: flex !important;
+        align-items: center !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 12px !important;
+      }
+      header .header-row > .app-icon {
+        width: 196px !important;
+        min-width: 196px !important;
+        height: 94px !important;
+        flex: 0 0 196px !important;
+        padding: 3px !important;
+      }
+      header .header-row > div:last-child {
+        min-width: 0 !important;
+        flex: 1 1 0 !important;
+      }
+      header h1 {
+        font-size: 56px !important;
+        line-height: 1.15 !important;
+      }
+      header p {
+        font-size: 48px !important;
+        line-height: 1.35 !important;
+      }
+      button,
+      .order-suggestion {
+        min-height: 152px !important;
+        height: auto !important;
+        padding: 24px 28px !important;
+        font-size: 44px !important;
+        line-height: 1.4 !important;
+      }
+      .work-form-page label {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        margin-bottom: 28px !important;
+        font-size: 50px !important;
+        line-height: 1.45 !important;
+      }
+      .work-form-page input,
+      .work-form-page select,
+      .work-form-page textarea {
+        min-height: 136px !important;
+        padding: 22px 24px !important;
+        font-size: 50px !important;
+        line-height: 1.4 !important;
+      }
+      .work-form-page textarea {
+        min-height: 260px !important;
+      }
+    }
+  </style>
+    <script>
+      (function() {
+        let busyDepth = 0;
+        let shownAt = 0;
+        let hideTimer = 0;
+        const minimumVisibleMs = 650;
+
+        window.beginLoading = function(message) {
+          busyDepth += 1;
+          window.clearTimeout(hideTimer);
+          hideTimer = 0;
+          window.requestAnimationFrame(function() {
+            const overlay = document.getElementById("loadingOverlay");
+            const label = document.getElementById("loadingMessage");
+            if (!overlay || busyDepth < 1) return;
+            if (label) label.textContent = message || "กำลังโหลดข้อมูล…";
+            if (!overlay.classList.contains("show")) shownAt = performance.now();
+            overlay.classList.add("show");
+            overlay.setAttribute("aria-hidden", "false");
+            document.body.classList.add("is-busy");
+            document.body.setAttribute("aria-busy", "true");
+          });
+        };
+
+        window.endLoading = function() {
+          busyDepth = Math.max(0, busyDepth - 1);
+          if (busyDepth > 0) return;
+          const remaining = Math.max(0, minimumVisibleMs - (performance.now() - shownAt));
+          hideTimer = window.setTimeout(function() {
+            if (busyDepth > 0) return;
+            const overlay = document.getElementById("loadingOverlay");
+            if (overlay) {
+              overlay.classList.remove("show");
+              overlay.setAttribute("aria-hidden", "true");
+            }
+            document.body.classList.remove("is-busy");
+            document.body.setAttribute("aria-busy", "false");
+            hideTimer = 0;
+          }, remaining);
+        };
+      })();
+    </script>
+  </head>
+<body class="work-form-page">
+    <header>
+      <div class="wrap header-row">
+        <div class="app-icon"><img src="https://raw.githubusercontent.com/jame023/work-calendar-pages/main/assets/sip-iget-logo.png" alt="SIP i-GET Smart Integration Platform"></div>
+        <div>
+          <h1>เริ่ม/จบงาน</h1>
+          <p>เลือกผู้ปฏิบัติงาน เครื่องจักร และประเภทงาน</p>
+        </div>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="panel">
+        <label>ผู้ปฏิบัติงานจากบัญชี LINE<select id="employee">
+          <option value="">-- กำลังอ่านบัญชี LINE --</option>
+        </select>
+      </label>
+      <label>เครื่องจักร<select id="machine">
+        <option value="">-- เลือกเครื่องจักร --</option>
+      </select>
+    </label>
+    <label>ประเภทงาน<select id="workType">
+      <option value="">-- เลือกประเภทงาน --</option>
+    </select>
+  </label>
+  <div id="screenFields" class="screen-fields">
+    <label>ชื่อออเดอร์
+      <div class="order-picker">
+        <input id="orderName" type="text" autocomplete="off" placeholder="พิมพ์เพื่อค้นหาชื่อออเดอร์">
+        <div id="orderSuggestions" class="order-suggestions" hidden></div>
+      </div>
+    </label>
+    <label id="screenQuantityField">จำนวนสกรีนตอนปิดงาน
+      <div class="quantity-control">
+        <input id="screenQuantity" type="number" min="1" step="1" inputmode="numeric" placeholder="0">
+        <span class="quantity-unit">แพ็ค</span>
+      </div>
+    </label>
+  </div>
+  <label>หมายเหตุ<textarea id="note" placeholder="ไม่บังคับ">
+  </textarea>
+</label>
+<div class="buttons">
+  <button id="startButton" onclick="startWork()">เริ่มงาน</button>
+  <button id="endButton" class="end" onclick="endWork()">จบงาน</button>
+  <button id="editLatestButton" type="button" onclick="loadLatestWorkForEdit()" disabled>แก้ไขรายการล่าสุดของเครื่องนี้</button>
+  <button id="saveEditButton" type="button" onclick="saveWorkEdit()" hidden>บันทึกการแก้ไข</button>
+  <button id="returnToNewButton" type="button" onclick="returnToNewWork()" hidden>กลับไปบันทึกรายการใหม่</button>
+</div>
+<p id="status" class="status">กำลังโหลดข้อมูล...</p>
+</section>
+<section class="active">
+  <h2>งานที่กำลังทำ</h2>
+  <div id="activeList">
+  </div>
+</section>
+</main>
+<iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
+<script>
+  var currentActiveSessions = [];
+  var currentWorkOrders = [];
+  var editMode = false;
+  var editingSessionId = '';
+  var editingStatus = '';
+  var WORK_SESSION_LIFF_ID = '2010715544-t1wTPbRC';
+  var WORK_SESSION_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/work-session-liff/index.html';
+  var WORK_SESSION_BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbxVZMLIak8rwy6_LybS9r5UlYDJK6mGsGB__IMosFwVX3ML0G_45bjwgvNV7JYA_ysE/exec?bridge=1&v=1';
+  var WORK_SESSION_MESSAGE_SOURCE = 'work-session-liff-frontend';
+  var WORK_SESSION_BRIDGE_SOURCE = 'work-session-liff-bridge';
+  var WORK_SESSION_LINE_REAUTH_KEY = 'work-session-line-reauth-attempt';
+  var WORK_SESSION_LAST_VERIFIED_LINE_USER_ID_KEY = 'work-session-last-verified-line-user-id';
+  var workSessionIdToken = '';
+  var workSessionBridgeWindow = null;
+  var workSessionBridgeLiffId = '';
+  var workSessionRequestNumber = 0;
+  var workSessionPendingCalls = new Map();
+  var resolveWorkSessionBridge;
+  var workSessionBridgeReady = new Promise(function(resolve) {
+    resolveWorkSessionBridge = resolve;
+  });
+  var workSessionAuthPromise = null;
+  var backendFrame = byId('backendFrame');
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function workSessionErrorMessage(error) {
+    return error && error.message ? error.message : String(error || 'เกิดข้อผิดพลาด');
+  }
+
+  function rememberWorkSessionLineUserId() {
+    var lineUserId = '';
+    try {
+      if (window.liff && typeof liff.getDecodedIDToken === 'function') {
+        var decoded = liff.getDecodedIDToken();
+        lineUserId = String(decoded && decoded.sub || '').trim();
+      }
+    } catch (error) {}
+    if (!/^U[0-9a-f]{32}$/i.test(lineUserId)) return;
+    try {
+      localStorage.setItem(WORK_SESSION_LAST_VERIFIED_LINE_USER_ID_KEY, lineUserId);
+    } catch (error) {}
+  }
+
+  function isWorkSessionLineError(message) {
+    var text = String(message || '');
+    return text.indexOf('LINE_AUTH:TOKEN_MISSING') !== -1 ||
+      text.indexOf('LINE_AUTH:TOKEN_EXPIRED') !== -1 ||
+      text.indexOf('LINE_AUTH:INVALID_ID_TOKEN') !== -1 ||
+      text.indexOf('LINE_AUTH:VERIFY_REJECTED') !== -1 ||
+      text.indexOf('LINE_AUTH:CHANNEL_MISMATCH') !== -1 ||
+      text.indexOf('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่') !== -1 ||
+      text.indexOf('LINE Token หมดอายุ') !== -1;
+  }
+
+  function recoverWorkSessionLineSession(error) {
+    var message = workSessionErrorMessage(error);
+    if (!isWorkSessionLineError(message) || !window.liff || typeof liff.login !== 'function') {
+      return false;
+    }
+    if (sessionStorage.getItem(WORK_SESSION_LINE_REAUTH_KEY) === '1') {
+      sessionStorage.removeItem(WORK_SESSION_LINE_REAUTH_KEY);
+      return false;
+    }
+    sessionStorage.setItem(WORK_SESSION_LINE_REAUTH_KEY, '1');
+    workSessionIdToken = '';
+    setStatus('เซสชัน LINE หมดอายุ · กำลังเชื่อมต่อบัญชีเดิมใหม่…');
+    try {
+      liff.login({ redirectUri: WORK_SESSION_LIFF_REDIRECT_URI });
+      return true;
+    } catch (loginError) {
+      return false;
+    }
+  }
+
+  function receiveWorkSessionBridgeMessage(event) {
+    var data = event.data;
+    if (!data || data.source !== WORK_SESSION_BRIDGE_SOURCE) return;
+    if (WORK_SESSION_BACKEND_URL && event.origin !== new URL(WORK_SESSION_BACKEND_URL).origin) return;
+    if (data.type === 'ready') {
+      if (backendFrame && event.source !== backendFrame.contentWindow) return;
+      workSessionBridgeWindow = event.source;
+      workSessionBridgeLiffId = String(data.liffId || '');
+      if (!workSessionBridgeLiffId) {
+        setStatus('Bridge ไม่ส่ง LIFF ID', 'error');
+        return;
+      }
+      resolveWorkSessionBridge();
+      return;
+    }
+    if (data.type !== 'response' || event.source !== workSessionBridgeWindow) return;
+    var request = workSessionPendingCalls.get(data.id);
+    if (!request) return;
+    clearTimeout(request.timer);
+    workSessionPendingCalls.delete(data.id);
+    data.ok
+      ? request.resolve(data.result)
+      : request.reject(new Error(data.error || 'เกิดข้อผิดพลาด'));
+  }
+
+  window.addEventListener('message', receiveWorkSessionBridgeMessage);
+
+  function waitForWorkSessionBridge() {
+    return Promise.race([
+      workSessionBridgeReady,
+      new Promise(function(resolve, reject) {
+        setTimeout(function() {
+          reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+        }, 15000);
+      })
+    ]);
+  }
+
+  function refreshWorkSessionIdToken() {
+    if (!window.liff || typeof liff.isLoggedIn !== 'function' || !liff.isLoggedIn()) {
+      return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
+    }
+    try {
+      workSessionIdToken = liff.getIDToken() || '';
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    if (!workSessionIdToken) {
+      return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
+    }
+    return Promise.resolve(workSessionIdToken);
+  }
+
+  function initializeWorkSessionAuth() {
+    if (workSessionAuthPromise) return workSessionAuthPromise;
+    if (!WORK_SESSION_LIFF_ID) {
+      return Promise.reject(new Error('ระบบยังไม่ได้ตั้งค่า WORK_SESSION_LIFF_ID'));
+    }
+    if (!window.liff) {
+      return Promise.reject(new Error('โหลด LIFF ไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ'));
+    }
+    var bridgePromise = Promise.resolve();
+    if (WORK_SESSION_BACKEND_URL && backendFrame) {
+      backendFrame.src = WORK_SESSION_BACKEND_URL;
+      bridgePromise = waitForWorkSessionBridge();
+    }
+    workSessionAuthPromise = bridgePromise
+      .then(function() {
+        return liff.init({
+          liffId: workSessionBridgeLiffId || WORK_SESSION_LIFF_ID,
+          withLoginOnExternalBrowser: true
+        });
+      })
+      .then(function() {
+        if (!liff.isLoggedIn()) {
+          var remembered = false;
+          try {
+            remembered = !!String(localStorage.getItem(WORK_SESSION_LAST_VERIFIED_LINE_USER_ID_KEY) || '').trim();
+          } catch (error) {}
+          setStatus(remembered ? 'กำลังเชื่อมต่อบัญชี LINE เดิม…' : 'กำลังเข้าสู่ระบบ LINE…');
+          liff.login({ redirectUri: WORK_SESSION_LIFF_REDIRECT_URI });
+          throw new Error('กรุณาเข้าสู่ระบบ LINE');
+        }
+        return refreshWorkSessionIdToken();
+      });
+    return workSessionAuthPromise;
+  }
+
+  function callBackend(action, payload) {
+    return refreshWorkSessionIdToken().then(function() {
+      var scriptApi = window.google && window.google.script
+        ? window.google.script.run
+        : null;
+      if (scriptApi) {
+        return new Promise(function(resolve, reject) {
+          var runner = scriptApi
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject);
+          if (action === 'getWorkPageConfig') {
+            runner.getWorkPageConfig(workSessionIdToken);
+          } else if (action === 'startWorkSession') {
+            runner.startWorkSession(payload || {}, workSessionIdToken);
+          } else if (action === 'endWorkSession') {
+            runner.endWorkSession(payload || {}, workSessionIdToken);
+          } else if (action === 'getWorkSessionForEdit') {
+            runner.getWorkSessionForEdit((payload || {}).sessionId, workSessionIdToken);
+          } else if (action === 'updateWorkSession') {
+            runner.updateWorkSession(payload || {}, workSessionIdToken);
+          } else if (action === 'getWorkDashboard') {
+            runner.getWorkDashboard(workSessionIdToken, payload || {});
+          } else {
+            reject(new Error('ไม่รองรับคำสั่งนี้'));
+          }
+        });
+      }
+      return new Promise(function(resolve, reject) {
+        if (!workSessionBridgeWindow) {
+          reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+          return;
+        }
+        var id = 'work-session-request-' + (++workSessionRequestNumber);
+        var timer = setTimeout(function() {
+          workSessionPendingCalls.delete(id);
+          reject(new Error('Apps Script ตอบกลับช้าเกินกำหนด'));
+        }, 60000);
+        workSessionPendingCalls.set(id, { resolve: resolve, reject: reject, timer: timer });
+        workSessionBridgeWindow.postMessage({
+          source: WORK_SESSION_MESSAGE_SOURCE,
+          id: id,
+          action: action,
+          idToken: workSessionIdToken,
+          payload: payload || {}
+        }, WORK_SESSION_BACKEND_URL ? new URL(WORK_SESSION_BACKEND_URL).origin : '*');
+      });
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function setStatus(text, type) {
+    byId('status').className = 'status ' + (type || '');
+    byId('status').textContent = text;
+  }
+
+  function setButtonsDisabled(disabled) {
+    byId('startButton').disabled = disabled;
+    byId('endButton').disabled = disabled;
+    byId('editLatestButton').disabled = disabled || !localStorage.getItem('workLastSavedSessionId');
+    byId('saveEditButton').disabled = disabled;
+    byId('returnToNewButton').disabled = disabled;
+  }
+
+  function loadPage() {
+    beginLoading('กำลังโหลดข้อมูล…');
+    initializeWorkSessionAuth()
+      .then(function() { return callBackend('getWorkPageConfig', {}); })
+      .then(renderConfig)
+      .catch(handleFailure);
+  }
+
+  function renderConfig(data) {
+    endLoading();
+    var employeeName = String(data.employeeName || '').trim();
+    if (!employeeName) throw new Error('ระบบไม่พบชื่อพนักงานจาก Employee_Access');
+    fillSelect('employee', data.employees, function(employee) {
+      return { value: employee, label: employee };
+    });
+    byId('employee').value = employeeName;
+    byId('employee').disabled = true;
+    fillSelect('machine', data.machines, function(machine) {
+      return { value: machine.key, label: machine.label };
+    });
+    fillSelect('workType', data.workTypes, function(workType) {
+      return { value: workType, label: workType };
+    });
+    currentWorkOrders = data.orders || [];
+    restoreSavedSelection('machine', 'workSessionMachineKey');
+    currentActiveSessions = data.activeSessions || [];
+    renderActiveSessions(currentActiveSessions);
+    syncActiveSessionFields();
+    toggleScreenFields();
+    updateEditButton();
+    rememberWorkSessionLineUserId();
+    sessionStorage.removeItem(WORK_SESSION_LINE_REAUTH_KEY);
+    setStatus('พร้อมบันทึก', 'ok');
+  }
+
+  function fillSelect(id, items, mapItem) {
+    var select = byId(id);
+    var firstOption = select.options[0].outerHTML;
+    select.innerHTML = firstOption + items.map(function(item) {
+      var option = mapItem(item);
+      return '<option value="' + escapeHtml(option.value) + '">' +
+      escapeHtml(option.label) + '</option>';
+    }).join('');
+  }
+
+  function restoreSavedSelection(selectId, storageKey) {
+    var select = byId(selectId);
+    var savedValue = localStorage.getItem(storageKey) || '';
+    var isAvailable = Array.prototype.some.call(select.options, function(option) {
+      return option.value === savedValue;
+    });
+    if (isAvailable) select.value = savedValue;
+  }
+
+  function rememberSelection(selectId, storageKey) {
+    var value = byId(selectId).value;
+    if (value) {
+      localStorage.setItem(storageKey, value);
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+  }
+
+  function renderOrderSuggestions() {
+    var input = byId('orderName');
+    var suggestions = byId('orderSuggestions');
+    var query = input.value.trim().toLocaleLowerCase('th-TH');
+    var matches = currentWorkOrders.filter(function(name) {
+      return !query || name.toLocaleLowerCase('th-TH').indexOf(query) !== -1;
+    });
+    suggestions.innerHTML = '';
+    matches.forEach(function(name) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'order-suggestion';
+      button.textContent = name;
+      button.addEventListener('click', function() {
+        input.value = name;
+        localStorage.setItem('workSessionOrderName', name);
+        suggestions.hidden = true;
+      });
+      suggestions.appendChild(button);
+    });
+    suggestions.hidden = !matches.length;
+  }
+
+  function renderActiveSessions(rows) {
+    byId('activeList').innerHTML = rows.length
+      ? rows.map(function(row) {
+        return '<div class="session">' +
+          '<strong>' + escapeHtml(row.employee) + ' · ' + escapeHtml(row.machine) + '</strong>' +
+          '<span>' + escapeHtml(getWorkDescription(row)) +
+          ' | เริ่ม ' + escapeHtml(row.startTime) + '</span>' +
+          '<span>' + escapeHtml(row.startNote || 'ไม่มีหมายเหตุ') + '</span>' +
+          '</div>';
+      }).join('')
+      : '<p>ไม่มีงานที่กำลังทำ</p>';
+  }
+
+  function getWorkDescription(row) {
+    if (row.workType !== 'สกรีน' || !row.orderName) return row.workType;
+    return row.workType + ' · ' + row.orderName +
+      (row.screenQuantity ? ' · ' + row.screenQuantity + ' แพ็ค' : '');
+  }
+
+  function findActiveSessionForEmployee(employee) {
+    return currentActiveSessions.filter(function(row) {
+      return row.employee === employee;
+    })[0] || null;
+  }
+
+  function syncActiveSessionFields() {
+    if (editMode) return;
+    var active = findActiveSessionForEmployee(byId('employee').value);
+    if (!active) return;
+    byId('machine').value = active.machineKey;
+    byId('workType').value = active.workType;
+    byId('orderName').value = active.orderName || '';
+    byId('screenQuantity').value = '';
+    toggleScreenFields();
+  }
+
+  function toggleScreenFields() {
+    var isScreenWork = byId('workType').value === 'สกรีน';
+    var active = findActiveSessionForEmployee(byId('employee').value);
+    var isClosingScreenWork = Boolean(active && active.workType === 'สกรีน');
+    var isEditingCompletedScreen = editMode && editingStatus === 'จบงาน' && isScreenWork;
+    byId('screenFields').classList.toggle('visible', isScreenWork);
+    byId('screenFields').classList.toggle('closing', isClosingScreenWork || isEditingCompletedScreen);
+    byId('screenQuantityField').hidden = !(isClosingScreenWork || isEditingCompletedScreen);
+    byId('orderName').required = isScreenWork;
+    byId('screenQuantity').required = isClosingScreenWork || isEditingCompletedScreen;
+    if (!isScreenWork) {
+      byId('orderName').value = '';
+      byId('screenQuantity').value = '';
+      byId('orderSuggestions').hidden = true;
+    } else if (!active && !byId('orderName').value) {
+      var savedOrderName = localStorage.getItem('workSessionOrderName') || '';
+      if (currentWorkOrders.indexOf(savedOrderName) !== -1) {
+        byId('orderName').value = savedOrderName;
+      }
+    }
+  }
+
+  function getStartPayload() {
+    return {
+      machineKey: byId('machine').value,
+      workType: byId('workType').value,
+      orderName: byId('orderName').value.trim(),
+      screenQuantity: byId('screenQuantity').value,
+      note: byId('note').value
+    };
+  }
+
+  function startWork() {
+    if (!confirm('ยืนยันเริ่มงานตามข้อมูลที่เลือก?')) return;
+    setButtonsDisabled(true);
+    beginLoading('กำลังบันทึกข้อมูล…');
+    setStatus('กำลังบันทึก...');
+    callBackend('startWorkSession', getStartPayload())
+      .then(function(result) {
+        endLoading();
+        showSaveSuccessModal();
+        localStorage.setItem('workLastSavedSessionId', result.sessionId);
+        setStatus(
+          'เริ่มงานแล้ว: ' + result.employee + ' · ' + result.machine + ' · ' + result.startTime,
+          'ok'
+        );
+        byId('note').value = '';
+        setButtonsDisabled(false);
+        loadPage();
+      })
+      .catch(handleFailure);
+  }
+
+  function endWork() {
+    var employee = byId('employee').value;
+    if (!employee) {
+      setStatus('กรุณาเลือกพนักงาน', 'error');
+      return;
+    }
+    var active = findActiveSessionForEmployee(employee);
+    var screenQuantity = Number(byId('screenQuantity').value || 0);
+    if (active && active.workType === 'สกรีน' &&
+        (!Number.isInteger(screenQuantity) || screenQuantity <= 0)) {
+      setStatus('กรุณากรอกจำนวนสกรีนตอนปิดงานเป็นจำนวนเต็มมากกว่า 0', 'error');
+      return;
+    }
+    if (!confirm('ยืนยันจบงานของ ' + employee + '?')) return;
+    setButtonsDisabled(true);
+    beginLoading('กำลังบันทึกข้อมูล…');
+    setStatus('กำลังจบงาน...');
+    callBackend('endWorkSession', {
+        screenQuantity: screenQuantity,
+        note: byId('note').value
+      })
+      .then(function(result) {
+        endLoading();
+        showSaveSuccessModal();
+        localStorage.setItem('workLastSavedSessionId', result.sessionId);
+        setStatus('จบงานแล้ว: ' + result.machine + ' · ' + result.durationMinutes + ' นาที', 'ok');
+        byId('note').value = '';
+        setButtonsDisabled(false);
+        loadPage();
+      })
+      .catch(handleFailure);
+  }
+
+  function loadLatestWorkForEdit() {
+    var sessionId = localStorage.getItem('workLastSavedSessionId') || '';
+    if (!sessionId) {
+      setStatus('ยังไม่มีรายการล่าสุดที่ Browser นี้บันทึกสำเร็จ', 'error');
+      return;
+    }
+    setButtonsDisabled(true);
+    beginLoading('กำลังโหลดรายการล่าสุด…');
+    callBackend('getWorkSessionForEdit', { sessionId: sessionId })
+      .then(function(result) {
+        endLoading();
+        editMode = true;
+        editingSessionId = result.sessionId;
+        editingStatus = result.status;
+        byId('employee').value = result.employee;
+        byId('machine').value = result.machineKey;
+        byId('workType').value = result.workType;
+        byId('orderName').value = result.orderName || '';
+        byId('screenQuantity').value = result.status === 'จบงาน' && result.workType === 'สกรีน'
+          ? result.screenQuantity : '';
+        byId('note').value = result.note || '';
+        byId('startButton').hidden = true;
+        byId('endButton').hidden = true;
+        byId('editLatestButton').hidden = true;
+        byId('saveEditButton').hidden = false;
+        byId('returnToNewButton').hidden = false;
+        setButtonsDisabled(false);
+        toggleScreenFields();
+        setStatus('กำลังแก้ไขรายการล่าสุดของ Browser นี้ · สถานะ ' + result.status, 'ok');
+      })
+      .catch(handleFailure);
+  }
+
+  function saveWorkEdit() {
+    if (!editMode || !editingSessionId) return;
+    if (localStorage.getItem('workLastSavedSessionId') !== editingSessionId) {
+      setStatus('Browser นี้บันทึกรายการใหม่กว่าแล้ว กรุณาโหลดรายการล่าสุดใหม่ก่อนแก้ไข', 'error');
+      return;
+    }
+    var payload = getStartPayload();
+    payload.sessionId = editingSessionId;
+    if (editingStatus === 'จบงาน' && payload.workType === 'สกรีน') {
+      var quantity = Number(payload.screenQuantity || 0);
+      if (!Number.isInteger(quantity) || quantity <= 0) {
+        setStatus('กรุณากรอกจำนวนสกรีนเป็นจำนวนเต็มมากกว่า 0', 'error');
+        return;
+      }
+    }
+    if (!confirm('ยืนยันบันทึกการแก้ไขรายการล่าสุด?')) return;
+    setButtonsDisabled(true);
+    beginLoading('กำลังบันทึกการแก้ไข…');
+    setStatus('กำลังบันทึกการแก้ไข...');
+    callBackend('updateWorkSession', payload)
+      .then(function(result) {
+        endLoading();
+        showSaveSuccessModal();
+        setButtonsDisabled(false);
+        setStatus('แก้ไขรายการแล้ว: ' + result.employee + ' · ' + result.machine + ' · ' + result.status, 'ok');
+        loadPage();
+      })
+      .catch(handleFailure);
+  }
+
+  function returnToNewWork() {
+    editMode = false;
+    editingSessionId = '';
+    editingStatus = '';
+    byId('startButton').hidden = false;
+    byId('endButton').hidden = false;
+    byId('editLatestButton').hidden = false;
+    byId('saveEditButton').hidden = true;
+    byId('returnToNewButton').hidden = true;
+    byId('note').value = '';
+    byId('screenQuantity').value = '';
+    loadPage();
+  }
+
+  function updateEditButton() {
+    byId('editLatestButton').disabled = !localStorage.getItem('workLastSavedSessionId');
+  }
+
+  function handleFailure(error) {
+    endLoading();
+    setButtonsDisabled(false);
+    if (recoverWorkSessionLineSession(error)) return;
+    setStatus(workSessionErrorMessage(error), 'error');
+  }
+
+  var saveSuccessReturnFocus = null;
+  function showSaveSuccessModal() {
+    saveSuccessReturnFocus = document.activeElement;
+    var modal = byId('saveSuccessModal');
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+    byId('saveSuccessAcknowledge').focus();
+  }
+
+  function hideSaveSuccessModal() {
+    var modal = byId('saveSuccessModal');
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    if (saveSuccessReturnFocus && saveSuccessReturnFocus.focus) saveSuccessReturnFocus.focus();
+  }
+
+  byId('employee').addEventListener('change', function() {
+    syncActiveSessionFields();
+  });
+  byId('machine').addEventListener('change', function() {
+    rememberSelection('machine', 'workSessionMachineKey');
+  });
+  byId('workType').addEventListener('change', toggleScreenFields);
+  byId('orderName').addEventListener('input', renderOrderSuggestions);
+  byId('orderName').addEventListener('focus', renderOrderSuggestions);
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.order-picker')) byId('orderSuggestions').hidden = true;
+  });
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && byId('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
+  });
+  loadPage();
+</script>
+    <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
+      <div class="save-success-panel">
+        <div class="save-success-icon" aria-hidden="true">✓</div>
+        <h2 class="save-success-title" id="saveSuccessTitle">บันทึกเสร็จแล้ว</h2>
+        <button class="save-success-acknowledge" id="saveSuccessAcknowledge" type="button" onclick="hideSaveSuccessModal()">รับทราบ</button>
+      </div>
+    </div>
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
+      <div class="loading-panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span id="loadingMessage">กำลังโหลดข้อมูล…</span>
+      </div>
+    </div>
+</body>
+</html>
