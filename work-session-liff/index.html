@@ -558,6 +558,7 @@ button:active {
     workSessionIdToken = '';
     setStatus('เซสชัน LINE หมดอายุ · กำลังเชื่อมต่อบัญชีเดิมใหม่…');
     try {
+      if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
       liff.login({ redirectUri: WORK_SESSION_LIFF_REDIRECT_URI });
       return true;
     } catch (loginError) {
