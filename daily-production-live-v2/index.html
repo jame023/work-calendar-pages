@@ -533,12 +533,17 @@
     }
 
 
-    function refreshProductionLineTokens() {      if (!window.liff) return false;      if (typeof liff.isLoggedIn === 'function' && !liff.isLoggedIn()) return false;      var nextIdToken = '';      try {        if (typeof liff.getIDToken === 'function') nextIdToken = liff.getIDToken() || '';      } catch (error) {}      productionIdToken = String(nextIdToken || '').trim();
-      var nextAccessToken = '';
+    function refreshProductionLineTokens() {
+      productionIdToken = '';
+      productionAccessToken = '';
+      if (!window.liff || !liff.isLoggedIn()) return false;
       try {
-        if (typeof liff.getAccessToken === 'function') nextAccessToken = liff.getAccessToken() || '';
-      } catch (error) {}
-      productionAccessToken = String(nextAccessToken || '').trim();      return !!productionIdToken;    }
+        productionIdToken = liff.getIDToken() || '';
+      } catch (error) {
+        return false;
+      }
+      return !!productionIdToken;
+    }
 
     function isProductionPermissionError(message) {
       var text = String(message || '');
@@ -594,7 +599,7 @@
     }
 
     function callBackend(action, payload) {
-      if (!productionIdToken && !refreshProductionLineTokens()) {
+      if (!refreshProductionLineTokens()) {
         return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
       }
       var scriptApi = null;
