@@ -357,12 +357,27 @@ button:active {
       .save-success-title { margin-bottom:22px; color:#145c2c; font-size:24px; }
       .save-success-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
       .save-success-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+      .access-denied-modal { position:fixed; inset:0; z-index:210; display:grid; place-items:center; padding:16px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+      .access-denied-modal.show { opacity:1; pointer-events:auto; }
+      .access-denied-panel { width:min(100%,380px); padding:24px 20px 18px; border:1px solid #f0c9a8; border-radius:18px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+      .access-denied-modal.show .access-denied-panel { transform:none; }
+      .access-denied-icon { display:grid; place-items:center; width:56px; height:56px; margin:0 auto 14px; border-radius:50%; background:#fff4e5; color:#b54708; font-size:30px; font-weight:900; }
+      .access-denied-title { margin:0 0 10px; color:#7a2e0b; font-size:22px; }
+      .access-denied-message { margin:0 0 18px; color:#5f4638; font-size:16px; line-height:1.55; }
+      .access-denied-acknowledge { width:100%; min-height:50px; border:0; border-radius:12px; background:#b54708; color:#fff; font-size:16px; font-weight:800; cursor:pointer; }
+      .access-denied-acknowledge:focus-visible { outline:4px solid rgb(181 71 8 / 24%); outline-offset:3px; }
       .backend-frame { position:absolute; width:1px; height:1px; border:0; opacity:0; pointer-events:none; }
       .loading-overlay { position:fixed; inset:0; z-index:100; display:none; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); backdrop-filter:blur(4px); }
       .loading-overlay[aria-hidden="false"] { display:grid; }
       .loading-panel { min-width:min(340px,90vw); padding:24px; color:#0b2949; text-align:center; background:#fff; border:1px solid #cbd8e3; border-radius:16px; box-shadow:0 22px 50px rgb(7 27 51 / 22%); }
       .loading-spinner { display:block; width:44px; height:44px; margin:0 auto 13px; border:5px solid #ccebf8; border-top-color:#0676ce; border-radius:50%; animation:work-session-spin .8s linear infinite; }
       @keyframes work-session-spin { to { transform:rotate(1turn); } }
+      @media(max-width:700px),(hover:none) and (pointer:coarse) {
+        .access-denied-panel { padding:20px 16px 16px; border-radius:16px; }
+        .access-denied-icon { width:52px; height:52px; margin-bottom:12px; font-size:28px; }
+        .access-denied-title { font-size:20px; }
+        .access-denied-message { font-size:14px; }
+      }
     </style>
   <style id="tailwind-build"></style>
     <script>
@@ -497,6 +512,12 @@ button:active {
 
   function workSessionErrorMessage(error) {
     return error && error.message ? error.message : String(error || 'เกิดข้อผิดพลาด');
+  }
+
+  function isWorkSessionPermissionError(message) {
+    var text = String(message || '');
+    return text.indexOf('ไม่มีสิทธิ์ใช้งานระบบเริ่ม/จบงาน') !== -1 ||
+      (text.indexOf('ไม่มีสิทธิ์ใช้งาน') !== -1 && text.indexOf('เริ่ม/จบงาน') !== -1);
   }
 
   function rememberWorkSessionLineUserId() {
@@ -1005,12 +1026,20 @@ button:active {
 
   function handleFailure(error) {
     endLoading();
+    var message = workSessionErrorMessage(error);
+    if (isWorkSessionPermissionError(message)) {
+      setButtonsDisabled(true);
+      setStatus('บัญชีนี้ไม่มีสิทธิ์ใช้งาน', 'error');
+      showWorkSessionPermissionModal();
+      return;
+    }
     setButtonsDisabled(false);
     if (recoverWorkSessionLineSession(error)) return;
-    setStatus(workSessionErrorMessage(error), 'error');
+    setStatus(message, 'error');
   }
 
   var saveSuccessReturnFocus = null;
+  var workSessionPermissionReturnFocus = null;
   function showSaveSuccessModal() {
     saveSuccessReturnFocus = document.activeElement;
     var modal = byId('saveSuccessModal');
@@ -1026,6 +1055,25 @@ button:active {
     if (saveSuccessReturnFocus && saveSuccessReturnFocus.focus) saveSuccessReturnFocus.focus();
   }
 
+  function showWorkSessionPermissionModal() {
+    workSessionPermissionReturnFocus = document.activeElement;
+    var modal = byId('permissionModal');
+    if (!modal) return;
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+    byId('permissionAcknowledge').focus();
+  }
+
+  function hideWorkSessionPermissionModal() {
+    var modal = byId('permissionModal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    if (workSessionPermissionReturnFocus && workSessionPermissionReturnFocus.focus) {
+      workSessionPermissionReturnFocus.focus();
+    }
+  }
+
   byId('employee').addEventListener('change', function() {
     syncActiveSessionFields();
   });
@@ -1039,10 +1087,23 @@ button:active {
     if (!event.target.closest('.order-picker')) byId('orderSuggestions').hidden = true;
   });
   document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape' && byId('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
+    if (event.key !== 'Escape') return;
+    if (byId('permissionModal').classList.contains('show')) {
+      hideWorkSessionPermissionModal();
+      return;
+    }
+    if (byId('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
   });
   loadPage();
 </script>
+    <div class="access-denied-modal" id="permissionModal" role="alertdialog" aria-modal="true" aria-labelledby="permissionTitle" aria-describedby="permissionMessage" aria-hidden="true">
+      <div class="access-denied-panel">
+        <div class="access-denied-icon" aria-hidden="true">!</div>
+        <h2 class="access-denied-title" id="permissionTitle">ไม่มีสิทธิ์ใช้งาน</h2>
+        <p class="access-denied-message" id="permissionMessage">บัญชี LINE นี้ยังไม่ได้รับสิทธิ์ใช้งานหน้าเริ่ม/จบงาน กรุณาติดต่อผู้ดูแลระบบเพื่อเปิดสิทธิ์ให้บัญชีนี้</p>
+        <button class="access-denied-acknowledge" id="permissionAcknowledge" type="button" onclick="hideWorkSessionPermissionModal()">รับทราบ</button>
+      </div>
+    </div>
     <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
       <div class="save-success-panel">
         <div class="save-success-icon" aria-hidden="true">✓</div>
