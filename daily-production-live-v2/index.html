@@ -180,6 +180,7 @@
       <div class='edit-actions'>
         <button id='editLatestButton' type='button' disabled>แก้ไขรายการล่าสุดของเครื่องนี้</button>
         <button id='returnToNewButton' type='button' hidden>กลับไปบันทึกรายการใหม่</button>
+        <button id='undoLatestButton' class='danger' type='button' disabled>↩ ยกเลิกรายการล่าสุด</button>
       </div>
       <div id='statusMessage' class='status' role='status'>กำลังโหลดแบบฟอร์ม...</div>
     </form>
@@ -189,14 +190,15 @@
   <script>
     var PRODUCTION_LIFF_ID = '2010715544-Rnd4Rj3E';
     var PRODUCTION_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/daily-production-live-v2/index.html';
-    var BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbwn86jpgVafVYdUG2P7gQkmqx2NCODgtfI4jvNDpehYYjJSa68l7QYTJ9_Kwe_ZEB9LIw/exec?bridge=1&v=54';
+    var BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbwn86jpgVafVYdUG2P7gQkmqx2NCODgtfI4jvNDpehYYjJSa68l7QYTJ9_Kwe_ZEB9LIw/exec?bridge=1&v=58';
+    var BACKEND_ORIGIN = getUrlOrigin(BACKEND_URL);
     var MESSAGE_SOURCE = 'production-frontend';
     var BRIDGE_SOURCE = 'production-bridge';
     var PRODUCTION_LINE_REAUTH_KEY = 'production-line-reauth-attempt';
     var productionIdToken = '';
-    var productionAccessToken = '';
     var pendingCalls = new Map();
     var bridgeWindow = null;
+    var bridgeOrigin = '';
     var bridgeLiffId = '';
     var requestNumber = 0;
     var resolveBridge;
@@ -209,6 +211,21 @@
 
     function byId(id) {
       return document.getElementById(id);
+    }
+
+    function getUrlOrigin(value) {
+      try {
+        return new URL(value, window.location.href).origin;
+      } catch (error) {
+        return '';
+      }
+    }
+
+    function isExpectedBridgeOrigin(origin) {
+      if (!origin) return false;
+      if (origin === BACKEND_ORIGIN) return true;
+      return BACKEND_ORIGIN === 'https://script.google.com' &&
+        origin === 'https://script.googleusercontent.com';
     }
 
     function getSelectedMachine() {
@@ -248,6 +265,15 @@
       status.textContent = message;
     }
 
+    function updateUndoButton() {
+      var button = byId('undoLatestButton');
+      if (!button) return;
+      var form = byId('productionForm');
+      var denied = form && form.classList.contains('access-denied');
+      button.disabled = denied || editMode || !config ||
+        !localStorage.getItem('productionLastSavedRequestId');
+    }
+
     function showFailure(error) {
       endLoading();
       var message = error && error.message ? error.message : String(error);
@@ -266,6 +292,7 @@
       var isLineSessionError = message.indexOf('LINE_AUTH:TOKEN_MISSING') !== -1 ||
         message.indexOf('LINE_AUTH:TOKEN_EXPIRED') !== -1 ||
         message.indexOf('LINE_AUTH:INVALID_ID_TOKEN') !== -1 ||
+        message.indexOf('LINE_AUTH:CHANNEL_MISMATCH') !== -1 ||
         message.indexOf('LINE_AUTH:VERIFY_REJECTED') !== -1 ||
         message.indexOf('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่') !== -1 ||
         message.indexOf('การยืนยันตัวตน LINE ไม่ถูกต้องหรือหมดอายุ') !== -1 ||
@@ -278,7 +305,6 @@
 
       sessionStorage.setItem(PRODUCTION_LINE_REAUTH_KEY, '1');
       productionIdToken = '';
-      productionAccessToken = '';
 
       setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…');
       try {
@@ -319,6 +345,7 @@
         }
         updateSummary();
         byId('editLatestButton').disabled = !localStorage.getItem('productionLastSavedRequestId');
+        updateUndoButton();
         setStatus('พร้อมกรอกยอดผลิต');
       })
       .catch(showFailure);
@@ -386,7 +413,9 @@
             'ok'
           );
           byId('saveButton').disabled = false;
+          byId('editLatestButton').disabled = false;
           byId('returnToNewButton').disabled = false;
+          updateUndoButton();
         })
         .catch(function(error) {
           showFailure(error);
@@ -447,6 +476,39 @@
         ;
     }
 
+    function undoLatestProduction() {
+      if (!config || editMode) return;
+      var requestId = localStorage.getItem('productionLastSavedRequestId') || '';
+      if (!requestId) {
+        setStatus('ยังไม่มีรายการล่าสุดที่สามารถยกเลิกได้', 'error');
+        updateUndoButton();
+        return;
+      }
+      if (!window.confirm('ยืนยันยกเลิกรายการผลิตล่าสุด? ข้อมูลเดิมจะยังคงอยู่ในประวัติ')) return;
+
+      byId('undoLatestButton').disabled = true;
+      byId('editLatestButton').disabled = true;
+      byId('saveButton').disabled = true;
+      beginLoading('กำลังยกเลิกรายการ…');
+      setStatus('กำลังยกเลิกรายการ กรุณาอย่าปิดหน้าเว็บ...');
+      callBackend('undoDailyProduction', { requestId: requestId })
+        .then(function(result) {
+          endLoading();
+          localStorage.removeItem('productionLastSavedRequestId');
+          sessionStorage.removeItem('productionRequestId');
+          returnToNewProduction();
+          byId('editLatestButton').disabled = true;
+          setStatus(result && result.duplicate
+            ? 'รายการนี้ถูกยกเลิกไว้แล้ว'
+            : 'ยกเลิกรายการผลิตล่าสุดแล้ว ข้อมูลเดิมยังคงอยู่ในประวัติ', 'ok');
+        })
+        .catch(function(error) {
+          showFailure(error);
+          byId('saveButton').disabled = false;
+          updateUndoButton();
+        });
+    }
+
     function returnToNewProduction() {
       editMode = false;
       editingRequestId = '';
@@ -463,11 +525,13 @@
       byId('editLatestButton').hidden = false;
       byId('returnToNewButton').hidden = true;
       updateSummary();
+      updateUndoButton();
       setStatus('พร้อมบันทึกรายการใหม่');
     }
 
     byId('editLatestButton').addEventListener('click', loadLatestProductionForEdit);
     byId('returnToNewButton').addEventListener('click', returnToNewProduction);
+    byId('undoLatestButton').addEventListener('click', undoLatestProduction);
 
     byId('machineKey').addEventListener('change', function() {
       var machineKey = byId('machineKey').value;
@@ -535,7 +599,6 @@
 
     function refreshProductionLineTokens() {
       productionIdToken = '';
-      productionAccessToken = '';
       if (!window.liff || !liff.isLoggedIn()) return false;
       try {
         productionIdToken = liff.getIDToken() || '';
@@ -562,11 +625,13 @@
     }
 
     function receiveBridgeMessage(event) {
+      if (!isExpectedBridgeOrigin(event.origin)) return;
+      if (!backendFrame || event.source !== backendFrame.contentWindow) return;
       var data = event.data;
       if (!data || data.source !== BRIDGE_SOURCE) return;
       if (data.type === 'ready') {
-        
         bridgeWindow = event.source;
+        bridgeOrigin = event.origin;
         bridgeLiffId = String(data.liffId || '');
         if (!bridgeLiffId) {
           setStatus('Bridge ไม่ส่ง LIFF ID', 'error');
@@ -575,7 +640,7 @@
         resolveBridge();
         return;
       }
-      if (data.type !== 'response' || event.source !== bridgeWindow) return;
+      if (data.type !== 'response' || event.source !== bridgeWindow || event.origin !== bridgeOrigin) return;
       var request = pendingCalls.get(data.id);
       if (!request) return;
       clearTimeout(request.timer);
@@ -602,28 +667,6 @@
       if (!refreshProductionLineTokens()) {
         return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
       }
-      var scriptApi = null;
-      if (scriptApi) {
-        return new Promise(function(resolve, reject) {
-          var success = function(result) { resolve(result); };
-          var failure = function(error) { reject(error); };
-          var runner = scriptApi
-            .withSuccessHandler(success)
-            .withFailureHandler(failure);
-          if (action === 'getProductionConfig') {
-            runner.getProductionConfig(productionIdToken, productionAccessToken);
-          } else if (action === 'saveDailyProduction') {
-            runner.saveDailyProduction(payload || {}, productionIdToken, productionAccessToken);
-          } else if (action === 'getDailyProductionForEdit') {
-            runner.getDailyProductionForEdit(payload.requestId, productionIdToken, productionAccessToken);
-          } else if (action === 'updateDailyProduction') {
-            runner.updateDailyProduction(payload || {}, productionIdToken, productionAccessToken);
-          } else {
-            reject(new Error('ไม่รองรับคำสั่งนี้'));
-          }
-        });
-      }
-
       return new Promise(function(resolve, reject) {
         if (!bridgeWindow) {
           reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
@@ -640,9 +683,8 @@
           id: id,
           action: action,
           idToken: productionIdToken,
-          accessToken: productionAccessToken,
           payload: payload || {}
-        }, '*');
+        }, bridgeOrigin);
       });
     }
 
