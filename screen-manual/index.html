@@ -32,8 +32,16 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     .save-success-title { margin-bottom:22px; color:#145c2c; font-size:24px; }
     .save-success-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
     .save-success-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+    .screen-nav { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-left:auto; }
+    .screen-nav a { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:8px 14px; color:#12305a; font-weight:800; background:#e7f2fa; border:1px solid #a9c8dc; border-radius:11px; }
+    .screen-nav a:hover { background:#fff; }
+    .screen-auth-status { color:#d8edf8; font-size:14px; }
+    .day-close-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:10px; }
+    .day-close-actions button:disabled { opacity:.55; }
+    .day-close-help { margin-top:8px; color:#627d98; font-size:13px; }
     .screen-form-page .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
-    @media (max-width:960px) { .screen-form-page .actions { grid-template-columns:1fr; } }
+    @media (max-width:960px) { .screen-form-page .actions, .day-close-actions { grid-template-columns:1fr; } }
+    @media (max-width:560px) { .screen-nav { justify-content:stretch; flex-wrap:wrap; margin-left:0; } .screen-nav a { flex:1 1 100%; } .screen-auth-status { width:100%; } }
     .backend-frame { position:fixed; width:1px; height:1px; left:0; bottom:0; border:0; opacity:0; pointer-events:none; }
   </style>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -87,11 +95,15 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
         <div class="app-mark">
           <img src="https://raw.githubusercontent.com/jame023/work-calendar-pages/main/assets/sip-iget-logo.png" alt="SIP i-GET Smart Integration Platform">
         </div>
-        <div>
-          <h1>บันทึกข้อมูล Screen</h1>
-          <div class="sub clean-sub">กรอกจำนวนแพ็คที่ได้และจำนวนขวดที่เสียของวันนี้</div>
-        </div>
+      <div>
+        <h1>บันทึกข้อมูล Screen</h1>
+        <div class="sub clean-sub">กรอกจำนวนแพ็คที่ได้และจำนวนขวดที่เสียของวันนี้</div>
       </div>
+      </div>
+      <nav class="screen-nav" aria-label="การนำทาง Screen">
+        <a id="dashboardNavLink" href="https://script.google.com/macros/s/AKfycbyNPX3FcS_1SPg3VQ_r4tPzgzx1YCGdkucq9IiyFM0iEnpT_KVS1ag61CJgCyTbq3e7/exec">กลับ Dashboard</a>
+        <span id="screenAuthStatus" class="screen-auth-status">กำลังยืนยันบัญชี LINE…</span>
+      </nav>
   </header>
 
   <main class="wrap">
@@ -108,6 +120,11 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
       </div>
 
       <div id="dayCloseStatus" class="day-close-status">กำลังตรวจสอบสถานะปิดยอด...</div>
+      <div class="day-close-actions" aria-label="การจัดการปิดยอดรายวัน">
+        <button class="secondary" id="closeDayButton" type="button" onclick="toggleDailyClose(true)" disabled>ปิดยอดวันนี้</button>
+        <button class="secondary" id="reopenDayButton" type="button" onclick="toggleDailyClose(false)" disabled>เปิดยอดวันนี้</button>
+      </div>
+      <div class="day-close-help">สถานะปิดยอดมีผลเฉพาะวันที่และเครื่องจักรที่เลือก — ESP32 COUNT ยังส่งยอดได้ตามปกติ</div>
 
       <div class="form-grid">
         <label class="field full-width">
@@ -163,8 +180,12 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
 
   <script>
     var SCREEN_LIFF_ID = '2010715544-2HJjI8Oh';
-    var SCREEN_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/screen-manual/index.html';
-    var SCREEN_BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbyNPX3FcS_1SPg3VQ_r4tPzgzx1YCGdkucq9IiyFM0iEnpT_KVS1ag61CJgCyTbq3e7/exec?bridge=1&v=75';
+    var SCREEN_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/screen-manual/index.html?page=manual';
+    var SCREEN_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyNPX3FcS_1SPg3VQ_r4tPzgzx1YCGdkucq9IiyFM0iEnpT_KVS1ag61CJgCyTbq3e7/exec?bridge=1';
+    var SCREEN_BRIDGE_ALLOWED_ORIGINS = [
+      'https://script.google.com',
+      'https://script.googleusercontent.com'
+    ];
     var SCREEN_MESSAGE_SOURCE = 'screen-frontend';
     var SCREEN_BRIDGE_SOURCE = 'screen-bridge';
     var SCREEN_LINE_REAUTH_KEY = 'screen-line-reauth-attempt';
@@ -176,6 +197,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     var lastUndoUntil = 0;
     var undoTimer = null;
     var currentDayClosed = false;
+    var dailyCloseStatusKnown = false;
     var editMode = false;
     var editingRequestId = '';
     var editLocksMachine = false;
@@ -200,6 +222,8 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
           var operatorSelect = document.getElementById('operatorName');
           operatorSelect.value = screenUserName;
           operatorSelect.disabled = true;
+          document.getElementById('screenAuthStatus').textContent =
+            'ผู้ปฏิบัติงาน: ' + (screenUserName || 'ยืนยันแล้ว');
           syncSummary();
           document.getElementById('enteredPack').focus();
         })
@@ -267,8 +291,36 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
         });
     }
 
+    function refreshScreenIdToken() {
+      if (!window.liff || typeof liff.isLoggedIn !== 'function' || typeof liff.getIDToken !== 'function') {
+        screenIdToken = '';
+        return Promise.reject(new Error('โหลด LIFF ไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ'));
+      }
+      var loggedIn = false;
+      try {
+        loggedIn = liff.isLoggedIn() === true;
+      } catch (error) {
+        loggedIn = false;
+      }
+      if (!loggedIn) {
+        screenIdToken = '';
+        if (typeof liff.login === 'function') liff.login({ redirectUri: SCREEN_LIFF_REDIRECT_URI });
+        return Promise.reject(new Error('กรุณาเข้าสู่ระบบ LINE [LINE_AUTH:TOKEN_MISSING]'));
+      }
+      try {
+        screenIdToken = String(liff.getIDToken() || '').trim();
+      } catch (error) {
+        screenIdToken = '';
+      }
+      if (!screenIdToken) {
+        return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
+      }
+      return Promise.resolve(screenIdToken);
+    }
+
     var pendingScreenCalls = new Map();
     var screenBridgeWindow = null;
+    var screenBridgeOrigin = '';
     var screenBridgeLiffId = '';
     var screenRequestNumber = 0;
     var resolveScreenBridge;
@@ -277,11 +329,23 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     });
     var backendFrame = document.getElementById('backendFrame');
 
+    function isAllowedScreenBridgeOrigin(origin) {
+      var normalized = String(origin || '').trim().toLowerCase();
+      if (SCREEN_BRIDGE_ALLOWED_ORIGINS.indexOf(normalized) !== -1) return true;
+      return /^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/.test(normalized);
+    }
+
+    function isScreenBridgeMessage(event) {
+      return !!backendFrame && event.source === backendFrame.contentWindow &&
+        isAllowedScreenBridgeOrigin(event.origin);
+    }
+
     function receiveScreenBridgeMessage(event) {
       var data = event.data;
-      if (!data || data.source !== SCREEN_BRIDGE_SOURCE) return;
+      if (!isScreenBridgeMessage(event) || !data || data.source !== SCREEN_BRIDGE_SOURCE) return;
       if (data.type === 'ready') {
         screenBridgeWindow = event.source;
+        screenBridgeOrigin = event.origin;
         screenBridgeLiffId = String(data.liffId || '');
         if (!screenBridgeLiffId) {
           setStatus('Bridge ไม่ส่ง LIFF ID', true);
@@ -290,7 +354,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
         resolveScreenBridge();
         return;
       }
-      if (data.type !== 'response' || event.source !== screenBridgeWindow) return;
+      if (data.type !== 'response' || event.source !== screenBridgeWindow || event.origin !== screenBridgeOrigin) return;
       var request = pendingScreenCalls.get(data.id);
       if (!request) return;
       clearTimeout(request.timer);
@@ -314,31 +378,31 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     }
 
     function callScreenBackend(action, payload) {
-      if (!screenIdToken) {
-        return Promise.reject(new Error('กรุณาเข้าสู่ระบบผ่าน LINE ใหม่ [LINE_AUTH:TOKEN_MISSING]'));
-      }
-      return new Promise(function(resolve, reject) {
-        if (!screenBridgeWindow) {
-          reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
-          return;
-        }
-        var id = 'screen-request-' + (++screenRequestNumber);
-        var timer = setTimeout(function() {
-          pendingScreenCalls.delete(id);
-          reject(new Error('Apps Script ตอบกลับช้าเกินกำหนด'));
-        }, 60000);
-        pendingScreenCalls.set(id, {
-          resolve: resolve,
-          reject: reject,
-          timer: timer
+      payload = payload || {};
+      return refreshScreenIdToken().then(function(token) {
+        return new Promise(function(resolve, reject) {
+          if (!screenBridgeWindow || !screenBridgeOrigin) {
+            reject(new Error('เชื่อมต่อ Apps Script ไม่สำเร็จ'));
+            return;
+          }
+          var id = 'screen-request-' + (++screenRequestNumber);
+          var timer = setTimeout(function() {
+            pendingScreenCalls.delete(id);
+            reject(new Error('Apps Script ตอบกลับช้าเกินกำหนด'));
+          }, 60000);
+          pendingScreenCalls.set(id, {
+            resolve: resolve,
+            reject: reject,
+            timer: timer
+          });
+          screenBridgeWindow.postMessage({
+            source: SCREEN_MESSAGE_SOURCE,
+            id: id,
+            action: action,
+            idToken: token,
+            payload: payload
+          }, screenBridgeOrigin);
         });
-        screenBridgeWindow.postMessage({
-          source: SCREEN_MESSAGE_SOURCE,
-          id: id,
-          action: action,
-          idToken: screenIdToken,
-          payload: payload || {}
-        }, '*');
       });
     }
 
@@ -369,9 +433,10 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
       }
       sessionStorage.setItem(SCREEN_LINE_REAUTH_KEY, '1');
       screenIdToken = '';
+      try {
+        if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
+      } catch (logoutError) {}
       setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…');
-      // Keep LIFF's remembered account session so login can reuse it instead
-      // of forcing a fresh identity prompt on every token recovery.
       liff.login({ redirectUri: SCREEN_LIFF_REDIRECT_URI });
       return true;
     }
@@ -429,6 +494,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
       if (!date || !sheet || !screenIdToken) return;
 
       document.getElementById('saveButton').disabled = true;
+      dailyCloseStatusKnown = false;
       beginLoading('กำลังตรวจสอบข้อมูล…');
       document.getElementById('dayCloseStatus').className = 'day-close-status';
       document.getElementById('dayCloseStatus').textContent = 'กำลังตรวจสอบสถานะปิดยอด...';
@@ -444,6 +510,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
           document.getElementById('dayCloseStatus').className = 'day-close-status closed';
           document.getElementById('dayCloseStatus').textContent =
             'ตรวจสอบสถานะไม่สำเร็จ: ' + getErrorMessage(error);
+          updateDailyCloseButtons();
           updateUndoButton();
           updateEditButton();
         });
@@ -451,6 +518,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
 
     function renderDailyCloseStatus(result) {
       currentDayClosed = !!result.closed;
+      dailyCloseStatusKnown = true;
       var status = document.getElementById('dayCloseStatus');
       var detail = result.operator
         ? ' โดย ' + result.operator + (result.timestamp ? ' เวลา ' + new Date(result.timestamp).toLocaleString('th-TH') : '')
@@ -458,8 +526,53 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
       status.className = 'day-close-status' + (currentDayClosed ? ' closed' : '');
       status.textContent = currentDayClosed ? 'ปิดยอดแล้ว' + detail : 'เปิดรับข้อมูล Manual';
       document.getElementById('saveButton').disabled = currentDayClosed;
+      updateDailyCloseButtons();
       updateUndoButton();
       updateEditButton();
+    }
+
+    function updateDailyCloseButtons() {
+      var closeButton = document.getElementById('closeDayButton');
+      var reopenButton = document.getElementById('reopenDayButton');
+      var ready = !!screenConfig && !!document.getElementById('entryDate').value &&
+        !!document.getElementById('entrySheet').value && dailyCloseStatusKnown;
+      closeButton.disabled = !ready || currentDayClosed;
+      reopenButton.disabled = !ready || !currentDayClosed;
+    }
+
+    function toggleDailyClose(shouldClose) {
+      var date = document.getElementById('entryDate').value;
+      var sheet = document.getElementById('entrySheet').value;
+      if (!date || !sheet) {
+        setStatus('วันที่หรือเครื่องจักรยังไม่พร้อม', true);
+        return;
+      }
+      var actionLabel = shouldClose ? 'ปิดยอด' : 'เปิดยอด';
+      if (!window.confirm('ยืนยัน' + actionLabel + 'วันที่ ' + date + ' ของ ' +
+          document.getElementById('summarySheet').textContent + '?')) return;
+
+      document.getElementById('closeDayButton').disabled = true;
+      document.getElementById('reopenDayButton').disabled = true;
+      beginLoading('กำลัง' + actionLabel + 'ยอด…');
+      setStatus('กำลัง' + actionLabel + 'ยอด กรุณาอย่าปิดหน้านี้...', false);
+      callScreenBackend('setDailyCloseState', {
+        date: date,
+        sheet: sheet,
+        closed: shouldClose,
+        operatorName: screenUserName
+      })
+        .then(function(result) {
+          endLoading();
+          renderDailyCloseStatus(result);
+          setStatus((shouldClose ? 'ปิดยอดแล้ว: ' : 'เปิดยอดแล้ว: ') + date + ' — ' +
+            document.getElementById('summarySheet').textContent, false, true);
+        })
+        .catch(function(error) {
+          endLoading();
+          if (handleScreenError(error)) return;
+          updateDailyCloseButtons();
+          setStatus(actionLabel + 'ยอดไม่สำเร็จ: ' + getErrorMessage(error), true);
+        });
     }
 
     function saveEntry() {
@@ -703,6 +816,8 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     function clearNumbers() {
       document.getElementById('enteredPack').value = '';
       document.getElementById('missingBottles').value = '';
+      document.getElementById('productionDamagedBottles').value = '';
+      syncProductionDamageFields();
       document.getElementById('entryNote').value = '';
       document.getElementById('enteredPack').focus();
     }
