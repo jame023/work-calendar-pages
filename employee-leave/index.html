@@ -46,6 +46,17 @@
       .info { background:#e9f2ff; color:#144f98; }
       .success { background:#e5f6ed; color:var(--green); }
       .error { background:#fdecea; color:var(--red); }
+      .sr-only {
+        position:absolute;
+        width:1px;
+        height:1px;
+        padding:0;
+        margin:-1px;
+        overflow:hidden;
+        clip:rect(0,0,0,0);
+        white-space:nowrap;
+        border:0;
+      }
       #app { display:none; }
       .card { margin-top:18px; padding:22px; }
       .quota-card-heading {
@@ -83,6 +94,9 @@
       .quota-item.full .quota-remaining { color:var(--red); }
       .quota-detail { margin:7px 0 0; color:#627083; font-size:14px; }
       .quota-note { margin:12px 0 0; color:#627083; font-size:13px; }
+      .request-window-note { margin:-5px 0 14px; color:#627083; font-size:14px; }
+      .request-window-note.open { color:var(--green); }
+      .request-window-note.closed { color:var(--red); }
       .form-grid {
         display:grid;
         grid-template-columns:repeat(2,minmax(0,1fr));
@@ -296,8 +310,17 @@
       .notification-modal.show { opacity:1; pointer-events:auto; }
       .notification-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
       .notification-modal.show .notification-panel { transform:none; }
-      .notification-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#fff1e8; color:#d85b00; font-size:42px; font-weight:800; }
-      .notification-title { margin-bottom:10px; color:#7d3100; font-size:24px; }
+      .notification-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#edf5ff; color:#1f6feb; font-size:42px; font-weight:800; }
+      .notification-title { margin-bottom:10px; color:#16324f; font-size:24px; }
+      .notification-modal.success .notification-icon { background:#e5f6ed; color:var(--green); }
+      .notification-modal.success .notification-title { color:#126c3e; }
+      .notification-modal.success .notification-acknowledge { background:var(--green); }
+      .notification-modal.warning .notification-icon { background:#fff4d6; color:var(--amber); }
+      .notification-modal.warning .notification-title { color:#8a5200; }
+      .notification-modal.warning .notification-acknowledge { background:var(--amber); }
+      .notification-modal.error .notification-icon { background:#fdecea; color:var(--red); }
+      .notification-modal.error .notification-title { color:#a5231c; }
+      .notification-modal.error .notification-acknowledge { background:var(--red); }
       .notification-message { margin-bottom:22px; color:#354052; font-size:20px; line-height:1.55; white-space:pre-line; }
       .notification-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
       .notification-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
@@ -358,7 +381,9 @@
         </div>
       </section>
 
-      <div class="status info" id="statusBox">กำลังเชื่อมต่อระบบ…</div>
+      <div class="sr-only" id="statusBox" aria-live="polite" aria-atomic="true">
+        กำลังเชื่อมต่อระบบ…
+      </div>
 
       <div id="app">
         <section class="card quota-card" aria-labelledby="quotaHeading">
@@ -373,6 +398,9 @@
         </section>
         <section class="card">
           <h2>ส่งคำขอลา</h2>
+          <p class="request-window-note" id="requestWindowNote">
+            รับคำขอลา 05:00–20:30 น. (เวลาไทย)
+          </p>
           <form id="leaveForm">
             <div class="form-grid">
               <label>
@@ -459,15 +487,19 @@
       </div>
     </main>
 
-    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
-      <div class="loading-panel"><span class="loading-spinner" aria-hidden="true"></span><span>กำลังโหลดข้อมูล…</span></div>
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite"
+      aria-label="กำลังเชื่อมต่อระบบ…" aria-hidden="true">
+      <div class="loading-panel">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span id="loadingMessage">กำลังเชื่อมต่อระบบ…</span>
+      </div>
     </div>
     <div class="notification-modal" id="notificationModal" role="alertdialog"
       aria-modal="true" aria-labelledby="notificationTitle"
       aria-describedby="notificationMessage" aria-hidden="true">
       <div class="notification-panel">
-        <div class="notification-icon" aria-hidden="true">!</div>
-        <h2 class="notification-title" id="notificationTitle">ไม่สามารถส่งคำขอลาได้</h2>
+        <div class="notification-icon" id="notificationIcon" aria-hidden="true">!</div>
+        <h2 class="notification-title" id="notificationTitle">แจ้งเตือน</h2>
         <p class="notification-message" id="notificationMessage"></p>
         <button class="notification-acknowledge" id="notificationAcknowledge" type="button">
           รับทราบ
@@ -489,7 +521,10 @@
         pendingRequests:[],
         cancelledRequests:[],
         quotaSummary:null,
-        leaveDatePeriods:{}
+        leaveDatePeriods:{},
+        requestWindow:null,
+        busy:false,
+        pendingNotifications:[]
       };
       const LEAVE_PERIOD_OPTIONS = [
         { value:"full", label:"เต็มวัน", amount:1 },
@@ -502,6 +537,8 @@
       let bridgeWindow = null;
       let bridgeLiffId = "";
       let requestNumber = 0;
+      let requestWindowTimer = null;
+      let notificationReturnFocus = null;
       let resolveBridge;
       const bridgeReady = new Promise(function(resolve) { resolveBridge = resolve; });
       const elements = {};
@@ -513,8 +550,9 @@
         "leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
         "cancelledManagerCard","cancelledList",
         "monthInput","loadButton","calendarGrid","ownRequestList","quotaMonthLabel",
-        "quotaList","quotaNote","loadingOverlay",
-        "notificationModal","notificationMessage","notificationAcknowledge","backendFrame"
+        "quotaList","quotaNote","requestWindowNote","loadingOverlay","loadingMessage",
+        "notificationModal","notificationIcon","notificationTitle","notificationMessage",
+        "notificationAcknowledge","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
       });
@@ -531,6 +569,7 @@
       elements.notificationAcknowledge.addEventListener("click", hideNotification);
       document.addEventListener("keydown", function(event) {
         if (event.key === "Escape" && elements.notificationModal.classList.contains("show")) {
+          event.preventDefault();
           hideNotification();
         }
       });
@@ -554,7 +593,8 @@
           elements.leaveStartDate.value = todayText();
           elements.leaveEndDate.value = todayText();
           renderLeaveDateRows();
-          await loadData();
+          await loadData({ silent:true });
+          startRequestWindowClock();
           elements.app.style.display = "block";
         } catch (error) {
           showStatus(messageOf(error), "error");
@@ -563,17 +603,19 @@
         }
       }
 
-      async function loadData() {
+      async function loadData(options) {
+        const settings = options || {};
         const month = elements.monthInput.value || currentMonthText();
         state.quotaSummary = null;
         renderQuotaSummary();
-        setBusy(true);
+        setBusy(true, "กำลังเชื่อมต่อระบบ…");
         showStatus("กำลังโหลดข้อมูลการลา…", "info");
         try {
           const result = await callBackend("getLeaveAppData", { month:month });
           state.role = result.profile.role;
           state.canDecideLeave = result.profile.canDecideLeave === true;
           state.month = result.month;
+          state.requestWindow = result.requestWindow || null;
           state.calendar = result.calendar || [];
           state.ownRequests = result.ownRequests || [];
           state.pendingRequests = result.pendingRequests || [];
@@ -584,7 +626,7 @@
           fillLeaveTypes(result.leaveTypes || []);
           renderAll();
           await loadQuotaSummary(state.month);
-          showStatus("โหลดข้อมูลแล้ว", "success");
+          if (!settings.silent) showStatus("โหลดข้อมูลแล้ว", "success");
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
@@ -599,12 +641,17 @@
           });
         } catch (error) {
           state.quotaSummary = { month:month, error:messageOf(error) };
+          showStatus("โหลดโควตาไม่สำเร็จ: " + messageOf(error), "warning");
         }
         renderQuotaSummary();
       }
 
       async function submitLeave(event) {
         event.preventDefault();
+        if (isRequestWindowClosed()) {
+          showStatus(requestWindowMessage(state.requestWindow), "warning");
+          return;
+        }
         const dates = collectLeaveDateInputs();
         const totalDays = dates.reduce(function(total, item) {
           return total + periodAmount(item.period);
@@ -635,7 +682,7 @@
         );
         if (!confirmed) return;
 
-        setBusy(true);
+        setBusy(true, "กำลังเชื่อมต่อระบบ…");
         showStatus("กำลังบันทึกและแจ้งผู้บริหาร…", "info");
         try {
           const result = await callBackend("submitLeaveRequest", input);
@@ -650,15 +697,16 @@
           } else {
             showStatus("ส่งคำขอและแจ้งผู้บริหารแล้ว", "success");
           }
-          await loadData();
+          await loadData({ silent:true });
         } catch (error) {
           const errorMessage = messageOf(error);
-          if (errorMessage.includes("กรุณาติดต่อออฟฟิตหากต้องการขอลา")) {
-            showStatus("พร้อมรับคำขอลา", "success");
-            showNotification(errorMessage);
-          } else {
-            showStatus(errorMessage, "error");
-          }
+          showStatus(
+            errorMessage,
+            isLeaveRequestWindowMessage(errorMessage) ||
+              errorMessage.includes("กรุณาติดต่อออฟฟิตหากต้องการขอลา")
+              ? "warning"
+              : "error"
+          );
         } finally {
           setBusy(false);
         }
@@ -687,7 +735,7 @@
             : "ระบบจะแจ้งผลให้พนักงานทาง LINE")
         );
         if (!confirmed) return;
-        setBusy(true);
+        setBusy(true, "กำลังเชื่อมต่อระบบ…");
         showStatus("กำลังบันทึกผลและแจ้งพนักงาน…", "info");
         try {
           const result = await callBackend("decideLeaveRequest", {
@@ -717,7 +765,7 @@
               "success"
             );
           }
-          await loadData();
+          await loadData({ silent:true });
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
@@ -748,7 +796,7 @@
         );
         if (!confirmed) return;
 
-        setBusy(true);
+        setBusy(true, "กำลังเชื่อมต่อระบบ…");
         showStatus("กำลังยกเลิกคำขอและแจ้งผู้บริหาร…", "info");
         try {
           const result = await callBackend("cancelLeaveRequest", {
@@ -764,7 +812,7 @@
           } else {
             showStatus("ยกเลิกคำขอและแจ้งผู้บริหารแล้ว", "success");
           }
-          await loadData();
+          await loadData({ silent:true });
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
@@ -773,6 +821,7 @@
       }
 
       function renderAll() {
+        renderRequestWindow();
         renderQuotaSummary();
         elements.managerCard.classList.toggle("show", state.canDecideLeave === true);
         elements.cancelledManagerCard.classList.toggle("show", state.role === "manager");
@@ -1087,10 +1136,13 @@
         });
       }
 
-      function setBusy(busy) {
+      function setBusy(busy, message) {
+        state.busy = busy;
         elements.loadingOverlay.classList.toggle("show", busy);
         elements.loadingOverlay.setAttribute("aria-hidden", String(!busy));
+        elements.loadingMessage.textContent = message || "กำลังเชื่อมต่อระบบ…";
         document.body.classList.toggle("is-busy", busy);
+        elements.app.setAttribute("aria-busy", String(busy));
         [
           elements.leaveStartDate,elements.leaveEndDate,
           elements.leaveType,elements.setAllFullButton,
@@ -1100,6 +1152,102 @@
         elements.leaveDateList.querySelectorAll("select").forEach(function(select) {
           select.disabled = busy;
         });
+        syncRequestWindowUi();
+        if (!busy && state.pendingNotifications.length) {
+          window.setTimeout(flushPendingNotification, 0);
+        }
+      }
+
+      function flushPendingNotification() {
+        if (state.busy || elements.notificationModal.classList.contains("show") ||
+            !state.pendingNotifications.length) return;
+        const notification = state.pendingNotifications.shift();
+        showNotification(
+          notification.message,
+          notification.type,
+          notification.title,
+          notification.returnFocus
+        );
+      }
+
+      function syncRequestWindowUi() {
+        elements.submitButton.disabled = state.busy || isRequestWindowClosed();
+      }
+
+      function isRequestWindowClosed() {
+        if (!state.requestWindow) return false;
+        return state.requestWindow.clientIsOpen === false ||
+          (typeof state.requestWindow.clientIsOpen !== "boolean" &&
+            state.requestWindow.isOpen === false);
+      }
+
+      function renderRequestWindow() {
+        if (!elements.requestWindowNote) return;
+        const requestWindow = state.requestWindow;
+        if (!requestWindow) {
+          elements.requestWindowNote.textContent =
+            "รับคำขอลา 05:00–20:30 น. (เวลาไทย)";
+          elements.requestWindowNote.className = "request-window-note";
+          syncRequestWindowUi();
+          return;
+        }
+        const isOpen = typeof requestWindow.clientIsOpen === "boolean"
+          ? requestWindow.clientIsOpen
+          : requestWindow.isOpen === true;
+        const currentTime = requestWindow.clientTime || requestWindow.serverTime;
+        const serverTime = currentTime
+          ? " · เวลาไทย " + String(currentTime).slice(0, 5) + " น."
+          : "";
+        elements.requestWindowNote.textContent =
+          "รับคำขอลา 05:00–20:30 น. (เวลาไทย) · " +
+          (isOpen ? "เปิดรับคำขอ" : "ปิดรับคำขอ") + serverTime;
+        elements.requestWindowNote.className =
+          "request-window-note " + (isOpen ? "open" : "closed");
+        syncRequestWindowUi();
+      }
+
+      function startRequestWindowClock() {
+        if (requestWindowTimer) window.clearInterval(requestWindowTimer);
+        updateRequestWindowFromClientClock();
+        requestWindowTimer = window.setInterval(
+          updateRequestWindowFromClientClock,
+          30000
+        );
+      }
+
+      function updateRequestWindowFromClientClock() {
+        if (!state.requestWindow) return;
+        const current = getBangkokRequestWindowState();
+        if (!current) return;
+        state.requestWindow.clientIsOpen = current.isOpen;
+        state.requestWindow.clientTime = current.time;
+        renderRequestWindow();
+      }
+
+      function getBangkokRequestWindowState() {
+        try {
+          const parts = new Intl.DateTimeFormat("en-GB", {
+            timeZone:"Asia/Bangkok",
+            hour:"2-digit",
+            minute:"2-digit",
+            second:"2-digit",
+            hour12:false
+          }).formatToParts(new Date()).reduce(function(result, part) {
+            result[part.type] = part.value;
+            return result;
+          }, {});
+          const seconds = Number(parts.hour) * 60 * 60 +
+            Number(parts.minute) * 60 + Number(parts.second);
+          return {
+            time:String(parts.hour || "00") + ":" +
+              String(parts.minute || "00") + ":" +
+              String(parts.second || "00"),
+            isOpen: seconds >= 5 * 60 * 60 &&
+              seconds <= 20 * 60 * 60 + 30 * 60 + 59
+          };
+        } catch (error) {
+          return null;
+        }
       }
 
       function renderLeaveDateRows() {
@@ -1457,20 +1605,76 @@
 
       function showStatus(message, type) {
         elements.statusBox.textContent = message;
-        elements.statusBox.className = "status " + type;
+        elements.statusBox.className = "sr-only";
+        const notificationType = type === "success" || type === "warning" || type === "error"
+          ? type
+          : "info";
+        if (notificationType === "info") return;
+        const notification = {
+          message:message,
+          type:notificationType,
+          title:"",
+          returnFocus:document.activeElement
+        };
+        if (state.busy || elements.notificationModal.classList.contains("show")) {
+          state.pendingNotifications.push(notification);
+          return;
+        }
+        showNotification(
+          notification.message,
+          notification.type,
+          notification.title,
+          notification.returnFocus
+        );
       }
 
-      function showNotification(message) {
+      function showNotification(message, type, title, returnFocus) {
+        const metadata = {
+          success:{ title:"สำเร็จ", icon:"✓" },
+          warning:{ title:"แจ้งเตือน", icon:"!" },
+          error:{ title:"ผิดพลาด", icon:"×" }
+        };
+        const notificationType = metadata[type] ? type : "error";
+        const detail = metadata[notificationType];
+        elements.notificationModal.classList.remove("success", "warning", "error");
+        elements.notificationModal.classList.add("show", notificationType);
+        elements.notificationIcon.textContent = detail.icon;
+        elements.notificationTitle.textContent = title || detail.title;
         elements.notificationMessage.textContent = message;
-        elements.notificationModal.classList.add("show");
         elements.notificationModal.setAttribute("aria-hidden", "false");
+        notificationReturnFocus = returnFocus || document.activeElement;
         elements.notificationAcknowledge.focus();
       }
 
       function hideNotification() {
+        const returnFocus = notificationReturnFocus;
+        notificationReturnFocus = null;
         elements.notificationModal.classList.remove("show");
+        elements.notificationModal.classList.remove("success", "warning", "error");
         elements.notificationModal.setAttribute("aria-hidden", "true");
-        elements.submitButton.focus();
+        if (state.pendingNotifications.length) {
+          window.setTimeout(flushPendingNotification, 0);
+          return;
+        }
+        if (returnFocus && document.contains(returnFocus) && !returnFocus.disabled) {
+          returnFocus.focus();
+        } else if (elements.submitButton && !elements.submitButton.disabled) {
+          elements.submitButton.focus();
+        } else if (elements.leaveStartDate && !elements.leaveStartDate.disabled) {
+          elements.leaveStartDate.focus();
+        }
+      }
+
+      function requestWindowMessage(requestWindow) {
+        const serverTime = requestWindow && requestWindow.serverTime
+          ? " เวลาในระบบ " + String(requestWindow.serverTime).slice(0, 5) + " น."
+          : "";
+        return "ระบบรับคำขอลาเวลา 05:00–20:30 น. (เวลาไทย) เท่านั้น " +
+          "กรุณากลับมายื่นคำขอในช่วงเวลาที่กำหนด" + serverTime;
+      }
+
+      function isLeaveRequestWindowMessage(message) {
+        return String(message || "").includes("05:00–20:30");
       }
 
       function messageOf(error) {
