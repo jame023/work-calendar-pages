@@ -11,14 +11,6 @@
   <script src='https://static.line-scdn.net/liff/edge/2/sdk.js'></script>
   <link rel="stylesheet" href="tailwind.css">
   <style>
-    .save-success-modal { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 48%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
-    .save-success-modal.show { opacity:1; pointer-events:auto; }
-    .save-success-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
-    .save-success-modal.show .save-success-panel { transform:none; }
-    .save-success-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#eaf8ef; color:#16803a; font-size:42px; font-weight:800; }
-    .save-success-title { margin-bottom:22px; color:#145c2c; font-size:24px; }
-    .save-success-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
-    .save-success-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
     .edit-actions { display:grid; gap:12px; margin-top:12px; }
     .edit-actions button { min-height:52px; }
     .edit-actions button[hidden] { display:none; }
@@ -31,6 +23,10 @@
     .notification-message { margin:0 0 22px; color:#354052; font-size:18px; line-height:1.55; white-space:pre-line; }
     .notification-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:18px; font-weight:800; cursor:pointer; }
     .notification-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+    .notification-modal.success .notification-icon { background:#eaf8ef; color:#16803a; }
+    .notification-modal.success .notification-title { color:#145c2c; }
+    .notification-modal.info .notification-icon { background:#e8f2ff; color:#1f6feb; }
+    .notification-modal.info .notification-title { color:#174a8b; }
     #productionForm.access-denied { opacity:.82; }
     .backend-frame { position:fixed; width:1px; height:1px; border:0; opacity:0; pointer-events:none; }
     @media (max-width:700px) { .notification-panel { padding:24px 18px 18px; } .notification-title { font-size:22px; } .notification-message { font-size:16px; } .notification-acknowledge { min-height:48px; font-size:16px; } }
@@ -190,7 +186,7 @@
   <script>
     var PRODUCTION_LIFF_ID = '2010715544-Rnd4Rj3E';
     var PRODUCTION_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/daily-production-live-v2/index.html';
-    var BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbwn86jpgVafVYdUG2P7gQkmqx2NCODgtfI4jvNDpehYYjJSa68l7QYTJ9_Kwe_ZEB9LIw/exec?bridge=1&v=58';
+    var BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbwn86jpgVafVYdUG2P7gQkmqx2NCODgtfI4jvNDpehYYjJSa68l7QYTJ9_Kwe_ZEB9LIw/exec?bridge=1&v=59';
     var BACKEND_ORIGIN = getUrlOrigin(BACKEND_URL);
     var MESSAGE_SOURCE = 'production-frontend';
     var BRIDGE_SOURCE = 'production-bridge';
@@ -269,6 +265,7 @@
       var status = byId('statusMessage');
       status.className = 'status' + (type ? ' ' + type : '');
       status.textContent = message;
+      if (type) showNotification(message, type === 'ok' ? 'success' : type);
     }
 
     function updateUndoButton() {
@@ -287,7 +284,6 @@
       if (isProductionPermissionError(message)) {
         disableProductionForm();
         setStatus('คุณไม่มีสิทธิ์ใช้งานคำสั่งนี้', 'error');
-        showNotification('คุณไม่มีสิทธิ์ใช้งานคำสั่งนี้\nเมนูนี้เปิดให้เฉพาะพนักงานกลุ่มงาน ผลิต');
         return;
       }
       setStatus('บันทึกไม่สำเร็จ: ' + message, 'error');
@@ -312,7 +308,7 @@
       sessionStorage.setItem(PRODUCTION_LINE_REAUTH_KEY, '1');
       productionIdToken = '';
 
-      setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…');
+      setStatus('เซสชัน LINE หมดอายุ · กำลังเข้าสู่ระบบใหม่…', 'error');
       try {
         if (typeof liff.isLoggedIn !== 'function' || liff.isLoggedIn()) liff.logout();
       } catch (logoutError) {}
@@ -352,7 +348,7 @@
         updateSummary();
         byId('editLatestButton').disabled = !localStorage.getItem('productionLastSavedRequestId');
         updateUndoButton();
-        setStatus('พร้อมกรอกยอดผลิต');
+        setStatus('พร้อมกรอกยอดผลิต', 'info');
       })
       .catch(showFailure);
 
@@ -403,7 +399,6 @@
       callBackend(isEditSubmission ? 'updateDailyProduction' : 'saveDailyProduction', payload)
         .then(function(result) {
           endLoading();
-          showSaveSuccessModal();
           if (!isEditSubmission) {
             localStorage.setItem('productionLastSavedRequestId', payload.requestId);
             sessionStorage.removeItem('productionRequestId');
@@ -532,7 +527,7 @@
       byId('returnToNewButton').hidden = true;
       updateSummary();
       updateUndoButton();
-      setStatus('พร้อมบันทึกรายการใหม่');
+      setStatus('พร้อมบันทึกรายการใหม่', 'info');
     }
 
     byId('editLatestButton').addEventListener('click', loadLatestProductionForEdit);
@@ -696,14 +691,24 @@
       });
     }
 
-    var pendingNotificationMessage = '';
-    function showNotification(message) {
+    var pendingNotification = null;
+    function showNotification(message, type) {
+      type = type === 'ok' ? 'success' : (type || 'error');
       var modal = byId('notificationModal');
       if (!modal) {
-        pendingNotificationMessage = message;
+        pendingNotification = { message: message, type: type };
         return;
       }
-      byId('notificationMessage').textContent = message;
+      var copy = type === 'success'
+        ? { title: 'ดำเนินการสำเร็จ', icon: '✓' }
+        : (type === 'info'
+          ? { title: 'แจ้งเตือน', icon: 'i' }
+          : { title: 'ดำเนินการไม่สำเร็จ', icon: '!' });
+      modal.classList.remove('success', 'info', 'error');
+      modal.classList.add(type);
+      byId('notificationTitle').textContent = copy.title;
+      byId('notificationIcon').textContent = copy.icon;
+      byId('notificationMessage').textContent = String(message || '');
       modal.classList.add('show');
       modal.setAttribute('aria-hidden', 'false');
       byId('notificationAcknowledge').focus();
@@ -713,44 +718,27 @@
       var modal = byId('notificationModal');
       if (!modal) return;
       modal.classList.remove('show');
+      modal.classList.remove('success', 'info', 'error');
       modal.setAttribute('aria-hidden', 'true');
       byId('statusMessage').focus();
     }
 
-    var saveSuccessReturnFocus = null;
-    function showSaveSuccessModal() {
-      saveSuccessReturnFocus = document.activeElement;
-      var modal = byId('saveSuccessModal');
-      modal.classList.add('show');
-      modal.setAttribute('aria-hidden', 'false');
-      byId('saveSuccessAcknowledge').focus();
-    }
-
-    function hideSaveSuccessModal() {
-      var modal = byId('saveSuccessModal');
-      modal.classList.remove('show');
-      modal.setAttribute('aria-hidden', 'true');
-      if (saveSuccessReturnFocus && saveSuccessReturnFocus.focus) saveSuccessReturnFocus.focus();
-    }
-
     document.addEventListener('keydown', function(event) {
-      if (event.key === 'Escape' && byId('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
       if (event.key === 'Escape' && byId('notificationModal').classList.contains('show')) hideNotification();
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!pendingNotification) return;
+      var pending = pendingNotification;
+      pendingNotification = null;
+      showNotification(pending.message, pending.type);
     });
   </script>
     <div class="notification-modal" id="notificationModal" role="alertdialog" aria-modal="true" aria-labelledby="notificationTitle" aria-describedby="notificationMessage" aria-hidden="true">
       <div class="notification-panel">
-        <div class="notification-icon" aria-hidden="true">!</div>
+        <div class="notification-icon" id="notificationIcon" aria-hidden="true">!</div>
         <h2 class="notification-title" id="notificationTitle">ไม่สามารถใช้งานคำสั่งนี้ได้</h2>
         <p class="notification-message" id="notificationMessage"></p>
         <button class="notification-acknowledge" id="notificationAcknowledge" type="button" onclick="hideNotification()">รับทราบ</button>
-      </div>
-    </div>
-    <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
-      <div class="save-success-panel">
-        <div class="save-success-icon" aria-hidden="true">✓</div>
-        <h2 class="save-success-title" id="saveSuccessTitle">บันทึกเสร็จแล้ว</h2>
-        <button class="save-success-acknowledge" id="saveSuccessAcknowledge" type="button" onclick="hideSaveSuccessModal()">รับทราบ</button>
       </div>
     </div>
     <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
