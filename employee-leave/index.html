@@ -608,7 +608,7 @@
         const month = elements.monthInput.value || currentMonthText();
         state.quotaSummary = null;
         renderQuotaSummary();
-        setBusy(true, "กำลังเชื่อมต่อระบบ…");
+        setBusy(true, "กำลังโหลดข้อมูล…");
         showStatus("กำลังโหลดข้อมูลการลา…", "info");
         try {
           const result = await callBackend("getLeaveAppData", { month:month });
@@ -682,7 +682,7 @@
         );
         if (!confirmed) return;
 
-        setBusy(true, "กำลังเชื่อมต่อระบบ…");
+        setBusy(true, "กำลังบันทึกข้อมูล…");
         showStatus("กำลังบันทึกและแจ้งผู้บริหาร…", "info");
         try {
           const result = await callBackend("submitLeaveRequest", input);
@@ -735,7 +735,7 @@
             : "ระบบจะแจ้งผลให้พนักงานทาง LINE")
         );
         if (!confirmed) return;
-        setBusy(true, "กำลังเชื่อมต่อระบบ…");
+        setBusy(true, "กำลังบันทึกผลและแจ้งพนักงาน…");
         showStatus("กำลังบันทึกผลและแจ้งพนักงาน…", "info");
         try {
           const result = await callBackend("decideLeaveRequest", {
@@ -796,7 +796,7 @@
         );
         if (!confirmed) return;
 
-        setBusy(true, "กำลังเชื่อมต่อระบบ…");
+        setBusy(true, "กำลังยกเลิกคำขอและแจ้งผู้บริหาร…");
         showStatus("กำลังยกเลิกคำขอและแจ้งผู้บริหาร…", "info");
         try {
           const result = await callBackend("cancelLeaveRequest", {
@@ -1416,7 +1416,7 @@
           showStatus("แนบรูปได้สูงสุด 5 รูป", "error");
           return;
         }
-        setBusy(true);
+        setBusy(true, "กำลังเตรียมรูป…");
         showStatus("กำลังเตรียมรูป…", "info");
         try {
           for (const file of files) {
@@ -1536,7 +1536,7 @@
         }
         button.disabled = true;
         button.textContent = "กำลังโหลดรูป…";
-        setBusy(true);
+        setBusy(true, "กำลังโหลดรูป…");
         try {
           const images = await callBackend("getLeaveRequestImages", { requestId:requestId });
           images.forEach(function(image, index) {
