@@ -10,8 +10,17 @@
   .save-success-modal.show { opacity:1; pointer-events:auto; }
   .save-success-panel { width:min(100%,420px); padding:28px 24px 22px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 32%); text-align:center; transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
   .save-success-modal.show .save-success-panel { transform:none; }
-  .save-success-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 18px; border-radius:50%; background:#eaf8ef; color:#16803a; font-size:42px; font-weight:800; }
-  .save-success-title { margin-bottom:22px; color:#145c2c; font-size:24px; }
+  .save-success-icon { display:grid; place-items:center; width:72px; height:72px; margin:0 auto 14px; border-radius:50%; background:#eaf8ef; color:#16803a; font-size:42px; font-weight:800; }
+  .save-success-type { display:block; margin-bottom:4px; color:#16803a; font-size:16px; font-weight:800; }
+  .save-success-title { margin:0 0 10px; color:#145c2c; font-size:24px; }
+  .save-success-message { margin:0 0 22px; color:#354052; font-size:18px; line-height:1.55; white-space:pre-line; }
+  .save-success-message[hidden] { display:none; }
+  .save-success-modal.popup-warning .save-success-icon { background:#fff7ed; color:#c2410c; }
+  .save-success-modal.popup-warning .save-success-type { color:#c2410c; }
+  .save-success-modal.popup-warning .save-success-title { color:#9a3412; }
+  .save-success-modal.popup-error .save-success-icon { background:#fff1f2; color:#be123c; }
+  .save-success-modal.popup-error .save-success-type { color:#be123c; }
+  .save-success-modal.popup-error .save-success-title { color:#9f1239; }
   .save-success-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
   .save-success-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
   .delivery-form-page .card.success .actions { flex-wrap:wrap; }
@@ -259,6 +268,11 @@
           });
         };
 
+        window.setLoadingMessage = function(message) {
+          const label = document.getElementById("loadingMessage");
+          if (label && message) label.textContent = message;
+        };
+
         window.endLoading = function() {
           busyDepth = Math.max(0, busyDepth - 1);
           if (busyDepth > 0) return;
@@ -411,6 +425,7 @@
     var requestNumber = 0;
     var deliveryAccessDenied = false;
     var pendingNotificationMessage = '';
+    var pendingPopup = null;
     var resolveBridge;
     var bridgeReady = new Promise(function(resolve) { resolveBridge = resolve; });
 
@@ -449,6 +464,7 @@
     beginLoading('กำลังเชื่อมต่อระบบ…');
     initializeDeliveryAuth()
       .then(function() {
+        setLoadingMessage('กำลังโหลดข้อมูล…');
         return callBackend('getDeliveryConfig', {});
       })
       .then(loadConfig)
@@ -462,6 +478,7 @@
           return;
         }
         setStatus(errorMessage, true);
+        showPopup('error', 'เชื่อมต่อระบบไม่สำเร็จ', errorMessage);
       });
 
     function isDeliveryPermissionError(message) {
@@ -561,13 +578,13 @@
 
       if (!files.length) return;
       if (files.length > MAX_PHOTOS) {
-        setStatus('เลือกได้สูงสุด ' + MAX_PHOTOS + ' รูป', true);
+        showWarningStatus('เลือกได้สูงสุด ' + MAX_PHOTOS + ' รูป');
         event.target.value = '';
         updatePhotoPicker(0, false);
         return;
       }
       if (files.some(function(file) { return !/^image\//.test(file.type); })) {
-        setStatus('กรุณาเลือกเฉพาะไฟล์รูปภาพ', true);
+        showWarningStatus('กรุณาเลือกเฉพาะไฟล์รูปภาพ');
         event.target.value = '';
         updatePhotoPicker(0, false);
         return;
@@ -587,7 +604,7 @@
           event.target.value = '';
           document.getElementById('previewList').innerHTML = '';
           updatePhotoPicker(0, false);
-          setStatus(messageOf(error), true);
+          showErrorStatus(messageOf(error), 'เตรียมรูปไม่สำเร็จ');
         });
     }
 
@@ -644,19 +661,19 @@
     }
 
     function submitDelivery() {
-      if (!deliveryIdToken) return setStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE', true);
+      if (!deliveryIdToken) return showWarningStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE');
       var sender = senderInput.value.trim();
       var orderName = orderInput.value.trim();
       var billDigits = billNumberInput.value.trim();
       var billNumber = 'SD' + billDigits;
 
-      if (!sender) return setStatus('กรุณากรอกชื่อผู้ส่ง', true);
-      if (!orderName) return setStatus('กรุณาเลือกออเดอร์', true);
+      if (!sender) return showWarningStatus('กรุณากรอกชื่อผู้ส่ง');
+      if (!orderName) return showWarningStatus('กรุณาเลือกออเดอร์');
       if (!/^[0-9]{9}$/.test(billDigits) || !BILL_NUMBER_PATTERN.test(billNumber)) {
-        return setStatus('กรุณากรอกเลขที่บิลให้ครบ 9 หลัก', true);
+        return showWarningStatus('กรุณากรอกเลขที่บิลให้ครบ 9 หลัก');
       }
       if (!preparedImages.length && !editMode) {
-        return setStatus('กรุณาแนบรูปหลักฐานอย่างน้อย 1 รูป', true);
+        return showWarningStatus('กรุณาแนบรูปหลักฐานอย่างน้อย 1 รูป');
       }
 
       var confirmation = [
@@ -674,7 +691,7 @@
 
       var button = document.getElementById('submitButton');
       button.disabled = true;
-      beginLoading('กำลังบันทึกข้อมูล…');
+      beginLoading(editMode ? 'กำลังบันทึกการแก้ไข…' : 'กำลังบันทึกข้อมูล…');
       setStatus('กำลังอัปโหลดรูปและบันทึก กรุณาอย่าปิดหน้านี้...', false);
 
       var isEditSubmission = editMode;
@@ -686,7 +703,7 @@
       if (isEditSubmission && localStorage.getItem('deliveryLastSavedRequestId') !== editingRequestId) {
         button.disabled = false;
         endLoading();
-        return setStatus('Browser นี้บันทึกรายการใหม่กว่าแล้ว กรุณาโหลดรายการล่าสุดใหม่ก่อนแก้ไข', true);
+        return showWarningStatus('Browser นี้บันทึกรายการใหม่กว่าแล้ว กรุณาโหลดรายการล่าสุดใหม่ก่อนแก้ไข');
       }
 
       var payload = {
@@ -720,15 +737,17 @@
         })
         .catch(function(error) {
           endLoading();
-          setStatus('บันทึกไม่สำเร็จ: ' + messageOf(error), true);
+          var message = messageOf(error);
+          setStatus('บันทึกไม่สำเร็จ: ' + message, true);
+          showPopup('error', 'บันทึกไม่สำเร็จ', message);
           button.disabled = false;
         });
     }
 
     function undoLastDelivery() {
-      if (!deliveryIdToken) return showSuccessStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE', true);
+      if (!deliveryIdToken) return showWarningStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE');
       if (!lastSavedRequestId || Date.now() > lastUndoUntil) {
-        return showSuccessStatus('หมดเวลายกเลิกแล้ว', true);
+        return showWarningStatus('หมดเวลายกเลิกแล้ว');
       }
       if (!window.confirm('ยืนยันยกเลิกรายการล่าสุดและลบรูปหลักฐาน?')) return;
 
@@ -746,12 +765,15 @@
             localStorage.removeItem('deliveryLastSavedRequestId');
           }
           showSuccessStatus('ยกเลิกรายการ ' + result.orderName + ' แล้ว', false);
+          showPopup('success', 'ยกเลิกรายการสำเร็จ', 'ยกเลิกรายการ ' + result.orderName + ' แล้ว');
           updateUndoButton();
           updateEditButton();
         })
         .catch(function(error) {
           endLoading();
-          showSuccessStatus('ยกเลิกไม่สำเร็จ: ' + messageOf(error), true);
+          var message = messageOf(error);
+          showSuccessStatus('ยกเลิกไม่สำเร็จ: ' + message, true);
+          showPopup('error', 'ยกเลิกไม่สำเร็จ', message);
           updateUndoButton();
         });
     }
@@ -797,14 +819,14 @@
     }
 
     function loadLatestDeliveryForEdit() {
-      if (!deliveryIdToken) return setStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE', true);
+      if (!deliveryIdToken) return showWarningStatus('ยังไม่ได้ยืนยันตัวตนผ่าน LINE');
       var requestId = localStorage.getItem('deliveryLastSavedRequestId') || '';
-      if (!requestId) return setStatus('ยังไม่มีรายการล่าสุดที่ Browser นี้บันทึกสำเร็จ', true);
+      if (!requestId) return showWarningStatus('ยังไม่มีรายการล่าสุดที่ Browser นี้บันทึกสำเร็จ');
       document.getElementById('formCard').style.display = 'block';
       document.getElementById('successCard').style.display = 'none';
       var button = document.getElementById('editLatestButton');
       button.disabled = true;
-      beginLoading('กำลังโหลดรายการล่าสุด…');
+      beginLoading('กำลังโหลดข้อมูลเพื่อแก้ไข…');
       callBackend('getDeliveryForEdit', { requestId: requestId })
         .then(function(result) {
           endLoading();
@@ -829,7 +851,9 @@
         .catch(function(error) {
           endLoading();
           updateEditButton();
-          setStatus('โหลดรายการแก้ไขไม่สำเร็จ: ' + messageOf(error), true);
+          var message = messageOf(error);
+          setStatus('โหลดรายการแก้ไขไม่สำเร็จ: ' + message, true);
+          showPopup('error', 'โหลดรายการแก้ไขไม่สำเร็จ', message);
         });
     }
 
@@ -852,6 +876,7 @@
         bridgeLiffId = String(data.liffId || '');
         if (!bridgeLiffId) {
           setStatus('Bridge ไม่ส่ง LIFF ID', true);
+          showPopup('error', 'เชื่อมต่อระบบไม่สำเร็จ', 'Bridge ไม่ส่ง LIFF ID');
           return;
         }
         resolveBridge();
@@ -950,28 +975,98 @@
       showNotification(message);
     });
 
-    var saveSuccessReturnFocus = null;
-    function showSaveSuccessModal() {
-      saveSuccessReturnFocus = document.activeElement;
+    var popupReturnFocus = null;
+    var popupTypes = {
+      success: { label: 'สำเร็จ', icon: '✓' },
+      warning: { label: 'แจ้งเตือน', icon: '!' },
+      error: { label: 'ผิดพลาด', icon: '×' }
+    };
+
+    function showWarningStatus(message) {
+      setStatus(message, true);
+      showPopup('warning', 'แจ้งเตือน', message);
+    }
+
+    function showErrorStatus(message, title) {
+      setStatus(message, true);
+      showPopup('error', title || 'เกิดข้อผิดพลาด', message);
+    }
+
+    function showPopup(type, title, message) {
       var modal = document.getElementById('saveSuccessModal');
-      modal.classList.add('show');
+      var normalizedType = popupTypes[type] ? type : 'error';
+      var popupConfig = popupTypes[normalizedType];
+      var popupMessage = message ? String(message) : '';
+      if (!modal) {
+        pendingPopup = { type: normalizedType, title: title, message: popupMessage };
+        return;
+      }
+
+      pendingPopup = null;
+      popupReturnFocus = document.activeElement;
+      modal.className = 'save-success-modal show popup-' + normalizedType;
+      modal.setAttribute('data-popup-type', normalizedType);
       modal.setAttribute('aria-hidden', 'false');
+      document.getElementById('saveSuccessIcon').textContent = popupConfig.icon;
+      document.getElementById('saveSuccessType').textContent = popupConfig.label;
+      document.getElementById('saveSuccessTitle').textContent = title || popupConfig.label;
+      var messageElement = document.getElementById('saveSuccessMessage');
+      messageElement.textContent = popupMessage;
+      messageElement.hidden = !popupMessage;
+      if (popupMessage) {
+        modal.setAttribute('aria-describedby', 'saveSuccessMessage');
+      } else {
+        modal.removeAttribute('aria-describedby');
+      }
       document.getElementById('saveSuccessAcknowledge').focus();
     }
 
-    function hideSaveSuccessModal() {
-      var modal = document.getElementById('saveSuccessModal');
-      modal.classList.remove('show');
-      modal.setAttribute('aria-hidden', 'true');
-      if (saveSuccessReturnFocus && saveSuccessReturnFocus.focus) saveSuccessReturnFocus.focus();
+    function flushPendingPopup() {
+      if (!pendingPopup) return;
+      var popup = pendingPopup;
+      pendingPopup = null;
+      showPopup(popup.type, popup.title, popup.message);
     }
+
+    function hidePopup() {
+      var modal = document.getElementById('saveSuccessModal');
+      if (!modal) return;
+      modal.classList.remove('show', 'popup-success', 'popup-warning', 'popup-error');
+      modal.setAttribute('aria-hidden', 'true');
+      var focusTarget = popupReturnFocus;
+      popupReturnFocus = null;
+      if (focusTarget && document.documentElement.contains(focusTarget) &&
+          !focusTarget.disabled && focusTarget.focus) {
+        focusTarget.focus();
+      }
+    }
+
+    function showSaveSuccessModal(message) {
+      showPopup('success', 'บันทึกเสร็จแล้ว', message || 'ระบบบันทึกข้อมูลเรียบร้อย');
+    }
+
+    function hideSaveSuccessModal() {
+      hidePopup();
+    }
+
+    document.addEventListener('DOMContentLoaded', flushPendingPopup);
 
     document.addEventListener('click', function(event) {
       if (!event.target.closest('.order-picker')) orderSuggestions.hidden = true;
     });
     document.addEventListener('keydown', function(event) {
-      if (event.key === 'Escape' && document.getElementById('saveSuccessModal').classList.contains('show')) hideSaveSuccessModal();
-      if (event.key === 'Escape' && document.getElementById('notificationModal').classList.contains('show')) hideNotification();
+      if (event.key !== 'Escape') return;
+      var popup = document.getElementById('saveSuccessModal');
+      if (popup && popup.classList.contains('show')) {
+        event.preventDefault();
+        hidePopup();
+        return;
+      }
+      var notification = document.getElementById('notificationModal');
+      if (notification && notification.classList.contains('show')) {
+        event.preventDefault();
+        hideNotification();
+      }
     });
   </script>
     <div class="notification-modal" id="notificationModal" role="alertdialog" aria-modal="true" aria-labelledby="notificationTitle" aria-describedby="notificationMessage" aria-hidden="true">
@@ -982,10 +1077,12 @@
         <button class="notification-acknowledge" id="notificationAcknowledge" type="button" onclick="hideNotification()">รับทราบ</button>
       </div>
     </div>
-    <div class="save-success-modal" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
+    <div class="save-success-modal popup-success" id="saveSuccessModal" role="alertdialog" aria-modal="true" aria-labelledby="saveSuccessTitle" aria-hidden="true">
       <div class="save-success-panel">
-        <div class="save-success-icon" aria-hidden="true">✓</div>
+        <div class="save-success-icon" id="saveSuccessIcon" aria-hidden="true">✓</div>
+        <span class="save-success-type" id="saveSuccessType">สำเร็จ</span>
         <h2 class="save-success-title" id="saveSuccessTitle">บันทึกเสร็จแล้ว</h2>
+        <p class="save-success-message" id="saveSuccessMessage" hidden></p>
         <button class="save-success-acknowledge" id="saveSuccessAcknowledge" type="button" onclick="hideSaveSuccessModal()">รับทราบ</button>
       </div>
     </div>
