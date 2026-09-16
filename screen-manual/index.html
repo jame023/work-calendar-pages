@@ -335,7 +335,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;font-family:Noto Sans Thai,Leel
     }
 
     function isScreenBridgeMessage(event) {
-      return !!backendFrame && event.source === backendFrame.contentWindow &&
+      return !!backendFrame && 
         isAllowedScreenBridgeOrigin(event.origin);
     }
 
