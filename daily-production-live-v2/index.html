@@ -224,8 +224,16 @@
     function isExpectedBridgeOrigin(origin) {
       if (!origin) return false;
       if (origin === BACKEND_ORIGIN) return true;
-      return BACKEND_ORIGIN === 'https://script.google.com' &&
-        origin === 'https://script.googleusercontent.com';
+      if (BACKEND_ORIGIN !== 'https://script.google.com') return false;
+      try {
+        var originUrl = new URL(origin);
+        var host = originUrl.hostname;
+        return originUrl.protocol === 'https:' &&
+          (host === 'script.googleusercontent.com' ||
+            host.slice(-( '.script.googleusercontent.com'.length)) === '.script.googleusercontent.com');
+      } catch (error) {
+        return false;
+      }
     }
 
     function getSelectedMachine() {
@@ -631,6 +639,8 @@
       if (!data || data.source !== BRIDGE_SOURCE) return;
       if (data.type === 'ready') {
         bridgeWindow = event.source;
+        // HtmlService may use a deployment-specific sandbox hostname. After
+        // validating that host, pin the exact origin for every later message.
         bridgeOrigin = event.origin;
         bridgeLiffId = String(data.liffId || '');
         if (!bridgeLiffId) {
