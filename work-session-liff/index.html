@@ -417,6 +417,13 @@ button:active {
           });
         };
 
+        window.setLoadingMessage = function(message) {
+          window.requestAnimationFrame(function() {
+            const label = document.getElementById("loadingMessage");
+            if (label) label.textContent = message || "กำลังโหลดข้อมูล…";
+          });
+        };
+
         window.endLoading = function() {
           busyDepth = Math.max(0, busyDepth - 1);
           if (busyDepth > 0) return;
@@ -752,10 +759,13 @@ button:active {
     byId('returnToNewButton').disabled = disabled;
   }
 
-  function loadPage() {
-    beginLoading('กำลังโหลดข้อมูล…');
+  function loadPage(initialLoadingMessage) {
+    beginLoading(initialLoadingMessage || 'กำลังเชื่อมต่อระบบ…');
     initializeWorkSessionAuth()
-      .then(function() { return callBackend('getWorkPageConfig', {}); })
+      .then(function() {
+        setLoadingMessage('กำลังโหลดข้อมูล…');
+        return callBackend('getWorkPageConfig', {});
+      })
       .then(renderConfig)
       .catch(handleFailure);
   }
@@ -967,7 +977,7 @@ button:active {
       return;
     }
     setButtonsDisabled(true);
-    beginLoading('กำลังโหลดรายการล่าสุด…');
+    beginLoading('กำลังแก้ไขข้อมูล…');
     callBackend('getWorkSessionForEdit', { sessionId: sessionId })
       .then(function(result) {
         endLoading();
@@ -1034,7 +1044,7 @@ button:active {
     byId('returnToNewButton').hidden = true;
     byId('note').value = '';
     byId('screenQuantity').value = '';
-    loadPage();
+    loadPage('กำลังยกเลิก…');
   }
 
   function updateEditButton() {
