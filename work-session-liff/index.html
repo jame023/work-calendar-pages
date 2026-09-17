@@ -508,7 +508,7 @@ button:active {
   var editingStatus = '';
   var WORK_SESSION_LIFF_ID = '2010715544-t1wTPbRC';
   var WORK_SESSION_LIFF_REDIRECT_URI = 'https://jame023.github.io/work-calendar-pages/work-session-liff/index.html';
-  var WORK_SESSION_BACKEND_URL = 'https://script.google.com/a/macros/psru.ac.th/s/AKfycbzTH2TSsaACBOMJY1qSESwlbwUwJQZmfTE8rQOI3JZ5wG9oSH26seMxu-OAtAzPWgo/exec?bridge=1&v=4';
+  var WORK_SESSION_BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz7CJLCjuZMpv7MFbcBhp49MHNYdILFDA_GbYhtpv8WpXxKs-8ALaFEZmSpjx7e86n2Bw/exec?bridge=1&v=candidate-44';
   var WORK_SESSION_MESSAGE_SOURCE = 'work-session-liff-frontend';
   var WORK_SESSION_BRIDGE_SOURCE = 'work-session-liff-bridge';
   var WORK_SESSION_LINE_REAUTH_KEY = 'work-session-line-reauth-attempt';
@@ -540,14 +540,8 @@ button:active {
       (text.indexOf('ไม่มีสิทธิ์ใช้งาน') !== -1 && text.indexOf('เริ่ม/จบงาน') !== -1);
   }
 
-  function rememberWorkSessionLineUserId() {
-    var lineUserId = '';
-    try {
-      if (window.liff && typeof liff.getDecodedIDToken === 'function') {
-        var decoded = liff.getDecodedIDToken();
-        lineUserId = String(decoded && decoded.sub || '').trim();
-      }
-    } catch (error) {}
+  function rememberWorkSessionLineUserId(lineUserId) {
+    lineUserId = String(lineUserId || '').trim();
     if (!/^U[0-9a-f]{32}$/i.test(lineUserId)) return;
     try {
       localStorage.setItem(WORK_SESSION_LAST_VERIFIED_LINE_USER_ID_KEY, lineUserId);
@@ -615,7 +609,6 @@ button:active {
   }
 
   function isAllowedWorkSessionBridgeOrigin(origin) {
-    if (origin === 'null') return true;
     if (!origin) return false;
     if (WORK_SESSION_BACKEND_URL && origin === new URL(WORK_SESSION_BACKEND_URL).origin) {
       return true;
@@ -792,7 +785,7 @@ button:active {
     syncActiveSessionFields();
     toggleScreenFields();
     updateEditButton();
-    rememberWorkSessionLineUserId();
+    rememberWorkSessionLineUserId(data.lineUserId);
     sessionStorage.removeItem(WORK_SESSION_LINE_REAUTH_KEY);
     setStatus('พร้อมบันทึก', 'ok');
   }
