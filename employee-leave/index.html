@@ -324,6 +324,24 @@
       .notification-message { margin-bottom:22px; color:#354052; font-size:20px; line-height:1.55; white-space:pre-line; }
       .notification-acknowledge { width:100%; min-height:56px; border:0; border-radius:14px; background:#1f6feb; color:#fff; font-size:20px; font-weight:800; cursor:pointer; }
       .notification-acknowledge:focus-visible { outline:4px solid rgb(31 111 235 / 28%); outline-offset:3px; }
+      .action-modal { position:fixed; inset:0; z-index:220; display:grid; place-items:center; padding:20px; background:rgb(7 27 51 / 52%); opacity:0; pointer-events:none; backdrop-filter:blur(3px); transition:opacity .18s ease-out; }
+      .action-modal.show { opacity:1; pointer-events:auto; }
+      .action-panel { width:min(100%,460px); padding:26px 22px 20px; border-radius:20px; background:#fff; box-shadow:0 24px 64px rgb(7 27 51 / 34%); transform:translateY(12px) scale(.98); transition:transform .18s ease-out; }
+      .action-modal.show .action-panel { transform:none; }
+      .action-icon { display:grid; place-items:center; width:64px; height:64px; margin:0 auto 16px; border-radius:50%; background:#edf5ff; color:var(--blue); font-size:34px; font-weight:900; }
+      .action-title { margin-bottom:9px; color:#16324f; font-size:24px; text-align:center; }
+      .action-message { margin:0 0 16px; color:#354052; font-size:18px; line-height:1.55; white-space:pre-line; text-align:center; }
+      .action-input-wrap { display:block; margin:0 0 16px; color:var(--navy); font-size:16px; font-weight:800; }
+      .action-input-wrap.hidden { display:none; }
+      .action-input { min-height:108px; margin-top:8px; padding:11px 12px; line-height:1.45; resize:vertical; }
+      .action-buttons { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+      .action-buttons button { min-height:52px; border:0; border-radius:13px; padding:10px 14px; font-size:18px; font-weight:850; }
+      .action-cancel { background:#e8eef6; color:#16324f; }
+      .action-confirm { background:var(--blue); color:#fff; }
+      .action-confirm.danger { background:var(--red); }
+      .action-confirm.success { background:var(--green); }
+      .action-confirm.warning { background:var(--amber); }
+      .action-validation { min-height:20px; margin:8px 0 0; color:var(--red); font-size:14px; font-weight:700; }
       body.is-busy { overflow:hidden; }
       @media(max-width:700px) {
         .page { padding:10px; }
@@ -367,6 +385,13 @@
         .status.info::before { content:""; display:inline-block; width:34px; height:34px; margin-right:14px; border:5px solid #a8c9f4; border-top-color:var(--blue); border-radius:50%; vertical-align:-4px; animation:ui-spin .8s linear infinite; }
         .calendar-grid,.weekdays { overflow:hidden; }
         .day { min-width:0; }
+      }
+      @media(max-width:700px) {
+        .action-modal,.notification-modal { padding:14px; }
+        .action-panel,.notification-panel { border-radius:18px; }
+        .action-title,.notification-title { font-size:22px; }
+        .action-message,.notification-message { font-size:18px; }
+        .action-buttons { grid-template-columns:1fr; }
       }
       @keyframes ui-spin { to { transform:rotate(360deg); } }
     </style>
@@ -506,6 +531,23 @@
         </button>
       </div>
     </div>
+    <div class="action-modal" id="actionModal" role="dialog" aria-modal="true"
+      aria-labelledby="actionTitle" aria-describedby="actionMessage" aria-hidden="true">
+      <div class="action-panel">
+        <div class="action-icon" id="actionIcon" aria-hidden="true">?</div>
+        <h2 class="action-title" id="actionTitle">ยืนยันรายการ</h2>
+        <p class="action-message" id="actionMessage"></p>
+        <label class="action-input-wrap hidden" id="actionInputWrap">
+          <span id="actionInputLabel">รายละเอียด</span>
+          <textarea class="action-input" id="actionInput" maxlength="500"></textarea>
+        </label>
+        <p class="action-validation" id="actionValidation" aria-live="polite"></p>
+        <div class="action-buttons">
+          <button class="action-cancel" id="actionCancel" type="button">ยกเลิก</button>
+          <button class="action-confirm" id="actionConfirm" type="button">ยืนยัน</button>
+        </div>
+      </div>
+    </div>
     <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
 
     <script>
@@ -524,7 +566,8 @@
         leaveDatePeriods:{},
         requestWindow:null,
         busy:false,
-        pendingNotifications:[]
+        pendingNotifications:[],
+        requestWindowPopupShown:false
       };
       const LEAVE_PERIOD_OPTIONS = [
         { value:"full", label:"เต็มวัน", amount:1 },
@@ -539,6 +582,8 @@
       let requestNumber = 0;
       let requestWindowTimer = null;
       let notificationReturnFocus = null;
+      let actionModalResolver = null;
+      let actionModalReturnFocus = null;
       let resolveBridge;
       const bridgeReady = new Promise(function(resolve) { resolveBridge = resolve; });
       const elements = {};
@@ -552,7 +597,9 @@
         "monthInput","loadButton","calendarGrid","ownRequestList","quotaMonthLabel",
         "quotaList","quotaNote","requestWindowNote","loadingOverlay","loadingMessage",
         "notificationModal","notificationIcon","notificationTitle","notificationMessage",
-        "notificationAcknowledge","backendFrame"
+        "notificationAcknowledge","actionModal","actionIcon","actionTitle","actionMessage",
+        "actionInputWrap","actionInputLabel","actionInput","actionValidation",
+        "actionCancel","actionConfirm","backendFrame"
       ].forEach(function(id) {
         elements[id] = document.getElementById(id);
       });
@@ -567,8 +614,16 @@
       elements.loadButton.addEventListener("click", loadData);
       elements.monthInput.addEventListener("change", loadData);
       elements.notificationAcknowledge.addEventListener("click", hideNotification);
+      elements.actionCancel.addEventListener("click", function() { closeActionModal(false); });
+      elements.actionConfirm.addEventListener("click", function() { closeActionModal(true); });
       document.addEventListener("keydown", function(event) {
-        if (event.key === "Escape" && elements.notificationModal.classList.contains("show")) {
+        if (event.key !== "Escape") return;
+        if (elements.actionModal.classList.contains("show")) {
+          event.preventDefault();
+          closeActionModal(false);
+          return;
+        }
+        if (elements.notificationModal.classList.contains("show")) {
           event.preventDefault();
           hideNotification();
         }
@@ -576,12 +631,13 @@
 
       async function initialize() {
         try {
-          setBusy(true);
+          setBusy(true, "กำลังเชื่อมต่อระบบขอลา…");
           if (BACKEND_URL.indexOf("PASTE_") === 0) {
             throw new Error("ยังไม่ได้ใส่ Employee Leave Web App URL");
           }
           elements.backendFrame.src = BACKEND_URL;
           await waitForBridge();
+          setBusy(true, "กำลังตรวจสอบบัญชี LINE…");
           await liff.init({ liffId:bridgeLiffId, withLoginOnExternalBrowser:true });
           if (!liff.isLoggedIn()) {
             liff.login();
@@ -593,9 +649,11 @@
           elements.leaveStartDate.value = todayText();
           elements.leaveEndDate.value = todayText();
           renderLeaveDateRows();
-          await loadData({ silent:true });
+          setBusy(true, "กำลังโหลดข้อมูลการลาและโควตา…");
+          await loadData({ silent:true, preserveBusy:true });
           startRequestWindowClock();
           elements.app.style.display = "block";
+          queueRequestWindowStartupNotification();
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
@@ -605,10 +663,11 @@
 
       async function loadData(options) {
         const settings = options || {};
+        const manageBusy = settings.preserveBusy !== true;
         const month = elements.monthInput.value || currentMonthText();
         state.quotaSummary = null;
         renderQuotaSummary();
-        setBusy(true, "กำลังโหลดข้อมูล…");
+        if (manageBusy) setBusy(true, "กำลังโหลดข้อมูลและปฏิทิน…");
         showStatus("กำลังโหลดข้อมูลการลา…", "info");
         try {
           const result = await callBackend("getLeaveAppData", { month:month });
@@ -630,7 +689,7 @@
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
-          setBusy(false);
+          if (manageBusy) setBusy(false);
         }
       }
 
@@ -673,16 +732,21 @@
             return { name:image.name, mimeType:image.mimeType, base64:image.base64 };
           })
         };
-        const confirmed = window.confirm(
-          "ยืนยันส่งคำขอลา?\n" +
-          formatDisplayDateRange(input.startDate, input.endDate) + " · " +
-          input.type + "\n" +
-          formatLeaveDateSelection(input.dates) + "\n" +
-          "รวม " + formatTotalLeaveDays(totalDays)
-        );
-        if (!confirmed) return;
+        const confirmation = await openActionModal({
+          title:"ยืนยันส่งคำขอลา",
+          icon:"✉",
+          message:
+            formatDisplayDateRange(input.startDate, input.endDate) + " · " +
+            input.type + "\n" +
+            formatLeaveDateSelection(input.dates) + "\n" +
+            "รวม " + formatTotalLeaveDays(totalDays) +
+            "\n\nเมื่อยืนยัน ระบบจะบันทึกคำขอและแจ้งผู้บริหาร",
+          confirmText:"ส่งคำขอ",
+          tone:"success"
+        });
+        if (!confirmation.confirmed) return;
 
-        setBusy(true, "กำลังบันทึกข้อมูล…");
+        setBusy(true, "กำลังบันทึกและส่งคำขอ…");
         showStatus("กำลังบันทึกและแจ้งผู้บริหาร…", "info");
         try {
           const result = await callBackend("submitLeaveRequest", input);
@@ -694,10 +758,27 @@
               "บันทึกคำขอแล้ว แต่แจ้งผู้บริหารไม่สำเร็จ: " + notification.error,
               "error"
             );
+          } else if (notification.delivery === "email-fallback") {
+            showStatus(
+              "บันทึกคำขอเรียบร้อยแล้ว\nLINE โควต้าเต็ม ระบบส่ง Email แจ้งแทนเรียบร้อย",
+              "success"
+            );
+          } else if (notification.delivery === "line-quota-exceeded") {
+            showStatus(
+              "บันทึกคำขอเรียบร้อยแล้ว แต่ LINE โควต้าเต็มและยังไม่สามารถส่งการแจ้งเตือนได้",
+              "warning"
+            );
+          } else if (notification.delivery === "text-fallback") {
+            showStatus(
+              "บันทึกคำขอแล้ว แต่ Dashboard รูปส่งไม่สำเร็จ\n" +
+              "ระบบส่งข้อความ Text แทน\n\n" +
+              (notification.dashboardError || "ไม่พบรายละเอียดข้อผิดพลาด"),
+              "warning"
+            );
           } else {
-            showStatus("ส่งคำขอและแจ้งผู้บริหารแล้ว", "success");
+            showStatus("ส่งคำขอและแจ้งผู้บริหารเรียบร้อยแล้ว", "success");
           }
-          await loadData({ silent:true });
+          await loadData({ silent:true, preserveBusy:true });
         } catch (error) {
           const errorMessage = messageOf(error);
           showStatus(
@@ -715,10 +796,20 @@
       async function decideRequest(requestId, decision) {
         let rejectionReason = "";
         if (decision === "ปฏิเสธ") {
-          rejectionReason = String(window.prompt(
-            "กรุณาระบุเหตุผลที่ไม่อนุมัติการลา",
-            ""
-          ) || "").trim();
+          const rejection = await openActionModal({
+            title:"ปฏิเสธคำขอลา",
+            icon:"×",
+            message:"กรุณาระบุเหตุผลที่ไม่อนุมัติคำขอนี้\nเหตุผลจะถูกบันทึกและแจ้งกลับพนักงาน",
+            input:true,
+            inputLabel:"เหตุผลที่ไม่อนุมัติ",
+            placeholder:"ระบุเหตุผลที่ไม่อนุมัติ…",
+            maxLength:500,
+            required:true,
+            confirmText:"ยืนยันปฏิเสธ",
+            tone:"danger"
+          });
+          if (!rejection.confirmed) return;
+          rejectionReason = String(rejection.value || "").trim();
           if (!rejectionReason) {
             showStatus("ต้องระบุเหตุผลก่อนปฏิเสธคำขอ", "error");
             return;
@@ -727,15 +818,23 @@
             showStatus("เหตุผลที่ไม่อนุมัติต้องไม่เกิน 500 ตัวอักษร", "error");
             return;
           }
+        } else {
+          const approval = await openActionModal({
+            title:"ยืนยันอนุมัติคำขอลา",
+            icon:"✓",
+            message:"เมื่อยืนยัน ระบบจะบันทึกผลและแจ้งพนักงาน/ผู้บริหารตามสิทธิ์ที่ตั้งไว้",
+            confirmText:"อนุมัติคำขอ",
+            tone:"success"
+          });
+          if (!approval.confirmed) return;
         }
-        const confirmed = window.confirm(
-          "ยืนยัน" + decision + "คำขอนี้?\n" +
-          (decision === "อนุมัติ"
-            ? "ระบบจะแจ้งผลให้พนักงานและผู้บริหารทุกคนทาง LINE"
-            : "ระบบจะแจ้งผลให้พนักงานทาง LINE")
+
+        setBusy(
+          true,
+          decision === "อนุมัติ"
+            ? "กำลังอนุมัติและแจ้งผล…"
+            : "กำลังปฏิเสธและแจ้งผล…"
         );
-        if (!confirmed) return;
-        setBusy(true, "กำลังบันทึกผลและแจ้งพนักงาน…");
         showStatus("กำลังบันทึกผลและแจ้งพนักงาน…", "info");
         try {
           const result = await callBackend("decideLeaveRequest", {
@@ -746,26 +845,52 @@
           const notification = result.employeeNotification || {};
           const managerNotification = result.managerApprovalNotification || {};
           const notificationErrors = [];
+          const fallbackWarnings = [];
+          let usedEmailFallback = false;
+          [notification, managerNotification].forEach(function(item) {
+            if (item.delivery === "email-fallback") usedEmailFallback = true;
+          });
           if (notification.status === "error") {
             notificationErrors.push("แจ้งพนักงานไม่สำเร็จ: " + notification.error);
+          } else if (notification.delivery === "text-fallback") {
+            fallbackWarnings.push(
+              "Dashboard สำหรับพนักงานส่งไม่สำเร็จ ระบบส่ง Text แทน: " +
+              (notification.dashboardError || "ไม่พบรายละเอียดข้อผิดพลาด")
+            );
           }
           if (managerNotification.status === "error") {
             notificationErrors.push("แจ้งผู้บริหารไม่สำเร็จ: " + managerNotification.error);
+          } else if (managerNotification.delivery === "text-fallback") {
+            fallbackWarnings.push(
+              "Dashboard สำหรับผู้บริหารส่งไม่สำเร็จ ระบบส่ง Text แทน: " +
+              (managerNotification.dashboardError || "ไม่พบรายละเอียดข้อผิดพลาด")
+            );
           }
           if (notificationErrors.length) {
             showStatus(
               "บันทึกผลแล้ว แต่" + notificationErrors.join(" และ "),
               "error"
             );
+          } else if (usedEmailFallback) {
+            showStatus(
+              "บันทึกผลเรียบร้อยแล้ว\nLINE โควต้าเต็ม ระบบส่ง Email แจ้งแทนเรียบร้อย",
+              "success"
+            );
+          } else if (fallbackWarnings.length) {
+            showStatus(
+              "บันทึกผลแล้ว แต่มีการใช้ Text fallback\n\n" +
+              fallbackWarnings.join("\n"),
+              "warning"
+            );
           } else {
             showStatus(
               decision === "อนุมัติ"
-                ? "บันทึกผลและแจ้งพนักงานกับผู้บริหารทุกคนแล้ว"
-                : "บันทึกผลและแจ้งพนักงานแล้ว",
+                ? "อนุมัติคำขอและแจ้งผลเรียบร้อยแล้ว"
+                : "ปฏิเสธคำขอและแจ้งผลเรียบร้อยแล้ว",
               "success"
             );
           }
-          await loadData({ silent:true });
+          await loadData({ silent:true, preserveBusy:true });
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
@@ -774,10 +899,26 @@
       }
 
       async function cancelRequest(row) {
-        const cancellationReason = String(window.prompt(
-          "กรุณาระบุเหตุผลการยกเลิก",
-          ""
-        ) || "").trim();
+        const cancellation = await openActionModal({
+          title:"ยืนยันยกเลิกคำขอลา",
+          icon:"!",
+          message:
+            formatDisplayDateRange(row.startDate || row.date, row.endDate || row.date) +
+            " · " + row.type + "\n" +
+            (row.status === "อนุมัติ"
+              ? "รายการนี้อนุมัติแล้ว และจะถูกนำออกจากปฏิทิน/รายงาน"
+              : "รายการนี้กำลังรออนุมัติ") +
+            "\n\nกรุณาระบุเหตุผลการยกเลิก",
+          input:true,
+          inputLabel:"เหตุผลการยกเลิก",
+          placeholder:"ระบุเหตุผลการยกเลิก…",
+          maxLength:500,
+          required:true,
+          confirmText:"ยืนยันยกเลิก",
+          tone:"danger"
+        });
+        if (!cancellation.confirmed) return;
+        const cancellationReason = String(cancellation.value || "").trim();
         if (!cancellationReason) {
           showStatus("ต้องระบุเหตุผลก่อนยกเลิกคำขอ", "error");
           return;
@@ -786,15 +927,6 @@
           showStatus("เหตุผลการยกเลิกต้องไม่เกิน 500 ตัวอักษร", "error");
           return;
         }
-        const confirmed = window.confirm(
-          "ยืนยันยกเลิกคำขอลานี้?\n" +
-          formatDisplayDateRange(row.startDate || row.date, row.endDate || row.date) +
-          " · " + row.type + "\n" +
-          (row.status === "อนุมัติ"
-            ? "รายการนี้อนุมัติแล้ว และจะถูกนำออกจากปฏิทิน/รายงาน"
-            : "รายการนี้กำลังรออนุมัติ")
-        );
-        if (!confirmed) return;
 
         setBusy(true, "กำลังยกเลิกคำขอและแจ้งผู้บริหาร…");
         showStatus("กำลังยกเลิกคำขอและแจ้งผู้บริหาร…", "info");
@@ -809,10 +941,27 @@
               "ยกเลิกคำขอแล้ว แต่แจ้งผู้บริหารไม่สำเร็จ: " + notification.error,
               "error"
             );
+          } else if (notification.delivery === "email-fallback") {
+            showStatus(
+              "ยกเลิกคำขอเรียบร้อยแล้ว\nLINE โควต้าเต็ม ระบบส่ง Email แจ้งแทนเรียบร้อย",
+              "success"
+            );
+          } else if (notification.delivery === "line-quota-exceeded") {
+            showStatus(
+              "ยกเลิกคำขอเรียบร้อยแล้ว แต่ LINE โควต้าเต็มและยังไม่สามารถส่งการแจ้งเตือนได้",
+              "warning"
+            );
+          } else if (notification.delivery === "text-fallback") {
+            showStatus(
+              "ยกเลิกคำขอแล้ว แต่ Dashboard รูปส่งไม่สำเร็จ\n" +
+              "ระบบส่งข้อความ Text แทน\n\n" +
+              (notification.dashboardError || "ไม่พบรายละเอียดข้อผิดพลาด"),
+              "warning"
+            );
           } else {
-            showStatus("ยกเลิกคำขอและแจ้งผู้บริหารแล้ว", "success");
+            showStatus("ยกเลิกคำขอและแจ้งผู้บริหารเรียบร้อยแล้ว", "success");
           }
-          await loadData({ silent:true });
+          await loadData({ silent:true, preserveBusy:true });
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
@@ -1123,7 +1272,7 @@
           const id = "request-" + (++requestNumber);
           const timer = setTimeout(function() {
             pendingCalls.delete(id);
-            reject(new Error("Apps Script ตอบกลับช้าเกินกำหนด"));
+            reject(new Error("ระบบใช้เวลาตอบกลับนานเกิน 60 วินาที กรุณาลองใหม่อีกครั้ง"));
           }, 60000);
           pendingCalls.set(id, { resolve:resolve, reject:reject, timer:timer });
           bridgeWindow.postMessage({
@@ -1136,12 +1285,89 @@
         });
       }
 
+      function openActionModal(options) {
+        const settings = options || {};
+        if (actionModalResolver) {
+          actionModalResolver({ confirmed:false, value:"" });
+          actionModalResolver = null;
+        }
+        actionModalReturnFocus = document.activeElement;
+        elements.actionTitle.textContent = settings.title || "ยืนยันรายการ";
+        elements.actionIcon.textContent = settings.icon || "?";
+        elements.actionMessage.textContent = settings.message || "";
+        elements.actionInputWrap.classList.toggle("hidden", settings.input !== true);
+        elements.actionInputLabel.textContent = settings.inputLabel || "รายละเอียด";
+        elements.actionInput.placeholder = settings.placeholder || "";
+        elements.actionInput.maxLength = Number(settings.maxLength) || 500;
+        elements.actionInput.value = String(settings.value || "");
+        elements.actionInput.dataset.required = settings.required === true ? "true" : "false";
+        elements.actionValidation.textContent = "";
+        elements.actionCancel.textContent = settings.cancelText || "ยกเลิก";
+        elements.actionConfirm.textContent = settings.confirmText || "ยืนยัน";
+        elements.actionConfirm.className = "action-confirm" +
+          (settings.tone ? " " + settings.tone : "");
+        elements.actionModal.classList.add("show");
+        elements.actionModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("is-busy");
+        window.setTimeout(function() {
+          if (settings.input === true) elements.actionInput.focus();
+          else elements.actionConfirm.focus();
+        }, 0);
+        return new Promise(function(resolve) {
+          actionModalResolver = resolve;
+        });
+      }
+
+      function closeActionModal(confirmed) {
+        if (!actionModalResolver) {
+          elements.actionModal.classList.remove("show");
+          elements.actionModal.setAttribute("aria-hidden", "true");
+          if (!state.busy) document.body.classList.remove("is-busy");
+          return;
+        }
+        const value = elements.actionInput.value;
+        if (confirmed && elements.actionInput.dataset.required === "true" && !value.trim()) {
+          elements.actionValidation.textContent = "กรุณากรอกข้อมูลก่อนยืนยัน";
+          elements.actionInput.focus();
+          return;
+        }
+        const resolve = actionModalResolver;
+        actionModalResolver = null;
+        elements.actionModal.classList.remove("show");
+        elements.actionModal.setAttribute("aria-hidden", "true");
+        elements.actionValidation.textContent = "";
+        if (!state.busy) document.body.classList.remove("is-busy");
+        const returnFocus = actionModalReturnFocus;
+        actionModalReturnFocus = null;
+        if (returnFocus && document.contains(returnFocus) && !returnFocus.disabled) {
+          returnFocus.focus();
+        }
+        resolve({ confirmed:confirmed === true, value:value });
+      }
+
+      function queueRequestWindowStartupNotification() {
+        if (state.requestWindowPopupShown) return;
+        const isOpen = !isRequestWindowClosed();
+        if (isOpen) return;
+        state.requestWindowPopupShown = true;
+        const currentTime = state.requestWindow &&
+          (state.requestWindow.clientTime || state.requestWindow.serverTime);
+        showStatus(
+          "ขณะนี้ปิดรับคำขอลา\nระบบเปิดรับคำขอเวลา 05:00–20:30 น. (เวลาไทย)" +
+          (currentTime ? "\nเวลาปัจจุบัน " + String(currentTime).slice(0, 5) + " น." : ""),
+          "warning"
+        );
+      }
+
       function setBusy(busy, message) {
         state.busy = busy;
         elements.loadingOverlay.classList.toggle("show", busy);
         elements.loadingOverlay.setAttribute("aria-hidden", String(!busy));
         elements.loadingMessage.textContent = message || "กำลังเชื่อมต่อระบบ…";
-        document.body.classList.toggle("is-busy", busy);
+        document.body.classList.toggle(
+          "is-busy",
+          busy || elements.actionModal.classList.contains("show")
+        );
         elements.app.setAttribute("aria-busy", String(busy));
         [
           elements.leaveStartDate,elements.leaveEndDate,
@@ -1393,6 +1619,7 @@
           state.leaveDatePeriods[date] = "full";
         });
         renderLeaveDateRows();
+        showStatus("ตั้งช่วงลาทุกวันที่เลือกเป็นเต็มวันแล้ว", "success");
       }
 
       function formatLeaveDateSelection(dates) {
@@ -1510,10 +1737,19 @@
           remove.className = "remove-image";
           remove.textContent = "×";
           remove.setAttribute("aria-label", "ลบรูป " + (index + 1));
-          remove.addEventListener("click", function() {
+          remove.addEventListener("click", async function() {
+            const confirmation = await openActionModal({
+              title:"ลบรูปแนบ",
+              icon:"×",
+              message:"ยืนยันลบรูปแนบลำดับที่ " + (index + 1) + " ?",
+              confirmText:"ลบรูป",
+              tone:"danger"
+            });
+            if (!confirmation.confirmed) return;
             URL.revokeObjectURL(selectedImages[index].previewUrl);
             selectedImages.splice(index, 1);
             renderImagePreview();
+            showStatus("ลบรูปแนบแล้ว", "success");
           });
           item.appendChild(preview);
           item.appendChild(remove);
@@ -1532,6 +1768,7 @@
         if (gallery.childElementCount) {
           gallery.replaceChildren();
           button.textContent = "ดูรูปแนบ";
+          showStatus("ซ่อนรูปแนบแล้ว", "success");
           return;
         }
         button.disabled = true;
@@ -1547,6 +1784,7 @@
             gallery.appendChild(element);
           });
           button.textContent = "ซ่อนรูป";
+          showStatus("โหลดรูปแนบเรียบร้อยแล้ว", "success");
         } catch (error) {
           showStatus(messageOf(error), "error");
           button.textContent = "ลองโหลดรูปอีกครั้ง";
