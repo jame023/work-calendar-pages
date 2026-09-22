@@ -217,35 +217,38 @@
       .request-day-item span:last-child { text-align:right; font-weight:750; }
       .decision-actions { display:flex; gap:8px; margin-top:10px; }
       .decision-actions button { flex:1; }
+      .image-upload-section { grid-column:1 / -1; border:1px solid #cbd9e8; border-radius:16px; padding:14px; background:#f8fbff; }
+      .image-upload-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
+      .image-upload-title { color:var(--navy); font-weight:850; }
+      .image-upload-subtitle { display:block; margin-top:3px; color:#627083; font-size:13px; font-weight:500; }
+      .image-counter { flex:0 0 auto; min-width:64px; border:1px solid #bfd2e8; border-radius:999px; padding:5px 10px; background:#fff; color:#294e72; text-align:center; font-size:14px; font-weight:850; }
+      .image-file-input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+      .image-upload-card { display:flex; align-items:center; justify-content:center; gap:14px; min-height:132px; border:2px dashed #94b9e3; border-radius:16px; padding:18px; background:linear-gradient(180deg,#fff 0%,#f3f8ff 100%); color:#16324f; text-align:left; cursor:pointer; transition:border-color .18s,background .18s,box-shadow .18s,transform .18s; }
+      .image-upload-card:hover,.image-upload-card:focus-visible { border-color:var(--blue); background:#edf5ff; box-shadow:0 8px 22px rgb(11 99 206 / 12%); outline:none; }
+      .image-upload-card:active { transform:scale(.995); }
+      .image-upload-card.disabled { cursor:not-allowed; opacity:.58; }
+      .image-upload-icon { display:grid; place-items:center; width:58px; height:58px; flex:0 0 58px; border-radius:16px; background:#e6f1ff; color:var(--blue); font-size:30px; box-shadow:inset 0 0 0 1px #c9def7; }
+      .image-upload-copy strong { display:block; color:var(--navy); font-size:17px; }
+      .image-upload-copy span { display:block; margin-top:4px; color:#627083; font-size:13px; font-weight:500; }
+      .image-upload-status { display:flex; align-items:center; gap:8px; min-height:22px; margin-top:10px; color:#627083; font-size:13px; font-weight:700; }
+      .image-upload-status.ready { color:var(--green); }
+      .image-upload-status.full { color:var(--amber); }
+      .image-status-dot { width:9px; height:9px; flex:0 0 9px; border-radius:50%; background:#9aa8b8; }
+      .image-upload-status.ready .image-status-dot { background:var(--green); }
+      .image-upload-status.full .image-status-dot { background:var(--amber); }
       .image-help { margin:7px 0 0; color:#627083; font-size:13px; font-weight:500; }
-      .image-preview-grid,.request-image-grid {
-        display:grid;
-        grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
-        gap:9px;
-        margin-top:10px;
-      }
-      .image-preview-item { position:relative; }
-      .image-preview-item img,.request-image-grid img {
-        display:block;
-        width:100%;
-        aspect-ratio:1;
-        border:1px solid var(--border);
-        border-radius:12px;
-        object-fit:cover;
-        background:#f5f7fa;
-      }
-      .remove-image {
-        position:absolute;
-        top:5px;
-        right:5px;
-        min-width:36px;
-        min-height:36px;
-        border:0;
-        border-radius:50%;
-        background:rgb(20 26 34 / 82%);
-        color:#fff;
-        font-weight:900;
-      }
+      .image-preview-grid,.request-image-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; margin-top:12px; }
+      .image-preview-item { position:relative; overflow:hidden; border:1px solid #cbd9e8; border-radius:14px; background:#fff; box-shadow:0 5px 14px rgb(11 47 103 / 7%); }
+      .image-preview-button { display:block; width:100%; border:0; padding:0; background:transparent; cursor:zoom-in; }
+      .image-preview-item img,.request-image-grid img { display:block; width:100%; aspect-ratio:1; border:0; border-radius:0; object-fit:cover; background:#f5f7fa; }
+      .image-preview-index { position:absolute; left:7px; bottom:7px; border-radius:999px; padding:3px 7px; background:rgb(7 27 51 / 72%); color:#fff; font-size:11px; font-weight:800; pointer-events:none; }
+      .remove-image { position:absolute; top:6px; right:6px; z-index:2; min-width:38px; min-height:38px; border:2px solid rgb(255 255 255 / 80%); border-radius:50%; background:rgb(20 26 34 / 84%); color:#fff; font-size:23px; line-height:1; font-weight:900; box-shadow:0 4px 10px rgb(0 0 0 / 18%); }
+      .image-lightbox { position:fixed; inset:0; z-index:240; display:grid; place-items:center; padding:18px; background:rgb(2 13 27 / 88%); opacity:0; pointer-events:none; transition:opacity .18s ease-out; }
+      .image-lightbox.show { opacity:1; pointer-events:auto; }
+      .image-lightbox-panel { position:relative; width:min(100%,860px); }
+      .image-lightbox img { display:block; width:100%; max-height:82vh; border-radius:16px; object-fit:contain; background:#0d1825; box-shadow:0 24px 70px rgb(0 0 0 / 38%); }
+      .image-lightbox-close { position:absolute; top:10px; right:10px; width:46px; height:46px; border:2px solid rgb(255 255 255 / 70%); border-radius:50%; background:rgb(7 27 51 / 78%); color:#fff; font-size:28px; font-weight:900; }
+      .image-lightbox-caption { margin:10px 0 0; color:#fff; text-align:center; font-size:14px; font-weight:700; }
       .view-images { width:100%; margin-top:10px; }
       .calendar-toolbar {
         display:grid;
@@ -387,6 +390,12 @@
         .day { min-width:0; }
       }
       @media(max-width:700px) {
+        .image-upload-section { padding:12px; }
+        .image-upload-heading { align-items:center; }
+        .image-upload-card { min-height:118px; padding:15px; }
+        .image-upload-icon { width:52px; height:52px; flex-basis:52px; }
+        .image-preview-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .image-lightbox { padding:10px; }
         .action-modal,.notification-modal { padding:14px; }
         .action-panel,.notification-panel { border-radius:18px; }
         .action-title,.notification-title { font-size:22px; }
@@ -461,13 +470,29 @@
                 <textarea id="leaveReason" maxlength="500" required
                   placeholder="กรุณาระบุเหตุผลการลา"></textarea>
               </label>
-              <label class="full-width">
-                รูปประกอบ (ไม่บังคับ สูงสุด 5 รูป)
-                <input id="leaveImages" type="file" multiple
-                  accept="image/jpeg,image/png,image/webp">
-                <span class="image-help">รองรับ JPG, PNG และ WebP รูปละไม่เกิน 5 MB</span>
-                <span class="image-preview-grid" id="imagePreview"></span>
-              </label>
+              <div class="image-upload-section full-width">
+                <div class="image-upload-heading">
+                  <div>
+                    <span class="image-upload-title">รูปประกอบ</span>
+                    <span class="image-upload-subtitle">ไม่บังคับ · ใช้สำหรับใบรับรองแพทย์หรือเอกสารประกอบ</span>
+                  </div>
+                  <span class="image-counter" id="imageCount">0 / 5</span>
+                </div>
+                <input class="image-file-input" id="leaveImages" type="file" multiple accept="image/jpeg,image/png,image/webp">
+                <label class="image-upload-card" id="imageUploadCard" for="leaveImages" tabindex="0">
+                  <span class="image-upload-icon" aria-hidden="true">＋</span>
+                  <span class="image-upload-copy">
+                    <strong id="imageUploadTitle">เพิ่มรูปประกอบ</strong>
+                    <span id="imageUploadHint">แตะเพื่อถ่ายรูปหรือเลือกรูปจากเครื่อง</span>
+                  </span>
+                </label>
+                <div class="image-upload-status" id="imageUploadStatus" aria-live="polite">
+                  <span class="image-status-dot" aria-hidden="true"></span>
+                  <span id="imageUploadStatusText">ยังไม่ได้แนบรูป</span>
+                </div>
+                <p class="image-help">รองรับ JPG, PNG และ WebP · รูปต้นฉบับไม่เกิน 5 MB · สูงสุด 5 รูป</p>
+                <div class="image-preview-grid" id="imagePreview"></div>
+              </div>
             </div>
             <div class="actions">
               <button class="primary" id="submitButton" type="submit">
@@ -548,6 +573,13 @@
         </div>
       </div>
     </div>
+    <div class="image-lightbox" id="imageLightbox" role="dialog" aria-modal="true" aria-label="ดูรูปประกอบ" aria-hidden="true">
+      <div class="image-lightbox-panel">
+        <button class="image-lightbox-close" id="imageLightboxClose" type="button" aria-label="ปิดรูป">×</button>
+        <img id="imageLightboxImage" alt="รูปประกอบขนาดใหญ่">
+        <p class="image-lightbox-caption" id="imageLightboxCaption"></p>
+      </div>
+    </div>
     <iframe class="backend-frame" id="backendFrame" title="Apps Script backend"></iframe>
 
     <script>
@@ -592,7 +624,9 @@
         "profileText","statusBox","app","leaveForm","leaveStartDate",
         "leaveEndDate","leaveType",
         "leaveDateList","leaveDateCount","leaveTotalDays","setAllFullButton",
-        "leaveReason","leaveImages","imagePreview","submitButton","managerCard","pendingList",
+        "leaveReason","leaveImages","imagePreview","imageCount","imageUploadCard","imageUploadTitle",
+        "imageUploadHint","imageUploadStatus","imageUploadStatusText","imageLightbox","imageLightboxImage",
+        "imageLightboxCaption","imageLightboxClose","submitButton","managerCard","pendingList",
         "cancelledManagerCard","cancelledList",
         "monthInput","loadButton","calendarGrid","ownRequestList","quotaMonthLabel",
         "quotaList","quotaNote","requestWindowNote","loadingOverlay","loadingMessage",
@@ -611,6 +645,16 @@
       elements.leaveEndDate.addEventListener("change", renderLeaveDateRows);
       elements.setAllFullButton.addEventListener("click", setAllLeaveDatesFull);
       elements.leaveImages.addEventListener("change", selectLeaveImages);
+      elements.imageUploadCard.addEventListener("keydown", function(event) {
+        if ((event.key === "Enter" || event.key === " ") && !elements.leaveImages.disabled) {
+          event.preventDefault();
+          elements.leaveImages.click();
+        }
+      });
+      elements.imageLightboxClose.addEventListener("click", closeImageLightbox);
+      elements.imageLightbox.addEventListener("click", function(event) {
+        if (event.target === elements.imageLightbox) closeImageLightbox();
+      });
       elements.loadButton.addEventListener("click", loadData);
       elements.monthInput.addEventListener("change", loadData);
       elements.notificationAcknowledge.addEventListener("click", hideNotification);
@@ -618,6 +662,11 @@
       elements.actionConfirm.addEventListener("click", function() { closeActionModal(true); });
       document.addEventListener("keydown", function(event) {
         if (event.key !== "Escape") return;
+        if (elements.imageLightbox.classList.contains("show")) {
+          event.preventDefault();
+          closeImageLightbox();
+          return;
+        }
         if (elements.actionModal.classList.contains("show")) {
           event.preventDefault();
           closeActionModal(false);
@@ -1378,6 +1427,7 @@
         elements.leaveDateList.querySelectorAll("select").forEach(function(select) {
           select.disabled = busy;
         });
+        updateImageUploadUi();
         syncRequestWindowUi();
         if (!busy && state.pendingNotifications.length) {
           window.setTimeout(flushPendingNotification, 0);
@@ -1639,27 +1689,28 @@
       async function selectLeaveImages(event) {
         const files = Array.from(event.target.files || []);
         event.target.value = "";
+        if (!files.length) return;
         if (selectedImages.length + files.length > 5) {
-          showStatus("แนบรูปได้สูงสุด 5 รูป", "error");
+          showStatus("แนบรูปได้สูงสุด 5 รูป ตอนนี้มี " + selectedImages.length + " รูป", "warning");
+          updateImageUploadUi();
           return;
         }
-        setBusy(true, "กำลังเตรียมรูป…");
+        setBusy(true, "กำลังเตรียมรูป 1/" + files.length + "…");
         showStatus("กำลังเตรียมรูป…", "info");
         try {
-          for (const file of files) {
-            if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-              throw new Error("รองรับเฉพาะ JPG, PNG และ WebP");
-            }
-            if (file.size > 5 * 1024 * 1024) {
-              throw new Error("รูป " + file.name + " มีขนาดเกิน 5 MB");
-            }
+          for (let index = 0; index < files.length; index += 1) {
+            const file = files[index];
+            elements.loadingMessage.textContent = "กำลังเตรียมรูป " + (index + 1) + "/" + files.length + "…";
+            if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("รองรับเฉพาะ JPG, PNG และ WebP");
+            if (file.size > 5 * 1024 * 1024) throw new Error("รูป " + file.name + " มีขนาดเกิน 5 MB");
             selectedImages.push(await compressLeaveImage(file));
+            renderImagePreview();
           }
-          renderImagePreview();
-          showStatus("เตรียมรูปแล้ว " + selectedImages.length + " รูป", "success");
+          showStatus("เตรียมรูปพร้อมส่งแล้ว " + selectedImages.length + " รูป", "success");
         } catch (error) {
           showStatus(messageOf(error), "error");
         } finally {
+          renderImagePreview();
           setBusy(false);
         }
       }
@@ -1674,51 +1725,31 @@
         canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
         let quality = 0.82;
         let blob = await canvasToBlob(canvas, quality);
-        while (blob.size > 900 * 1024 && quality > 0.42) {
-          quality -= 0.1;
-          blob = await canvasToBlob(canvas, quality);
-        }
-        if (blob.size > 1024 * 1024) {
-          throw new Error("บีบอัดรูป " + file.name + " ให้ต่ำกว่า 1 MB ไม่สำเร็จ");
-        }
-        return {
-          name:file.name.replace(/\.[^.]+$/, "") + ".jpg",
-          mimeType:"image/jpeg",
-          base64:await blobToBase64(blob),
-          previewUrl:URL.createObjectURL(blob)
-        };
+        while (blob.size > 900 * 1024 && quality > 0.42) { quality -= 0.1; blob = await canvasToBlob(canvas, quality); }
+        if (blob.size > 1024 * 1024) throw new Error("บีบอัดรูป " + file.name + " ให้ต่ำกว่า 1 MB ไม่สำเร็จ");
+        return { name:file.name.replace(/\.[^.]+$/, "") + ".jpg", originalName:file.name, mimeType:"image/jpeg", base64:await blobToBase64(blob), previewUrl:URL.createObjectURL(blob) };
       }
 
       function loadBrowserImage(file) {
         return new Promise(function(resolve, reject) {
           const url = URL.createObjectURL(file);
           const image = new Image();
-          image.onload = function() {
-            URL.revokeObjectURL(url);
-            resolve(image);
-          };
-          image.onerror = function() {
-            URL.revokeObjectURL(url);
-            reject(new Error("เปิดรูป " + file.name + " ไม่สำเร็จ"));
-          };
+          image.onload = function() { URL.revokeObjectURL(url); resolve(image); };
+          image.onerror = function() { URL.revokeObjectURL(url); reject(new Error("เปิดรูป " + file.name + " ไม่สำเร็จ")); };
           image.src = url;
         });
       }
 
       function canvasToBlob(canvas, quality) {
         return new Promise(function(resolve, reject) {
-          canvas.toBlob(function(blob) {
-            blob ? resolve(blob) : reject(new Error("บีบอัดรูปไม่สำเร็จ"));
-          }, "image/jpeg", quality);
+          canvas.toBlob(function(blob) { blob ? resolve(blob) : reject(new Error("บีบอัดรูปไม่สำเร็จ")); }, "image/jpeg", quality);
         });
       }
 
       function blobToBase64(blob) {
         return new Promise(function(resolve, reject) {
           const reader = new FileReader();
-          reader.onload = function() {
-            resolve(String(reader.result).split(",")[1] || "");
-          };
+          reader.onload = function() { resolve(String(reader.result).split(",")[1] || ""); };
           reader.onerror = function() { reject(new Error("อ่านข้อมูลรูปไม่สำเร็จ")); };
           reader.readAsDataURL(blob);
         });
@@ -1727,34 +1758,56 @@
       function renderImagePreview() {
         elements.imagePreview.replaceChildren();
         selectedImages.forEach(function(image, index) {
-          const item = document.createElement("span");
-          item.className = "image-preview-item";
-          const preview = document.createElement("img");
-          preview.src = image.previewUrl;
-          preview.alt = "รูปแนบ " + (index + 1);
-          const remove = document.createElement("button");
-          remove.type = "button";
-          remove.className = "remove-image";
-          remove.textContent = "×";
-          remove.setAttribute("aria-label", "ลบรูป " + (index + 1));
+          const item = document.createElement("div"); item.className = "image-preview-item";
+          const previewButton = document.createElement("button"); previewButton.type = "button"; previewButton.className = "image-preview-button"; previewButton.setAttribute("aria-label", "ดูรูปแนบลำดับที่ " + (index + 1));
+          previewButton.addEventListener("click", function() { openImageLightbox(image.previewUrl, image.originalName || image.name, index + 1); });
+          const preview = document.createElement("img"); preview.src = image.previewUrl; preview.alt = "รูปแนบ " + (index + 1); previewButton.appendChild(preview);
+          const indexBadge = document.createElement("span"); indexBadge.className = "image-preview-index"; indexBadge.textContent = "รูป " + (index + 1);
+          const remove = document.createElement("button"); remove.type = "button"; remove.className = "remove-image"; remove.textContent = "×"; remove.setAttribute("aria-label", "ลบรูป " + (index + 1));
           remove.addEventListener("click", async function() {
-            const confirmation = await openActionModal({
-              title:"ลบรูปแนบ",
-              icon:"×",
-              message:"ยืนยันลบรูปแนบลำดับที่ " + (index + 1) + " ?",
-              confirmText:"ลบรูป",
-              tone:"danger"
-            });
+            const confirmation = await openActionModal({ title:"ลบรูปแนบ", icon:"×", message:"ยืนยันลบรูปแนบลำดับที่ " + (index + 1) + " ?", confirmText:"ลบรูป", tone:"danger" });
             if (!confirmation.confirmed) return;
-            URL.revokeObjectURL(selectedImages[index].previewUrl);
-            selectedImages.splice(index, 1);
-            renderImagePreview();
-            showStatus("ลบรูปแนบแล้ว", "success");
+            URL.revokeObjectURL(selectedImages[index].previewUrl); selectedImages.splice(index, 1); renderImagePreview(); showStatus("ลบรูปแนบแล้ว", "success");
           });
-          item.appendChild(preview);
-          item.appendChild(remove);
-          elements.imagePreview.appendChild(item);
+          item.appendChild(previewButton); item.appendChild(indexBadge); item.appendChild(remove); elements.imagePreview.appendChild(item);
         });
+        updateImageUploadUi();
+      }
+
+      function updateImageUploadUi() {
+        const count = selectedImages.length;
+        elements.imageCount.textContent = count + " / 5";
+        elements.imageUploadStatus.classList.remove("ready", "full");
+        const blocked = count >= 5 || state.busy;
+        elements.imageUploadCard.classList.toggle("disabled", blocked);
+        elements.imageUploadCard.setAttribute("aria-disabled", String(blocked));
+        if (count >= 5) {
+          elements.imageUploadTitle.textContent = "แนบรูปครบ 5 รูปแล้ว";
+          elements.imageUploadHint.textContent = "ลบรูปออกก่อนหากต้องการเปลี่ยนรูป";
+          elements.imageUploadStatus.classList.add("full");
+          elements.imageUploadStatusText.textContent = "แนบรูปครบจำนวนสูงสุดแล้ว";
+          elements.leaveImages.disabled = true;
+          return;
+        }
+        elements.leaveImages.disabled = state.busy;
+        elements.imageUploadTitle.textContent = count ? "เพิ่มรูปอีก" : "เพิ่มรูปประกอบ";
+        elements.imageUploadHint.textContent = "แตะเพื่อถ่ายรูปหรือเลือกรูปจากเครื่อง";
+        if (count) { elements.imageUploadStatus.classList.add("ready"); elements.imageUploadStatusText.textContent = "รูปพร้อมส่ง " + count + " รูป"; }
+        else { elements.imageUploadStatusText.textContent = "ยังไม่ได้แนบรูป"; }
+      }
+
+      function openImageLightbox(url, name, index) {
+        elements.imageLightboxImage.src = url;
+        elements.imageLightboxCaption.textContent = "รูป " + index + (name ? " · " + name : "");
+        elements.imageLightbox.classList.add("show");
+        elements.imageLightbox.setAttribute("aria-hidden", "false");
+        elements.imageLightboxClose.focus();
+      }
+
+      function closeImageLightbox() {
+        elements.imageLightbox.classList.remove("show");
+        elements.imageLightbox.setAttribute("aria-hidden", "true");
+        elements.imageLightboxImage.removeAttribute("src");
       }
 
       function clearSelectedImages() {
