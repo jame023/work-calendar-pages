@@ -883,7 +883,7 @@
           return renderList([renderSimpleRow("ยังไม่มีข้อมูลเดือนนี้", "")]);
         }
 
-        const rows = history.slice(0, 10).map(function(item) {
+        const rows = history.slice(0, 16).map(function(item) {
           const detail = (item.checkIn || "-") + " — " + (item.checkOut || "-");
           return renderSimpleRow(
             formatThaiDate(item.date),
