@@ -156,6 +156,67 @@
         box-shadow: 0 4px 14px rgba(16, 37, 75, 0.05);
       }
 
+      .calendar-filter {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .calendar-filter label {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .calendar-month-input {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--white);
+        color: var(--blue-dark);
+        font: inherit;
+      }
+
+      .calendar-half-toggle {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+
+      .calendar-half-toggle button {
+        justify-content: center;
+        min-width: 0;
+        min-height: 44px;
+        padding: 6px 4px;
+        font-size: 15px;
+        line-height: 1.2;
+        text-align: center;
+      }
+
+      .calendar-half-toggle button.active {
+        background: var(--blue);
+        color: var(--white);
+      }
+
+      .calendar-filter input:focus-visible,
+      .calendar-half-toggle button:focus-visible {
+        outline: 3px solid #7db5ff;
+        outline-offset: 2px;
+      }
+
+      .calendar-range {
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+      }
+
       .calendar-month {
         margin-bottom: 12px;
         color: var(--blue-dark);
@@ -504,7 +565,10 @@
         idToken: "",
         role: "employee",
         employeeOverview: null,
-        managerOverview: null
+        managerOverview: null,
+        overviewRequestNumber: 0,
+        selectedMonth: getCurrentMonth(),
+        selectedHalf: "all"
       };
 
       const pendingCalls = new Map();
@@ -564,15 +628,32 @@
         ]);
       }
 
-      function loadOverviewData() {
-        showLoading("กำลังโหลดข้อมูล…");
+      function loadOverviewData(showEmployeeAfterLoad) {
+        const thisRequestNumber = ++state.overviewRequestNumber;
+        callBackend("getOverviewPage", {
+          month: state.selectedMonth || getCurrentMonth()
+        }).then(function(page) {
+          if (thisRequestNumber !== state.overviewRequestNumber) {
+            return;
+          }
+          if (showEmployeeAfterLoad) {
+            state.employeeOverview = page.employee;
+            state.managerOverview = page.manager;
+            state.role = page.employee.profile.role;
+            renderEmployeeOverview(page.employee, state.role === "manager");
+            if (state.role === "manager") {
+              activateManagerTab("employee");
+            }
+            return;
+          }
 
-         callBackend("getOverviewPage", {
-           month: getCurrentMonth()
-         }).then(function(page) {
-           handleEmployeeOverviewLoaded(page.employee, page.manager);
-         }).catch(showError);
-       }
+          handleEmployeeOverviewLoaded(page.employee, page.manager);
+        }).catch(function(error) {
+          if (thisRequestNumber === state.overviewRequestNumber) {
+            showError(error);
+          }
+        });
+      }
 
        function handleEmployeeOverviewLoaded(data, managerData) {
         state.employeeOverview = data;
@@ -726,13 +807,14 @@
           "<h2>งานปัจจุบัน</h2>",
           renderCurrentWork(data.activeWork),
           "<h2>ปฏิทินการเข้างาน</h2>",
-          renderAttendanceCalendar(month),
+          renderAttendanceCalendar(month, state.selectedHalf),
           "<h2>ประวัติการเข้างานล่าสุด</h2>",
-          renderAttendanceHistory(data.history),
+          renderAttendanceHistory(data.history, state.selectedHalf),
           "<h2>สถานะคำขอลาของฉัน</h2>",
           renderLeaveRequests(data.leaveRequests)
         ].join("\n");
 
+        bindAttendanceCalendarControls(target);
         showApplication();
       }
 
@@ -827,14 +909,16 @@
         return renderList([renderSimpleRow(activeWork.machine, detail)]);
       }
 
-      function renderAttendanceCalendar(month) {
+      function renderAttendanceCalendar(month, selectedHalf) {
         const monthText = String(month.month || getCurrentMonth());
         const parts = monthText.split("-");
         const year = Number(parts[0]);
         const monthIndex = Number(parts[1]) - 1;
-        const firstDay = new Date(Date.UTC(year, monthIndex, 1));
         const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-        const mondayOffset = (firstDay.getUTCDay() + 6) % 7;
+        const startDay = selectedHalf === "second" ? 16 : 1;
+        const endDay = selectedHalf === "first" ? Math.min(15, daysInMonth) : daysInMonth;
+        const firstVisibleDate = new Date(Date.UTC(year, monthIndex, startDay));
+        const mondayOffset = (firstVisibleDate.getUTCDay() + 6) % 7;
         const statusByDate = {};
         (month.calendarDays || []).forEach(function(item) {
           statusByDate[item.date] = item;
@@ -844,7 +928,7 @@
         for (let index = 0; index < mondayOffset; index += 1) {
           cells.push('<div class="calendar-day empty" aria-hidden="true"></div>');
         }
-        for (let day = 1; day <= daysInMonth; day += 1) {
+        for (let day = startDay; day <= endDay; day += 1) {
           const date = monthText + "-" + String(day).padStart(2, "0");
           const item = statusByDate[date];
           const status = item && item.status !== "scheduled" ? item.status : "";
@@ -858,10 +942,44 @@
             "</div>"
           ].join("\n"));
         }
+        const trailingEmptyCount = (7 - (cells.length % 7)) % 7;
+        for (let index = 0; index < trailingEmptyCount; index += 1) {
+          cells.push('<div class="calendar-day empty" aria-hidden="true"></div>');
+        }
+
+        const rangeLabel = selectedHalf === "first"
+          ? "ครึ่งเดือนแรก · วันที่ 1–" + endDay
+          : selectedHalf === "second"
+            ? "ครึ่งเดือนหลัง · วันที่ 16–" + daysInMonth
+            : "ทั้งเดือน · วันที่ 1–" + daysInMonth;
+        const periodOptions = [
+          { value: "all", label: "ทั้งเดือน", accessibleLabel: "ดูทั้งเดือน" },
+          { value: "first", label: "1–15", accessibleLabel: "ดูครึ่งเดือนแรก วันที่ 1 ถึง 15" },
+          { value: "second", label: "16–สิ้นเดือน", accessibleLabel: "ดูครึ่งเดือนหลัง ตั้งแต่วันที่ 16 ถึงวันสุดท้ายของเดือน" }
+        ];
+        const periodButtons = periodOptions.map(function(option) {
+          const active = selectedHalf === option.value;
+          return [
+            '<button type="button" data-attendance-half="' + option.value + '"',
+            ' class="' + (active ? "active" : "") + '" aria-pressed="' + active + '"',
+            ' aria-label="' + escapeHtmlAttribute(option.accessibleLabel) + '">',
+            escapeHtml(option.label),
+            "</button>"
+          ].join("");
+        }).join("\n");
 
         return [
           '<section class="attendance-calendar" aria-label="ปฏิทินการเข้างานประจำเดือน">',
+          '  <div class="calendar-filter">',
+          '    <label for="attendanceMonthSelect">เลือกเดือน</label>',
+          '    <input id="attendanceMonthSelect" class="calendar-month-input" type="month"',
+          '      value="' + escapeHtmlAttribute(state.selectedMonth || monthText) + '">',
+          "  </div>",
+          '  <div class="calendar-half-toggle" role="group" aria-label="เลือกช่วงของเดือน">',
+          periodButtons,
+          "  </div>",
           '  <div class="calendar-month">' + escapeHtml(formatThaiMonth(monthText)) + "</div>",
+          '  <div class="calendar-range">' + escapeHtml(rangeLabel) + "</div>",
           '  <div class="calendar-grid">',
           ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."].map(function(dayName) {
             return '<div class="calendar-weekday">' + dayName + "</div>";
@@ -878,12 +996,61 @@
         ].join("\n");
       }
 
-      function renderAttendanceHistory(history) {
-        if (!history.length) {
-          return renderList([renderSimpleRow("ยังไม่มีข้อมูลเดือนนี้", "")]);
+      function bindAttendanceCalendarControls(target) {
+        const monthInput = target.querySelector("#attendanceMonthSelect");
+        if (monthInput) {
+          monthInput.addEventListener("change", function() {
+            const selectedMonth = monthInput.value;
+            if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(selectedMonth) ||
+                selectedMonth === state.selectedMonth) {
+              return;
+            }
+            state.selectedMonth = selectedMonth;
+            loadOverviewData(true);
+          });
         }
 
-        const rows = history.slice(0, 16).map(function(item) {
+        target.querySelectorAll("[data-attendance-half]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            const selectedHalf = button.getAttribute("data-attendance-half");
+            if (["all", "first", "second"].indexOf(selectedHalf) === -1 ||
+                selectedHalf === state.selectedHalf) {
+              return;
+            }
+            state.selectedHalf = selectedHalf;
+            renderEmployeeOverview(state.employeeOverview, state.role === "manager");
+            if (state.role === "manager") {
+              activateManagerTab("employee");
+            }
+          });
+        });
+      }
+
+      function filterAttendanceHistoryByHalf(history, selectedHalf) {
+        if (selectedHalf !== "first" && selectedHalf !== "second") {
+          return history;
+        }
+
+        return history.filter(function(item) {
+          const dateMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(item.date || ""));
+          if (!dateMatch) {
+            return false;
+          }
+          const day = Number(dateMatch[3]);
+          return selectedHalf === "first" ? day <= 15 : day >= 16;
+        });
+      }
+
+      function renderAttendanceHistory(history, selectedHalf) {
+        const visibleHistory = filterAttendanceHistoryByHalf(history, selectedHalf);
+        if (!visibleHistory.length) {
+          const emptyMessage = selectedHalf === "all"
+            ? "ยังไม่มีข้อมูลในเดือนที่เลือก"
+            : "ยังไม่มีข้อมูลการเข้างานในช่วงที่เลือก";
+          return renderList([renderSimpleRow(emptyMessage, "")]);
+        }
+
+        const rows = visibleHistory.slice(0, 16).map(function(item) {
           const detail = (item.checkIn || "-") + " — " + (item.checkOut || "-");
           return renderSimpleRow(
             formatThaiDate(item.date),
