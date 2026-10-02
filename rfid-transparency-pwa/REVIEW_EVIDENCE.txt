@@ -1,0 +1,37 @@
+RFID PWA Mobile V1 - Review Evidence
+
+[
+  {
+    "file": "index.html",
+    "before_sha256": "ffaaf76de5ec261801a0736288a7fc6ef23ffabfafd55d77437ce2da001033b8",
+    "after_sha256": "587709edc6c89a7c025f18feba015cb3521f0318549a65713c448b34c3a25b14",
+    "changed": true,
+    "before_bytes": 10056,
+    "after_bytes": 13056
+  },
+  {
+    "file": "manifest.webmanifest",
+    "before_sha256": "cb35fb0c7b338ae29f555b1b8e1d1e617620926cff514c107ad5d9af7d908e4c",
+    "after_sha256": "e820c456ef91aebae21bc2ba3bc9405f2a324e2e33eb7ef39e92e4b2139ef02f",
+    "changed": true,
+    "before_bytes": 247,
+    "after_bytes": 749
+  },
+  {
+    "file": "sw.js",
+    "before_sha256": "ce52b494eecabeffcd81e80f8bb63359e315023626b3ebd2e70f88f2fbb3cece",
+    "after_sha256": "162328cb1f68c694627c6db65282f70ae18fcf6df2f752c03e52044d1ac5fb12",
+    "changed": true,
+    "before_bytes": 631,
+    "after_bytes": 853
+  }
+]
+
+TESTS
+- PWA JavaScript syntax: PASS
+- Manifest icons 192/512 configured: PASS
+- Android beforeinstallprompt support: PASS
+- iOS apple-mobile-web-app metadata/help: PASS
+- Existing api:'rfid-public' path preserved: PASS
+- Existing localStorage key rfidAppsScriptUrl preserved: PASS
+- Service worker cache bumped to rfid-audit-mobile-v2: PASS

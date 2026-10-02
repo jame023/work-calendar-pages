@@ -4,15 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f766e">
+<meta name="application-name" content="RFID ตรวจเวลางาน">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="RFID ตรวจเวลา">
 <title>ตรวจสอบการสแกนบัตร RFID</title>
 <link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
 <style>
 :root{font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;color:#172033;background:#eef3f6}
 *{box-sizing:border-box}body{margin:0;background:#eef3f6}
 header{background:linear-gradient(135deg,#115e59,#0f766e);color:white;padding:24px 20px 28px}
 .head{max-width:960px;margin:auto;display:flex;align-items:center;gap:18px}.badge{background:white;color:#0f766e;font-weight:800;border-radius:18px;padding:16px}
 h1{margin:0;font-size:30px;line-height:1.2}.sub{opacity:.9;margin-top:8px}button,input,select{font:inherit}
-.settings{margin-left:auto;min-width:120px;padding:14px 18px;border:1px solid #ffffff55;background:transparent;color:white;border-radius:18px;font-weight:700}
+.header-actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.settings,.install{min-width:120px;padding:14px 18px;border:1px solid #ffffff55;border-radius:18px;font-weight:700}
+.settings{background:transparent;color:white}
+.install{background:white;color:#0f766e;border-color:white}
+.install[hidden]{display:none}
 main{max-width:960px;margin:auto;padding:20px}.card{background:white;border:1px solid #d7e0e5;border-radius:22px;padding:22px;margin-bottom:20px}
 .status-title{font-size:24px;font-weight:800}.muted{color:#667085}.error{color:#b42318}.ok{color:#067647}
 .filters{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{font-weight:700}
@@ -24,11 +34,11 @@ input,select{width:100%;margin-top:8px;padding:14px;border:1px solid #d0d5dd;bor
 .pill{padding:4px 9px;border-radius:999px;background:#f2f4f7;font-size:13px}.hash{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;word-break:break-all;color:#667085}
 dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backdrop{background:#0008}.modal{padding:22px}.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
 .secondary,.primary{padding:11px 16px;border-radius:12px;font-weight:700}.secondary{background:white;border:1px solid #d0d5dd}.primary{border:0;background:#0f766e;color:white}
-@media(max-width:600px){h1{font-size:28px}.head{align-items:flex-start}.filters{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){h1{font-size:28px}.head{align-items:flex-start}.header-actions{flex-direction:column}.settings,.install{min-width:106px;padding:12px}.filters{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
-<header><div class="head"><div class="badge">RFID</div><div><h1>ตรวจสอบ<br>การสแกนบัตร</h1><div class="sub">เวลาสแกนจริง · Audit · Hash Chain</div></div><button class="settings" id="settingsBtn">ตั้งค่า</button></div></header>
+<header><div class="head"><div class="badge">RFID</div><div><h1>ตรวจสอบ<br>การสแกนบัตร</h1><div class="sub">เวลาสแกนจริง · Audit · Hash Chain</div></div><div class="header-actions"><button class="install" id="installBtn">ติดตั้งแอป</button><button class="settings" id="settingsBtn">ตั้งค่า</button></div></div></header>
 <main>
 <section class="card"><div class="status-title" id="statusTitle">กำลังตรวจสอบหลักฐาน…</div><div class="muted" id="statusText">หน้าจออ่านอย่างเดียว</div></section>
 <section class="card filters">
@@ -42,11 +52,43 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
 <section class="card"><div class="chain"><span class="dot" id="chainDot"></span><span id="chainText">ยังไม่ได้ตรวจ Hash Chain</span></div></section>
 <section class="card"><div class="status-title" style="font-size:20px">หลักฐานการสแกน</div><div id="eventsList" class="muted" style="margin-top:12px">ยังไม่มีข้อมูล</div></section>
 </main>
+<dialog id="installDialog"><div class="modal"><h2>ติดตั้งแอปบนโทรศัพท์</h2><div id="installHelp" class="muted"></div><div class="modal-actions"><button class="primary" id="closeInstall">เข้าใจแล้ว</button></div></div></dialog>
 <dialog id="settingsDialog"><div class="modal"><h2>ตั้งค่า Apps Script</h2><p class="muted">วาง Web App URL ที่ลงท้ายด้วย <b>/exec</b></p><input id="urlInput" placeholder="https://script.google.com/macros/s/.../exec"><div class="modal-actions"><button class="secondary" id="cancelSettings">ยกเลิก</button><button class="primary" id="saveSettings">บันทึก</button></div></div></dialog>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   const state = { url: localStorage.getItem("rfidAppsScriptUrl") || "" };
+  let deferredInstallPrompt = null;
+
+  function isIos() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  }
+
+  function isStandalone() {
+    return window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+  }
+
+  function refreshInstallButton() {
+    const button = $("installBtn");
+    if (!button) return;
+    button.hidden = isStandalone();
+  }
+
+  function showInstallHelp() {
+    const help = $("installHelp");
+    if (isIos()) {
+      help.innerHTML =
+        "บน iPhone/iPad ให้เปิดหน้านี้ด้วย Safari แล้วกดปุ่ม <b>แชร์</b> → " +
+        "<b>เพิ่มไปยังหน้าจอโฮม</b> → <b>เพิ่ม</b>";
+    } else {
+      help.innerHTML =
+        "ถ้าเบราว์เซอร์ยังไม่แสดงหน้าต่างติดตั้ง ให้เปิดเมนูเบราว์เซอร์แล้วเลือก " +
+        "<b>ติดตั้งแอป</b> หรือ <b>เพิ่มไปยังหน้าจอหลัก</b>";
+    }
+    $("installDialog").showModal();
+  }
+
   function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
   function setStatus(a,b,c){$("statusTitle").textContent=a;$("statusText").textContent=b||"";$("statusText").className=c||"muted";}
   function validUrl(v){return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec(?:\?.*)?$/.test(v);}
@@ -55,6 +97,32 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
   function jsonp(url,params){return new Promise((resolve,reject)=>{const cb="__rfidCb_"+Date.now()+"_"+Math.floor(Math.random()*1e5);const s=document.createElement("script");const t=setTimeout(()=>done(new Error("Apps Script ตอบกลับช้าเกินกำหนด")),20000);function done(err,val){clearTimeout(t);try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();err?reject(err):resolve(val)}window[cb]=data=>done(null,data);s.onerror=()=>done(new Error("เชื่อมต่อ Apps Script ไม่สำเร็จ"));const u=new URL(url);Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v));u.searchParams.set("callback",cb);s.src=u.toString();document.head.appendChild(s);});}
   function render(data){const t=data.totals||{};$("eventsCount").textContent=t.events||0;$("checkinCount").textContent=t.checkin||0;$("checkoutCount").textContent=t.checkout||0;$("duplicateCount").textContent=t.duplicate||0;const c=data.chain||{};$("chainDot").className="dot "+(c.ok?"good":"bad");$("chainText").textContent=c.ok?`Hash Chain ถูกต้อง (${c.checked||0} รายการ)`:`พบ Hash Chain ผิดปกติ ${c.invalid||0} รายการ`;$("employeeList").innerHTML="";(data.employees||[]).forEach(n=>{const o=document.createElement("option");o.value=n;$("employeeList").appendChild(o)});const rows=data.rows||[];$("eventsList").innerHTML=rows.length?rows.map(r=>`<article class="event"><div class="event-head"><div><b>${esc(r.name||"ยังไม่มีชื่อ")}</b><div class="muted">${esc(r.scanTime||r.serverReceivedTime||"-")}</div></div><span class="pill">${esc(r.result||"-")}</span></div><div style="margin-top:8px">UID: <b>${esc(r.uidMasked||"-")}</b> · SEQ: ${esc(r.seq||"-")}</div><div class="muted">เวลา: ${esc(r.timeSource||"-")} · Chain: ${r.chainValid?"✓":"✕"}</div><div class="hash">Event: ${esc(r.eventId||"-")}<br>Hash: ${esc(shortHash(r.eventHash))}</div></article>`).join(""):'<div class="muted">ไม่พบ Event ตามตัวกรอง</div>';}
   async function refresh(){if(!state.url){setStatus("ยังไม่ได้ตั้งค่า","กด “ตั้งค่า” แล้วใส่ Apps Script Web App URL","error");return}setStatus("กำลังตรวจสอบหลักฐาน…","หน้าจออ่านอย่างเดียว","muted");$("refreshBtn").disabled=true;try{const data=await jsonp(state.url,{api:"rfid-public",date:$("dateInput").value||today(),name:$("employeeInput").value.trim(),result:$("resultInput").value});if(!data||data.ok!==true)throw new Error(data&&data.error||"Apps Script ส่งข้อมูลไม่ถูกต้อง");render(data);setStatus("เชื่อมต่อสำเร็จ",`ตรวจล่าสุด ${new Date().toLocaleTimeString("th-TH")}`,"ok")}catch(e){setStatus("เชื่อมต่อ Apps Script ไม่สำเร็จ",String(e&&e.message||e),"error")}finally{$("refreshBtn").disabled=false}}
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    refreshInstallButton();
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    refreshInstallButton();
+  });
+
+  $("installBtn").addEventListener("click", async () => {
+    if (isStandalone()) return;
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      try { await deferredInstallPrompt.userChoice; } catch (_) {}
+      deferredInstallPrompt = null;
+      refreshInstallButton();
+      return;
+    }
+    showInstallHelp();
+  });
+
+  $("closeInstall").addEventListener("click", () => $("installDialog").close());
+  refreshInstallButton();
+
   $("dateInput").value=today();$("refreshBtn").addEventListener("click",refresh);$("settingsBtn").addEventListener("click",()=>{$("urlInput").value=state.url;$("settingsDialog").showModal()});$("cancelSettings").addEventListener("click",()=>$("settingsDialog").close());$("saveSettings").addEventListener("click",()=>{const v=$("urlInput").value.trim();if(!validUrl(v)){alert("URL ต้องเป็น Apps Script Web App และลงท้ายด้วย /exec");return}state.url=v;localStorage.setItem("rfidAppsScriptUrl",v);$("settingsDialog").close();refresh()});if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});refresh();
 })();
 </script>
