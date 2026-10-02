@@ -106,9 +106,43 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
   function validUrl(v){return Boolean(canonicalApiUrl(v));}
   function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
   function shortHash(v){return v?v.slice(0,12)+"…"+v.slice(-8):"-";}
+  async function fetchAnonymous(url,params){
+    const u=new URL(url);
+    Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v));
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),20000);
+    try{
+      const response=await fetch(u.toString(),{
+        method:"GET",
+        mode:"cors",
+        credentials:"omit",
+        redirect:"follow",
+        cache:"no-store",
+        signal:controller.signal
+      });
+      if(!response.ok)throw new Error("HTTP "+response.status);
+      return await response.json();
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+
   function jsonp(url,params){return new Promise((resolve,reject)=>{const cb="__rfidCb_"+Date.now()+"_"+Math.floor(Math.random()*1e5);const s=document.createElement("script");const t=setTimeout(()=>done(new Error("Apps Script ตอบกลับช้าเกินกำหนด")),20000);function done(err,val){clearTimeout(t);try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();err?reject(err):resolve(val)}window[cb]=data=>done(null,data);s.onerror=()=>done(new Error("เชื่อมต่อ Apps Script ไม่สำเร็จ"));const u=new URL(url);Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v));u.searchParams.set("callback",cb);s.src=u.toString();document.head.appendChild(s);});}
+
+  async function requestApi(url,params){
+    try{
+      return await fetchAnonymous(url,params);
+    }catch(fetchError){
+      try{
+        return await jsonp(url,params);
+      }catch(jsonpError){
+        const detail=fetchError&&fetchError.name==="AbortError"?"หมดเวลารอ Apps Script":String(fetchError&&fetchError.message||fetchError);
+        throw new Error("เชื่อมต่อแบบไม่ส่งบัญชี Google ไม่สำเร็จ: "+detail);
+      }
+    }
+  }
   function render(data){const t=data.totals||{};$("eventsCount").textContent=t.events||0;$("checkinCount").textContent=t.checkin||0;$("checkoutCount").textContent=t.checkout||0;$("duplicateCount").textContent=t.duplicate||0;const c=data.chain||{};$("chainDot").className="dot "+(c.ok?"good":"bad");$("chainText").textContent=c.ok?`Hash Chain ถูกต้อง (${c.checked||0} รายการ)`:`พบ Hash Chain ผิดปกติ ${c.invalid||0} รายการ`;$("employeeList").innerHTML="";(data.employees||[]).forEach(n=>{const o=document.createElement("option");o.value=n;$("employeeList").appendChild(o)});const rows=data.rows||[];$("eventsList").innerHTML=rows.length?rows.map(r=>`<article class="event"><div class="event-head"><div><b>${esc(r.name||"ยังไม่มีชื่อ")}</b><div class="muted">${esc(r.scanTime||r.serverReceivedTime||"-")}</div></div><span class="pill">${esc(r.result||"-")}</span></div><div style="margin-top:8px">UID: <b>${esc(r.uidMasked||"-")}</b> · SEQ: ${esc(r.seq||"-")}</div><div class="muted">เวลา: ${esc(r.timeSource||"-")} · Chain: ${r.chainValid?"✓":"✕"}</div><div class="hash">Event: ${esc(r.eventId||"-")}<br>Hash: ${esc(shortHash(r.eventHash))}</div></article>`).join(""):'<div class="muted">ไม่พบ Event ตามตัวกรอง</div>';}
-  async function refresh(){if(!state.url){setStatus("ยังไม่ได้ตั้งค่า","กด “ตั้งค่า” แล้วใส่ Apps Script Web App URL","error");return}setStatus("กำลังตรวจสอบหลักฐาน…","หน้าจออ่านอย่างเดียว","muted");$("refreshBtn").disabled=true;try{const data=await jsonp(state.url,{api:"rfid-public",date:$("dateInput").value||today(),name:$("employeeInput").value.trim(),result:$("resultInput").value});if(!data||data.ok!==true)throw new Error(data&&data.error||"Apps Script ส่งข้อมูลไม่ถูกต้อง");render(data);setStatus("เชื่อมต่อสำเร็จ",`ตรวจล่าสุด ${new Date().toLocaleTimeString("th-TH")}`,"ok")}catch(e){setStatus("เชื่อมต่อ Apps Script ไม่สำเร็จ",String(e&&e.message||e),"error")}finally{$("refreshBtn").disabled=false}}
+  async function refresh(){if(!state.url){setStatus("ยังไม่ได้ตั้งค่า","กด “ตั้งค่า” แล้วใส่ Apps Script Web App URL","error");return}setStatus("กำลังตรวจสอบหลักฐาน…","หน้าจออ่านอย่างเดียว","muted");$("refreshBtn").disabled=true;try{const data=await requestApi(state.url,{api:"rfid-public",date:$("dateInput").value||today(),name:$("employeeInput").value.trim(),result:$("resultInput").value});if(!data||data.ok!==true)throw new Error(data&&data.error||"Apps Script ส่งข้อมูลไม่ถูกต้อง");render(data);setStatus("เชื่อมต่อสำเร็จ",`ตรวจล่าสุด ${new Date().toLocaleTimeString("th-TH")}`,"ok")}catch(e){setStatus("เชื่อมต่อ Apps Script ไม่สำเร็จ",String(e&&e.message||e),"error")}finally{$("refreshBtn").disabled=false}}
   window.addEventListener("beforeinstallprompt", event => {
     event.preventDefault();
     deferredInstallPrompt = event;
