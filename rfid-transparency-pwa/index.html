@@ -1,377 +1,61 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0f766e">
-  <title>ตรวจสอบการสแกนบัตร</title>
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icon-192.png">
-  <link rel="apple-touch-icon" href="./icon-192.png">
-  <style>
-    :root{
-      --bg:#f4f7f9;--card:#fff;--text:#172033;--muted:#667085;
-      --line:#d9e2e8;--green:#0f766e;--green2:#e8f7f3;
-      --red:#b42318;--red2:#fff1f0;--amber:#a15c00;--amber2:#fff6e6;
-      --blue:#175cd3;--shadow:0 8px 24px rgba(15,42,61,.08)
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;background:var(--bg);color:var(--text);
-      font-family:"Noto Sans Thai","Leelawadee UI",Tahoma,sans-serif
-    }
-    header{
-      background:linear-gradient(135deg,#103d37,#0f766e);
-      color:#fff;padding:calc(18px + env(safe-area-inset-top)) 16px 18px
-    }
-    .wrap{width:min(980px,calc(100% - 24px));margin:auto}
-    .headrow{display:flex;align-items:center;gap:12px}
-    .logo{
-      width:50px;height:50px;border-radius:14px;background:#fff;color:var(--green);
-      display:grid;place-items:center;font-weight:900;flex:none
-    }
-    h1{margin:0;font-size:26px}.subtitle{margin:4px 0 0;opacity:.9}
-    .gear{
-      margin-left:auto;border:1px solid #ffffff55;background:#ffffff18;color:#fff;
-      border-radius:10px;padding:9px 12px;font:inherit;font-weight:800
-    }
-    main{padding:14px 0 34px}
-    .trust,.filters,.metric,.event,.notice,.setup-card{
-      background:var(--card);border:1px solid var(--line);
-      border-radius:16px;box-shadow:var(--shadow)
-    }
-    .trust{padding:16px;display:flex;gap:12px;align-items:flex-start}
-    .trust.good{border-left:6px solid var(--green)}
-    .trust.bad{border-left:6px solid var(--red)}
-    .trust strong{display:block;font-size:18px}
-    .trust span{display:block;color:var(--muted);margin-top:3px}
-    .filters{
-      display:grid;grid-template-columns:1fr 1fr 1fr auto;
-      gap:10px;padding:14px;margin-top:14px;align-items:end
-    }
-    label{display:grid;gap:6px;font-weight:700;color:#344054}
-    input,select,button{
-      width:100%;min-height:46px;border-radius:10px;
-      border:1px solid var(--line);padding:8px 10px;font:inherit;background:#fff
-    }
-    button{background:var(--green);color:#fff;border:0;font-weight:800;cursor:pointer}
-    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
-    .metric{padding:14px}.metric span{display:block;color:var(--muted);font-size:13px}
-    .metric strong{display:block;font-size:26px;margin-top:4px}
-    .notice{padding:12px 14px;margin-top:14px;color:#475467}
-    .statusline{margin:16px 2px 8px;color:var(--muted)}
-    .events{display:grid;gap:10px}
-    .event{padding:15px}
-    .event-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-    .name{font-size:20px;font-weight:900}
-    .time{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:4px}
-    .pill{display:inline-block;border-radius:999px;padding:5px 10px;font-weight:800;font-size:13px}
-    .pill.in{background:var(--green2);color:var(--green)}
-    .pill.out{background:#eaf2ff;color:var(--blue)}
-    .pill.dup{background:var(--amber2);color:var(--amber)}
-    .pill.other{background:#eef2f6;color:#475467}
-    .meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
-    .meta div{padding:9px;background:#f8fafb;border-radius:10px}
-    .meta small{display:block;color:var(--muted)}
-    .meta b{display:block;margin-top:2px;overflow-wrap:anywhere}
-    details{margin-top:10px}
-    summary{cursor:pointer;color:var(--green);font-weight:800}
-    .hash{font-family:Consolas,monospace;font-size:12px;overflow-wrap:anywhere;color:#475467}
-    .integrity-ok{color:var(--green);font-weight:800}
-    .integrity-bad{color:var(--red);font-weight:800}
-    .empty{text-align:center;padding:30px;color:var(--muted)}
-    .overlay{
-      position:fixed;inset:0;background:rgba(15,31,40,.45);display:grid;
-      place-items:center;padding:18px;z-index:20
-    }
-    .overlay[hidden]{display:none}
-    .setup-card{width:min(560px,100%);padding:20px}
-    .setup-card h2{margin:0 0 6px}
-    .setup-card p{color:var(--muted);line-height:1.5}
-    .setup-card label{margin-top:12px}
-    .setup-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}
-    .secondary{background:#eef2f6;color:#344054}
-    .error{color:var(--red);font-weight:700;min-height:22px}
-    .offline{
-      position:fixed;left:50%;top:8px;transform:translateX(-50%);
-      background:#7a2e0e;color:#fff;border-radius:999px;padding:7px 12px;
-      font-weight:800;z-index:30;display:none
-    }
-    .offline.show{display:block}
-    @media(max-width:720px){
-      .wrap{width:calc(100% - 18px)}
-      h1{font-size:22px}.subtitle{font-size:13px}
-      .logo{width:44px;height:44px}
-      .filters{grid-template-columns:1fr 1fr}
-      .filters button{grid-column:1/-1}
-      .metrics{grid-template-columns:1fr 1fr}
-      .meta{grid-template-columns:1fr 1fr}
-      .setup-actions{grid-template-columns:1fr}
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>ตรวจสอบการสแกนบัตร RFID</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<style>
+:root{font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;color:#172033;background:#eef3f6}
+*{box-sizing:border-box}body{margin:0;background:#eef3f6}
+header{background:linear-gradient(135deg,#115e59,#0f766e);color:white;padding:24px 20px 28px}
+.head{max-width:960px;margin:auto;display:flex;align-items:center;gap:18px}.badge{background:white;color:#0f766e;font-weight:800;border-radius:18px;padding:16px}
+h1{margin:0;font-size:30px;line-height:1.2}.sub{opacity:.9;margin-top:8px}button,input,select{font:inherit}
+.settings{margin-left:auto;min-width:120px;padding:14px 18px;border:1px solid #ffffff55;background:transparent;color:white;border-radius:18px;font-weight:700}
+main{max-width:960px;margin:auto;padding:20px}.card{background:white;border:1px solid #d7e0e5;border-radius:22px;padding:22px;margin-bottom:20px}
+.status-title{font-size:24px;font-weight:800}.muted{color:#667085}.error{color:#b42318}.ok{color:#067647}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{font-weight:700}
+input,select{width:100%;margin-top:8px;padding:14px;border:1px solid #d0d5dd;border-radius:14px;background:white}
+.refresh{grid-column:1/-1;padding:16px;border:0;border-radius:14px;background:#0f766e;color:white;font-weight:800}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}.stat{background:white;border:1px solid #d7e0e5;border-radius:22px;padding:20px}.stat b{display:block;font-size:34px;margin-top:6px}
+.chain{display:flex;align-items:center;gap:10px;font-weight:800}.dot{width:11px;height:11px;border-radius:50%;background:#98a2b3}.dot.good{background:#12b76a}.dot.bad{background:#f04438}
+.event{border-top:1px solid #eaecf0;padding:16px 0}.event:first-child{border-top:0}.event-head{display:flex;justify-content:space-between;gap:10px}
+.pill{padding:4px 9px;border-radius:999px;background:#f2f4f7;font-size:13px}.hash{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;word-break:break-all;color:#667085}
+dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backdrop{background:#0008}.modal{padding:22px}.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+.secondary,.primary{padding:11px 16px;border-radius:12px;font-weight:700}.secondary{background:white;border:1px solid #d0d5dd}.primary{border:0;background:#0f766e;color:white}
+@media(max-width:600px){h1{font-size:28px}.head{align-items:flex-start}.filters{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+</style>
 </head>
 <body>
-<div id="offline" class="offline">ออฟไลน์ · ยังโหลดข้อมูลสดไม่ได้</div>
-<header>
-  <div class="wrap headrow">
-    <div class="logo">RFID</div>
-    <div>
-      <h1>ตรวจสอบการสแกนบัตร</h1>
-      <p class="subtitle">เวลาแตะจริง · Audit · Hash Chain</p>
-    </div>
-    <button class="gear" type="button" onclick="openSettings()">ตั้งค่า</button>
-  </div>
-</header>
-
-<main class="wrap">
-  <section id="trust" class="trust">
-    <div>
-      <strong>กำลังตรวจสอบหลักฐาน…</strong>
-      <span>หน้าอ่านอย่างเดียว</span>
-    </div>
-  </section>
-
-  <section class="filters">
-    <label>วันที่<input id="date" type="date"></label>
-    <label>พนักงาน<input id="employee" list="employeeList" placeholder="ทุกคน"><datalist id="employeeList"></datalist></label>
-    <label>ผลสแกน<select id="result"><option value="">ทั้งหมด</option></select></label>
-    <button type="button" onclick="loadData(false)">รีเฟรช</button>
-  </section>
-
-  <section class="metrics">
-    <div class="metric"><span>Event วันนี้</span><strong id="events">0</strong></div>
-    <div class="metric"><span>เข้างาน</span><strong id="checkins">0</strong></div>
-    <div class="metric"><span>เลิกงาน</span><strong id="checkouts">0</strong></div>
-    <div class="metric"><span>สแกนซ้ำ</span><strong id="duplicates">0</strong></div>
-  </section>
-
-  <section class="notice">แสดง UID แบบปิดบัง และไม่มีสิทธิ์แก้ไข/ลบข้อมูล</section>
-  <p id="status" class="statusline">กำลังโหลด…</p>
-  <section id="eventList" class="events"></section>
+<header><div class="head"><div class="badge">RFID</div><div><h1>ตรวจสอบ<br>การสแกนบัตร</h1><div class="sub">เวลาสแกนจริง · Audit · Hash Chain</div></div><button class="settings" id="settingsBtn">ตั้งค่า</button></div></header>
+<main>
+<section class="card"><div class="status-title" id="statusTitle">กำลังตรวจสอบหลักฐาน…</div><div class="muted" id="statusText">หน้าจออ่านอย่างเดียว</div></section>
+<section class="card filters">
+<label>วันที่<input type="date" id="dateInput"></label>
+<label>พนักงาน<input id="employeeInput" list="employeeList" placeholder="ทุกคน"><datalist id="employeeList"></datalist></label>
+<label>ผลสแกน<select id="resultInput"><option value="all">ทั้งหมด</option><option value="checkin">เข้างาน</option><option value="checkout">เลิกงาน</option><option value="duplicate">สแกนซ้ำ</option><option value="unknown">ไม่พบชื่อ</option></select></label>
+<button class="refresh" id="refreshBtn">รีเฟรช</button>
+</section>
+<section class="stats"><div class="stat"><span class="muted">Event วันนี้</span><b id="eventsCount">0</b></div><div class="stat"><span class="muted">เข้างาน</span><b id="checkinCount">0</b></div><div class="stat"><span class="muted">เลิกงาน</span><b id="checkoutCount">0</b></div><div class="stat"><span class="muted">สแกนซ้ำ</span><b id="duplicateCount">0</b></div></section>
+<section class="card" style="margin-top:20px">แสดง UID แบบปิดบัง และไม่มีสิทธิ์แก้ไข/ลบข้อมูล</section>
+<section class="card"><div class="chain"><span class="dot" id="chainDot"></span><span id="chainText">ยังไม่ได้ตรวจ Hash Chain</span></div></section>
+<section class="card"><div class="status-title" style="font-size:20px">หลักฐานการสแกน</div><div id="eventsList" class="muted" style="margin-top:12px">ยังไม่มีข้อมูล</div></section>
 </main>
-
-<div id="setup" class="overlay" hidden>
-  <section class="setup-card">
-    <h2>ตั้งค่าแอป</h2>
-    <p>ใส่ Web App URL ของ Apps Script และ Viewer Token</p>
-    <label>Apps Script Web App URL
-      <input id="webAppUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
-    </label>
-    <label>Viewer Token
-      <input id="viewerToken" type="password" autocomplete="off">
-    </label>
-    <p id="setupError" class="error"></p>
-    <div class="setup-actions">
-      <button type="button" onclick="saveSettings()">บันทึก</button>
-      <button class="secondary" type="button" onclick="closeSettings()">ยกเลิก</button>
-    </div>
-  </section>
-</div>
-
+<dialog id="settingsDialog"><div class="modal"><h2>ตั้งค่า Apps Script</h2><p class="muted">วาง Web App URL ที่ลงท้ายด้วย <b>/exec</b></p><input id="urlInput" placeholder="https://script.google.com/macros/s/.../exec"><div class="modal-actions"><button class="secondary" id="cancelSettings">ยกเลิก</button><button class="primary" id="saveSettings">บันทึก</button></div></div></dialog>
 <script>
-  const KEY_URL = "rfidTransparencyWebAppUrl";
-  const KEY_TOKEN = "rfidTransparencyViewerToken";
-  const AUTO_REFRESH_MS = 15000;
-  let loading = false;
-  let callbackCounter = 0;
-
-  function el(id){ return document.getElementById(id); }
-  function esc(v){
-    return String(v == null ? "" : v)
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-  function normalizeWebAppUrl(value){
-    const raw = String(value || "").trim();
-    let url;
-    try { url = new URL(raw); } catch(e) { throw new Error("Web App URL ไม่ถูกต้อง"); }
-    if(url.protocol !== "https:") throw new Error("ต้องเป็น HTTPS");
-    if(url.hostname !== "script.google.com") throw new Error("URL ต้องเป็น script.google.com");
-    if(!/^\/macros\/s\/[^/]+\/exec$/.test(url.pathname)) throw new Error("ต้องเป็น Web App URL ที่ลงท้าย /exec");
-    url.search = ""; url.hash = "";
-    return url.toString();
-  }
-  function settings(){
-    return {
-      url: localStorage.getItem(KEY_URL) || "",
-      token: localStorage.getItem(KEY_TOKEN) || ""
-    };
-  }
-  function openSettings(){
-    const s = settings();
-    el("webAppUrl").value = s.url;
-    el("viewerToken").value = s.token;
-    el("setupError").textContent = "";
-    el("setup").hidden = false;
-  }
-  function closeSettings(){
-    if(settings().url && settings().token) el("setup").hidden = true;
-  }
-  function saveSettings(){
-    try{
-      const url = normalizeWebAppUrl(el("webAppUrl").value);
-      const token = String(el("viewerToken").value || "").trim();
-      if(token.length < 32) throw new Error("Viewer Token ไม่ถูกต้อง");
-      localStorage.setItem(KEY_URL,url);
-      localStorage.setItem(KEY_TOKEN,token);
-      el("setup").hidden = true;
-      el("setupError").textContent = "";
-      loadData(false);
-    }catch(error){
-      el("setupError").textContent = error.message || String(error);
-    }
-  }
-  function jsonp(url, timeoutMs){
-    return new Promise(function(resolve,reject){
-      const callbackName = "__rfidJsonp" + Date.now() + "_" + (++callbackCounter);
-      const script = document.createElement("script");
-      let finished = false;
-      const timer = setTimeout(function(){
-        cleanup();
-        reject(new Error("หมดเวลารอ Apps Script"));
-      }, timeoutMs || 15000);
-
-      function cleanup(){
-        if(finished) return;
-        finished = true;
-        clearTimeout(timer);
-        try { delete window[callbackName]; } catch(e) { window[callbackName] = undefined; }
-        if(script.parentNode) script.parentNode.removeChild(script);
-      }
-
-      window[callbackName] = function(data){
-        cleanup();
-        resolve(data);
-      };
-
-      const requestUrl = new URL(url);
-      requestUrl.searchParams.set("callback", callbackName);
-      script.src = requestUrl.toString();
-      script.async = true;
-      script.onerror = function(){
-        cleanup();
-        reject(new Error("เชื่อมต่อ Apps Script ไม่สำเร็จ"));
-      };
-      document.head.appendChild(script);
-    });
-  }
-  async function loadData(auto){
-    if(loading || !navigator.onLine) return;
-    const s = settings();
-    if(!s.url || !s.token){ openSettings(); return; }
-
-    loading = true;
-    if(!auto) el("status").textContent = "กำลังโหลด…";
-    try{
-      const u = new URL(s.url);
-      u.searchParams.set("api","transparency");
-      u.searchParams.set("token",s.token);
-      u.searchParams.set("date",el("date").value);
-      u.searchParams.set("employee",el("employee").value);
-      u.searchParams.set("result",el("result").value);
-      u.searchParams.set("limit","150");
-
-      const data = await jsonp(u.toString(),15000);
-      if(!data || data.ok === false) throw new Error(data && data.error ? data.error : "โหลดข้อมูลไม่สำเร็จ");
-      render(data);
-    }catch(error){
-      el("status").textContent = error.message || String(error);
-    }finally{
-      loading = false;
-    }
-  }
-  function render(data){
-    if(!el("date").value) el("date").value = data.selectedDate;
-    el("events").textContent = data.totals.events;
-    el("checkins").textContent = data.totals.checkins;
-    el("checkouts").textContent = data.totals.checkouts;
-    el("duplicates").textContent = data.totals.duplicates;
-
-    const trust = el("trust");
-    trust.className = "trust " + (data.chain.ok ? "good" : "bad");
-    trust.innerHTML = data.chain.ok
-      ? '<div><strong>หลักฐานต่อเนื่องปกติ</strong><span>ตรวจ Hash และการเชื่อมโยง ' +
-        esc(data.chain.checkedRows) + ' Event แล้ว</span></div>'
-      : '<div><strong>พบความไม่สอดคล้องของหลักฐาน</strong><span>Event ที่ต้องตรวจ: ' +
-        esc(data.chain.invalidEventIds.join(", ")) + '</span></div>';
-
-    el("employeeList").innerHTML = (data.employees || []).map(function(name){
-      return '<option value="' + esc(name) + '">';
-    }).join("");
-
-    const currentResult = el("result").value;
-    el("result").innerHTML = '<option value="">ทั้งหมด</option>' +
-      (data.results || []).map(function(v){
-        return '<option value="' + esc(v) + '">' + esc(v) + '</option>';
-      }).join("");
-    el("result").value = currentResult;
-
-    const rows = data.events || [];
-    el("eventList").innerHTML = rows.length
-      ? rows.map(renderEvent).join("")
-      : '<div class="empty">ไม่พบข้อมูลตามตัวกรอง</div>';
-
-    el("status").textContent = "อัปเดตล่าสุด " + data.generatedAt +
-      " · เวลา " + data.timezone + " · อัตโนมัติทุก 15 วินาที";
-  }
-  function renderEvent(row){
-    const integrity = row.hashValid && row.linkValid;
-    return '<article class="event">' +
-      '<div class="event-top"><div><div class="name">' + esc(row.employee || "ไม่พบชื่อ") +
-      '</div><div class="time">' + esc(timeOnly(row.scanTime)) + '</div></div>' +
-      '<span class="pill ' + pillClass(row.result) + '">' + esc(row.result || "-") + '</span></div>' +
-      '<div class="meta">' +
-        meta("SEQ",row.seq || "-") +
-        meta("UID",row.uidMasked || "-") +
-        meta("เวลาถึง Server",timeOnly(row.serverReceivedTime)) +
-        meta("Delay",row.delaySeconds == null ? "-" : row.delaySeconds + " วินาที") +
-        meta("แหล่งเวลา",row.timeSource || "-") +
-        meta("หลักฐาน",integrity ? "ผ่าน" : "ต้องตรวจ") +
-      '</div>' +
-      '<details><summary>ดูหลักฐาน Event</summary>' +
-        '<p><b>Event ID</b><br><span class="hash">' + esc(row.eventId) + '</span></p>' +
-        '<p><b>Raw Hash</b><br><span class="hash">' + esc(row.rawHash) + '</span></p>' +
-        '<p><b>Previous Hash</b><br><span class="hash">' + esc(row.previousHash || "(เริ่มต้น Chain)") + '</span></p>' +
-        '<p><b>Event Hash</b><br><span class="hash">' + esc(row.eventHash) + '</span></p>' +
-        '<p class="' + (integrity ? "integrity-ok" : "integrity-bad") + '">' +
-        (integrity ? "Hash/Chain ถูกต้อง" : "Hash/Chain ไม่ตรง ต้องตรวจสอบ") +
-        '</p></details></article>';
-  }
-  function meta(label,value){
-    return '<div><small>' + esc(label) + '</small><b>' + esc(value) + '</b></div>';
-  }
-  function pillClass(result){
-    if(result === "เข้างาน" || result === "ไม่พบชื่อ") return "in";
-    if(result === "เลิกงาน") return "out";
-    if(result === "ซ้ำ") return "dup";
-    return "other";
-  }
-  function timeOnly(value){
-    const s = String(value || "");
-    return s.length >= 19 ? s.slice(11,19) : s || "-";
-  }
-  function updateOnlineState(){
-    el("offline").classList.toggle("show",!navigator.onLine);
-  }
-
-  window.addEventListener("online",function(){updateOnlineState();loadData(true);});
-  window.addEventListener("offline",updateOnlineState);
-  document.addEventListener("visibilitychange",function(){
-    if(!document.hidden) loadData(true);
-  });
-  setInterval(function(){
-    if(!document.hidden) loadData(true);
-  },AUTO_REFRESH_MS);
-
-  if("serviceWorker" in navigator){
-    window.addEventListener("load",function(){
-      navigator.serviceWorker.register("./sw.js").catch(function(){});
-    });
-  }
-
-  updateOnlineState();
-  if(settings().url && settings().token) loadData(false);
-  else openSettings();
+(() => {
+  const $ = id => document.getElementById(id);
+  const state = { url: localStorage.getItem("rfidAppsScriptUrl") || "" };
+  function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
+  function setStatus(a,b,c){$("statusTitle").textContent=a;$("statusText").textContent=b||"";$("statusText").className=c||"muted";}
+  function validUrl(v){return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec(?:\?.*)?$/.test(v);}
+  function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+  function shortHash(v){return v?v.slice(0,12)+"…"+v.slice(-8):"-";}
+  function jsonp(url,params){return new Promise((resolve,reject)=>{const cb="__rfidCb_"+Date.now()+"_"+Math.floor(Math.random()*1e5);const s=document.createElement("script");const t=setTimeout(()=>done(new Error("Apps Script ตอบกลับช้าเกินกำหนด")),20000);function done(err,val){clearTimeout(t);try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();err?reject(err):resolve(val)}window[cb]=data=>done(null,data);s.onerror=()=>done(new Error("เชื่อมต่อ Apps Script ไม่สำเร็จ"));const u=new URL(url);Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v));u.searchParams.set("callback",cb);s.src=u.toString();document.head.appendChild(s);});}
+  function render(data){const t=data.totals||{};$("eventsCount").textContent=t.events||0;$("checkinCount").textContent=t.checkin||0;$("checkoutCount").textContent=t.checkout||0;$("duplicateCount").textContent=t.duplicate||0;const c=data.chain||{};$("chainDot").className="dot "+(c.ok?"good":"bad");$("chainText").textContent=c.ok?`Hash Chain ถูกต้อง (${c.checked||0} รายการ)`:`พบ Hash Chain ผิดปกติ ${c.invalid||0} รายการ`;$("employeeList").innerHTML="";(data.employees||[]).forEach(n=>{const o=document.createElement("option");o.value=n;$("employeeList").appendChild(o)});const rows=data.rows||[];$("eventsList").innerHTML=rows.length?rows.map(r=>`<article class="event"><div class="event-head"><div><b>${esc(r.name||"ยังไม่มีชื่อ")}</b><div class="muted">${esc(r.scanTime||r.serverReceivedTime||"-")}</div></div><span class="pill">${esc(r.result||"-")}</span></div><div style="margin-top:8px">UID: <b>${esc(r.uidMasked||"-")}</b> · SEQ: ${esc(r.seq||"-")}</div><div class="muted">เวลา: ${esc(r.timeSource||"-")} · Chain: ${r.chainValid?"✓":"✕"}</div><div class="hash">Event: ${esc(r.eventId||"-")}<br>Hash: ${esc(shortHash(r.eventHash))}</div></article>`).join(""):'<div class="muted">ไม่พบ Event ตามตัวกรอง</div>';}
+  async function refresh(){if(!state.url){setStatus("ยังไม่ได้ตั้งค่า","กด “ตั้งค่า” แล้วใส่ Apps Script Web App URL","error");return}setStatus("กำลังตรวจสอบหลักฐาน…","หน้าจออ่านอย่างเดียว","muted");$("refreshBtn").disabled=true;try{const data=await jsonp(state.url,{api:"rfid-public",date:$("dateInput").value||today(),name:$("employeeInput").value.trim(),result:$("resultInput").value});if(!data||data.ok!==true)throw new Error(data&&data.error||"Apps Script ส่งข้อมูลไม่ถูกต้อง");render(data);setStatus("เชื่อมต่อสำเร็จ",`ตรวจล่าสุด ${new Date().toLocaleTimeString("th-TH")}`,"ok")}catch(e){setStatus("เชื่อมต่อ Apps Script ไม่สำเร็จ",String(e&&e.message||e),"error")}finally{$("refreshBtn").disabled=false}}
+  $("dateInput").value=today();$("refreshBtn").addEventListener("click",refresh);$("settingsBtn").addEventListener("click",()=>{$("urlInput").value=state.url;$("settingsDialog").showModal()});$("cancelSettings").addEventListener("click",()=>$("settingsDialog").close());$("saveSettings").addEventListener("click",()=>{const v=$("urlInput").value.trim();if(!validUrl(v)){alert("URL ต้องเป็น Apps Script Web App และลงท้ายด้วย /exec");return}state.url=v;localStorage.setItem("rfidAppsScriptUrl",v);$("settingsDialog").close();refresh()});if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});refresh();
+})();
 </script>
-</body>
-</html>
+</body></html>
