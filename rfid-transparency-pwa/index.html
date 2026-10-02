@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="color-scheme" content="light">
+  <title>ตรวจสอบการสแกนบัตร</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <style>
+    :root{
+      --green:#0f766e;--green-dark:#0b514a;--bg:#eef3f5;--card:#fff;
+      --text:#172033;--muted:#667085;--line:#d5e0e5;--red:#b42318
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      font-family:"Noto Sans Thai","Leelawadee UI",Tahoma,sans-serif;
+      background:var(--bg);color:var(--text);overflow:hidden
+    }
+    .app{height:100%;display:grid;grid-template-rows:auto 1fr}
+    header{
+      min-height:62px;padding:calc(9px + env(safe-area-inset-top)) 14px 9px;
+      background:linear-gradient(135deg,var(--green-dark),var(--green));
+      color:#fff;display:flex;align-items:center;gap:12px
+    }
+    .logo{
+      width:42px;height:42px;border-radius:12px;background:#fff;color:var(--green);
+      display:grid;place-items:center;font-weight:900;font-size:18px;flex:none
+    }
+    .title{min-width:0;flex:1}
+    .title strong{display:block;font-size:18px}
+    .title small{opacity:.9}
+    header button{
+      border:1px solid #ffffff55;background:#ffffff18;color:#fff;
+      border-radius:10px;padding:9px 11px;font:inherit;font-weight:800
+    }
+    .frame-wrap{position:relative;min-height:0}
+    iframe{width:100%;height:100%;border:0;background:#fff}
+    .overlay{
+      position:absolute;inset:0;background:rgba(15,31,40,.45);
+      display:grid;place-items:center;padding:18px;z-index:10
+    }
+    .overlay[hidden]{display:none}
+    .panel{
+      width:min(560px,100%);background:var(--card);border:1px solid var(--line);
+      border-radius:18px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.22)
+    }
+    h1{font-size:22px;margin:0 0 6px}
+    p{color:var(--muted);line-height:1.55}
+    label{display:grid;gap:7px;margin-top:13px;font-weight:800}
+    input{
+      min-height:50px;border:1px solid var(--line);border-radius:11px;
+      padding:9px 11px;font:inherit;width:100%
+    }
+    .primary{
+      width:100%;min-height:52px;margin-top:16px;border:0;border-radius:11px;
+      background:var(--green);color:#fff;font:inherit;font-weight:900
+    }
+    .error{color:var(--red);font-weight:700;min-height:22px}
+    .hint{font-size:13px}
+    .offline{
+      position:absolute;left:50%;top:10px;transform:translateX(-50%);
+      background:#7a2e0e;color:#fff;border-radius:999px;padding:7px 12px;
+      font-weight:800;z-index:8;display:none
+    }
+    .offline.show{display:block}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">RFID</div>
+    <div class="title">
+      <strong>ตรวจสอบการสแกนบัตร</strong>
+      <small>หน้าดูข้อมูลแบบอ่านอย่างเดียว</small>
+    </div>
+    <button type="button" onclick="openSettings()">ตั้งค่า</button>
+  </header>
+
+  <main class="frame-wrap">
+    <div id="offline" class="offline">ออฟไลน์ · ข้อมูลสดยังไม่พร้อม</div>
+    <iframe id="viewer" title="RFID Transparency Viewer"
+            referrerpolicy="no-referrer"></iframe>
+
+    <div id="setup" class="overlay">
+      <section class="panel">
+        <h1>ตั้งค่าแอปครั้งแรก</h1>
+        <p>ใส่ Web App URL ของ Apps Script และ Viewer Token ระบบจะเก็บไว้เฉพาะในเครื่องนี้</p>
+
+        <label>Apps Script Web App URL
+          <input id="webAppUrl" type="url" inputmode="url"
+                 placeholder="https://script.google.com/macros/s/.../exec">
+        </label>
+
+        <label>Viewer Token
+          <input id="viewerToken" type="password" autocomplete="off"
+                 placeholder="RFID_TRANSPARENCY_VIEW_TOKEN">
+        </label>
+
+        <p id="error" class="error"></p>
+        <button class="primary" type="button" onclick="saveSettings()">บันทึกและเปิดหน้า</button>
+        <p class="hint">Token ถูกใส่ใน URL fragment (#token=...) จึงไม่ถูกส่งเป็น query string ไปยัง Web App</p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  const KEY_URL = "rfidTransparencyWebAppUrl";
+  const KEY_TOKEN = "rfidTransparencyViewerToken";
+
+  function byId(id){ return document.getElementById(id); }
+
+  function normalizeWebAppUrl(value){
+    const raw = String(value || "").trim();
+    let url;
+    try { url = new URL(raw); } catch(e) { throw new Error("Web App URL ไม่ถูกต้อง"); }
+    if(url.protocol !== "https:") throw new Error("ต้องเป็น HTTPS");
+    if(url.hostname !== "script.google.com") {
+      throw new Error("Web App URL ต้องเป็น script.google.com");
+    }
+    if(!/^\/macros\/s\/[^/]+\/exec$/.test(url.pathname)) {
+      throw new Error("ต้องใช้ URL ที่ลงท้ายด้วย /exec");
+    }
+    url.search = "";
+    url.hash = "";
+    return url.toString();
+  }
+
+  function buildViewerUrl(webAppUrl, token){
+    const url = new URL(webAppUrl);
+    url.searchParams.set("page", "transparency");
+    url.hash = "token=" + encodeURIComponent(token);
+    return url.toString();
+  }
+
+  function readSettings(){
+    return {
+      url: localStorage.getItem(KEY_URL) || "",
+      token: localStorage.getItem(KEY_TOKEN) || ""
+    };
+  }
+
+  function applySettings(){
+    const settings = readSettings();
+    if(!settings.url || !settings.token){
+      openSettings();
+      return;
+    }
+    byId("viewer").src = buildViewerUrl(settings.url, settings.token);
+    byId("setup").hidden = true;
+  }
+
+  function openSettings(){
+    const settings = readSettings();
+    byId("webAppUrl").value = settings.url;
+    byId("viewerToken").value = settings.token;
+    byId("error").textContent = "";
+    byId("setup").hidden = false;
+  }
+
+  function saveSettings(){
+    try{
+      const url = normalizeWebAppUrl(byId("webAppUrl").value);
+      const token = String(byId("viewerToken").value || "").trim();
+      if(token.length < 32) throw new Error("Viewer Token ไม่ถูกต้อง");
+      localStorage.setItem(KEY_URL, url);
+      localStorage.setItem(KEY_TOKEN, token);
+      byId("error").textContent = "";
+      applySettings();
+    }catch(error){
+      byId("error").textContent = error.message || String(error);
+    }
+  }
+
+  function updateOnlineState(){
+    byId("offline").classList.toggle("show", !navigator.onLine);
+  }
+
+  window.addEventListener("online", function(){
+    updateOnlineState();
+    const frame = byId("viewer");
+    if(frame.src) frame.src = frame.src;
+  });
+  window.addEventListener("offline", updateOnlineState);
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("./sw.js").catch(function(){});
+    });
+  }
+
+  updateOnlineState();
+  applySettings();
+</script>
+</body>
+</html>
