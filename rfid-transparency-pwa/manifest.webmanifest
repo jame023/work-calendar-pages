@@ -2,14 +2,13 @@
   "id": "./",
   "name": "ตรวจสอบการสแกนบัตร RFID",
   "short_name": "RFID Audit",
-  "description": "หน้าตรวจสอบเวลาแตะบัตรและหลักฐาน Audit แบบอ่านอย่างเดียว",
+  "description": "ตรวจสอบเวลาแตะบัตรและหลักฐาน Audit แบบอ่านอย่างเดียว",
   "lang": "th",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#eef3f5",
+  "background_color": "#f4f7f9",
   "theme_color": "#0f766e",
-  "orientation": "any",
   "icons": [
     {
       "src": "./icon-192.png",

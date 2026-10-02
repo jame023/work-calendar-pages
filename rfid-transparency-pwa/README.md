@@ -1,17 +1,20 @@
-# RFID Transparency PWA
+# RFID Transparency PWA v2
 
-โฟลเดอร์นี้เป็น Phase 2B สำหรับติดตั้งหน้า "ตรวจสอบการสแกนบัตร" ลงหน้าจอโทรศัพท์/คอมพิวเตอร์
+รุ่นนี้ไม่ใช้ iframe กับ Apps Script แล้ว
 
-## ไม่กระทบระบบเดิม
+## ต้องอัปเดต 2 ส่วน
 
-- ไม่แก้ Gateway
-- ไม่แก้ H2/C6
-- ไม่เขียน RFID_Log
-- ไม่เขียน RFID_Audit_Log
-- หน้า Apps Script Secure เดิมยังเป็น backend/viewer หลัก
-- PWA นี้เป็น shell สำหรับเปิดหน้า viewer แบบติดตั้งได้
+1. Apps Script: ใช้ `Code_PHASE2B_JSONP_READY.gs` แล้ว Deploy เป็น New version บน deployment เดิม
+2. GitHub Pages: แทนไฟล์ในโฟลเดอร์ PWA ด้วยไฟล์ชุด v2
 
-## ไฟล์
+## PWA อ่านข้อมูลอย่างไร
+
+PWA เรียก Apps Script แบบ read-only JSONP:
+`?api=transparency&token=...&date=...&callback=...`
+
+Gateway route `?data=...` ไม่เปลี่ยนและไม่ต้อง flash
+
+## ไฟล์ GitHub Pages
 
 - index.html
 - manifest.webmanifest
@@ -19,35 +22,4 @@
 - icon-192.png
 - icon-512.png
 
-## ติดตั้งบน GitHub Pages
-
-ให้อัปโหลดทั้ง 5 ไฟล์ไปไว้ในโฟลเดอร์เดียวกัน เช่น:
-
-rfid-transparency-pwa/
-
-ถ้าใช้ repository `work-calendar-pages` URL จะมีรูปแบบประมาณ:
-
-https://<user>.github.io/work-calendar-pages/rfid-transparency-pwa/
-
-## เปิดครั้งแรก
-
-1. เปิด URL PWA
-2. ใส่ Apps Script Web App URL ตัวเดิมที่ลงท้าย `/exec`
-3. ใส่ `RFID_TRANSPARENCY_VIEW_TOKEN`
-4. กด "บันทึกและเปิดหน้า"
-
-ค่า 2 อย่างนี้เก็บใน localStorage ของเครื่องที่เปิด PWA เท่านั้น
-
-## การติดตั้ง
-
-Android/Chrome:
-- เปิดเมนู Chrome
-- เลือก Install app / Add to Home screen
-
-Windows/Chrome หรือ Edge:
-- เปิด URL PWA
-- เลือก Install app จากเมนู browser
-
-## Offline
-
-ตัว shell ของ PWA เปิดได้เมื่อออฟไลน์ แต่ข้อมูล RFID สดมาจาก Apps Script ดังนั้นต้องมีอินเทอร์เน็ตจึงจะโหลด/รีเฟรชข้อมูลจริงได้
+หลังอัปโหลด ให้ hard refresh หรือปิด/เปิด PWA ใหม่เพื่อให้ service worker v2 ทำงาน
