@@ -53,11 +53,23 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
 <section class="card"><div class="status-title" style="font-size:20px">หลักฐานการสแกน</div><div id="eventsList" class="muted" style="margin-top:12px">ยังไม่มีข้อมูล</div></section>
 </main>
 <dialog id="installDialog"><div class="modal"><h2>ติดตั้งแอปบนโทรศัพท์</h2><div id="installHelp" class="muted"></div><div class="modal-actions"><button class="primary" id="closeInstall">เข้าใจแล้ว</button></div></div></dialog>
-<dialog id="settingsDialog"><div class="modal"><h2>ตั้งค่า Apps Script</h2><p class="muted">วาง Web App URL ที่ลงท้ายด้วย <b>/exec</b></p><input id="urlInput" placeholder="https://script.google.com/macros/s/.../exec"><div class="modal-actions"><button class="secondary" id="cancelSettings">ยกเลิก</button><button class="primary" id="saveSettings">บันทึก</button></div></div></dialog>
+<dialog id="settingsDialog"><div class="modal"><h2>ตั้งค่า Apps Script</h2><p class="muted">ระบบจะใช้ URL กลางอัตโนมัติ หากต้องแก้ไขให้วาง Web App URL ที่ลงท้ายด้วย <b>/exec</b></p><input id="urlInput" placeholder="https://script.google.com/macros/s/.../exec"><div class="modal-actions"><button class="secondary" id="cancelSettings">ยกเลิก</button><button class="primary" id="saveSettings">บันทึก</button></div></div></dialog>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const state = { url: localStorage.getItem("rfidAppsScriptUrl") || "" };
+  const API_STORAGE_KEY = "rfidAppsScriptUrl";
+  const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyfgiTQWi9UHw0zVvdi3BOHL9lbSvBzwEg_IYkj8Xmobhj7rLpw_dpR_DpCgCv21xSn/exec";
+
+  function canonicalApiUrl(value) {
+    let v = String(value || "").trim();
+    v = v.replace(/^https:\/\/script\.google\.com\/macros\/u\/\d+\//i, "https://script.google.com/macros/");
+    const m = v.match(/^https:\/\/script\.google\.com\/macros\/s\/([^/?#]+)\/exec(?:[?#].*)?$/i);
+    return m ? "https://script.google.com/macros/s/" + m[1] + "/exec" : "";
+  }
+
+  const storedApiUrl = canonicalApiUrl(localStorage.getItem(API_STORAGE_KEY));
+  const state = { url: storedApiUrl || DEFAULT_API_URL };
+  localStorage.setItem(API_STORAGE_KEY, state.url);
   let deferredInstallPrompt = null;
 
   function isIos() {
@@ -91,7 +103,7 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
 
   function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
   function setStatus(a,b,c){$("statusTitle").textContent=a;$("statusText").textContent=b||"";$("statusText").className=c||"muted";}
-  function validUrl(v){return /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec(?:\?.*)?$/.test(v);}
+  function validUrl(v){return Boolean(canonicalApiUrl(v));}
   function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
   function shortHash(v){return v?v.slice(0,12)+"…"+v.slice(-8):"-";}
   function jsonp(url,params){return new Promise((resolve,reject)=>{const cb="__rfidCb_"+Date.now()+"_"+Math.floor(Math.random()*1e5);const s=document.createElement("script");const t=setTimeout(()=>done(new Error("Apps Script ตอบกลับช้าเกินกำหนด")),20000);function done(err,val){clearTimeout(t);try{delete window[cb]}catch(_){window[cb]=undefined}s.remove();err?reject(err):resolve(val)}window[cb]=data=>done(null,data);s.onerror=()=>done(new Error("เชื่อมต่อ Apps Script ไม่สำเร็จ"));const u=new URL(url);Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v));u.searchParams.set("callback",cb);s.src=u.toString();document.head.appendChild(s);});}
@@ -123,7 +135,22 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
   $("closeInstall").addEventListener("click", () => $("installDialog").close());
   refreshInstallButton();
 
-  $("dateInput").value=today();$("refreshBtn").addEventListener("click",refresh);$("settingsBtn").addEventListener("click",()=>{$("urlInput").value=state.url;$("settingsDialog").showModal()});$("cancelSettings").addEventListener("click",()=>$("settingsDialog").close());$("saveSettings").addEventListener("click",()=>{const v=$("urlInput").value.trim();if(!validUrl(v)){alert("URL ต้องเป็น Apps Script Web App และลงท้ายด้วย /exec");return}state.url=v;localStorage.setItem("rfidAppsScriptUrl",v);$("settingsDialog").close();refresh()});if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});refresh();
+  $("dateInput").value=today();
+  $("refreshBtn").addEventListener("click",refresh);
+  $("settingsBtn").addEventListener("click",()=>{$("urlInput").value=state.url;$("settingsDialog").showModal()});
+  $("cancelSettings").addEventListener("click",()=>$("settingsDialog").close());
+  $("saveSettings").addEventListener("click",()=>{
+    const v=canonicalApiUrl($("urlInput").value);
+    if(!validUrl(v)){alert("URL ต้องเป็น Apps Script Web App และลงท้ายด้วย /exec");return}
+    state.url=v;
+    localStorage.setItem(API_STORAGE_KEY,v);
+    $("settingsDialog").close();
+    refresh();
+  });
+  if("serviceWorker"in navigator){
+    navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"}).then(reg=>reg.update()).catch(()=>{});
+  }
+  refresh();
 })();
 </script>
 </body></html>
