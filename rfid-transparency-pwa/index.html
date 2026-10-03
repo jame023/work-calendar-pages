@@ -31,6 +31,7 @@ input,select{width:100%;margin-top:8px;padding:14px;border:1px solid #d0d5dd;bor
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}.stat{background:white;border:1px solid #d7e0e5;border-radius:22px;padding:20px}.stat b{display:block;font-size:34px;margin-top:6px}
 .chain{display:flex;align-items:center;gap:10px;font-weight:800}.dot{width:11px;height:11px;border-radius:50%;background:#98a2b3}.dot.good{background:#12b76a}.dot.bad{background:#f04438}
 .event{border-top:1px solid #eaecf0;padding:16px 0}.event:first-child{border-top:0}.event-head{display:flex;justify-content:space-between;gap:10px}
+.attendance-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:10px 0;color:#172033}.attendance-times span,.attendance-times b{display:block}.attendance-times b{font-size:18px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .pill{padding:4px 9px;border-radius:999px;background:#f2f4f7;font-size:13px}.hash{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;word-break:break-all;color:#667085}
 dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backdrop{background:#0008}.modal{padding:22px}.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
 .secondary,.primary{padding:11px 16px;border-radius:12px;font-weight:700}.secondary{background:white;border:1px solid #d0d5dd}.primary{border:0;background:#0f766e;color:white}
@@ -141,7 +142,73 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
       }
     }
   }
-  function render(data){const t=data.totals||{};$("eventsCount").textContent=t.events||0;$("checkinCount").textContent=t.checkin||0;$("checkoutCount").textContent=t.checkout||0;$("duplicateCount").textContent=t.duplicate||0;const c=data.chain||{};$("chainDot").className="dot "+(c.ok?"good":"bad");$("chainText").textContent=c.ok?`Hash Chain ถูกต้อง (${c.checked||0} รายการ)`:`พบ Hash Chain ผิดปกติ ${c.invalid||0} รายการ`;$("employeeList").innerHTML="";(data.employees||[]).forEach(n=>{const o=document.createElement("option");o.value=n;$("employeeList").appendChild(o)});const rows=data.rows||[];$("eventsList").innerHTML=rows.length?rows.map(r=>`<article class="event"><b>${esc(r.name||"ยังไม่มีชื่อ")}</b><div class="muted">${esc(r.scanTime||r.serverReceivedTime||"-")}</div></article>`).join(""):'<div class="muted">ไม่พบ Event ตามตัวกรอง</div>';}
+  function renderAttendanceCards(data) {
+    const filters = data.filters || {};
+    const attendance = data.attendance || {};
+    const date = String(filters.date || attendance.startDate || $("dateInput").value || "");
+    const result = filters.result || $("resultInput").value || "all";
+    const groups = [];
+    const namedGroups = new Map();
+    const nameOf = row => {
+      const name = String(row.name ?? "");
+      return name.trim() ? name : "ยังไม่มีชื่อ";
+    };
+    const unknown = row => row.unknown === true || nameOf(row).trim() === "ยังไม่มีชื่อ" || row.result === "ไม่พบชื่อ";
+    const keyOf = (name, day) => JSON.stringify([name, day]);
+    const timesOf = value => value == null || value === "" ? [] : [String(value)];
+
+    function newGroup(name, day) {
+      const group = { name, date: day, pairs: [], checkin: [], checkout: [], scans: [], official: false };
+      groups.push(group);
+      return group;
+    }
+
+    function namedGroup(name, day) {
+      const key = keyOf(name, day);
+      if (!namedGroups.has(key)) namedGroups.set(key, newGroup(name, day));
+      return namedGroups.get(key);
+    }
+
+    const scans = (data.rows || []).map(row => {
+      const stamp = String(row.scanTime || row.serverReceivedTime || "-");
+      const match = stamp.match(/^(\d{4}-\d{2}-\d{2})[ T](.+)$/);
+      return { name: nameOf(row), date: match ? match[1] : date, time: match ? match[2] : stamp,
+        result: row.result, unknown: unknown(row) };
+    });
+    const selected = new Set(scans.filter(scan => !scan.unknown).map(scan => keyOf(scan.name, scan.date)));
+
+    if (Array.isArray(attendance.rows)) {
+      attendance.rows.forEach(row => {
+        if (unknown(row)) return;
+        const name = nameOf(row);
+        const day = String(row.date || date);
+        if (result !== "all" && !selected.has(keyOf(name, day))) return;
+        const group = namedGroup(name, day);
+        // Keep each stored pair together, even when names are shared by multiple records.
+        group.pairs.push({ checkin: timesOf(row.checkin), checkout: timesOf(row.checkout) });
+        group.official = true;
+      });
+    }
+
+    scans.forEach(scan => {
+      const group = scan.unknown ? newGroup(scan.name, scan.date) : namedGroup(scan.name, scan.date);
+      if (group.official) return;
+      // Duplicate and unidentified scans cannot establish a check-in or check-out.
+      if (!scan.unknown && scan.result === "เข้างาน") group.checkin.push(scan.time);
+      else if (!scan.unknown && scan.result === "เลิกงาน") group.checkout.push(scan.time);
+      else group.scans.push(scan.time);
+    });
+
+    const showTimes = values => values.length ? values.map(esc).join("<br>") : "—";
+    return groups.length ? groups.map(group => {
+      const pairs = group.pairs.length ? group.pairs : [{ checkin: group.checkin, checkout: group.checkout }];
+      return `<article class="event"><b>${esc(group.name)}</b><div class="muted">${esc(group.date)}</div>` +
+        pairs.map(pair => `<div class="attendance-times"><div><span class="muted">เวลาเข้า</span><b>${showTimes(pair.checkin)}</b></div><div><span class="muted">เวลาออก</span><b>${showTimes(pair.checkout)}</b></div></div>`).join("") +
+        (group.scans.length ? `<div class="muted">สแกน: ${group.scans.map(esc).join(", ")}</div>` : "") + `</article>`;
+    }).join("") : '<div class="muted">ไม่พบ Event ตามตัวกรอง</div>';
+  }
+
+  function render(data){const t=data.totals||{};$("eventsCount").textContent=t.events||0;$("checkinCount").textContent=t.checkin||0;$("checkoutCount").textContent=t.checkout||0;$("duplicateCount").textContent=t.duplicate||0;const c=data.chain||{};$("chainDot").className="dot "+(c.ok?"good":"bad");$("chainText").textContent=c.ok?`Hash Chain ถูกต้อง (${c.checked||0} รายการ)`:`พบ Hash Chain ผิดปกติ ${c.invalid||0} รายการ`;$("employeeList").innerHTML="";(data.employees||[]).forEach(n=>{const o=document.createElement("option");o.value=n;$("employeeList").appendChild(o)});$("eventsList").innerHTML=renderAttendanceCards(data);}
   async function refresh(){if(!state.url){setStatus("ยังไม่ได้ตั้งค่า","กด “ตั้งค่า” แล้วใส่ Apps Script Web App URL","error");return}setStatus("กำลังตรวจสอบหลักฐาน…","หน้าจออ่านอย่างเดียว","muted");$("refreshBtn").disabled=true;try{const data=await requestApi(state.url,{api:"rfid-public",date:$("dateInput").value||today(),name:$("employeeInput").value.trim(),result:$("resultInput").value});if(!data||data.ok!==true)throw new Error(data&&data.error||"Apps Script ส่งข้อมูลไม่ถูกต้อง");render(data);setStatus("เชื่อมต่อสำเร็จ",`ตรวจล่าสุด ${new Date().toLocaleTimeString("th-TH")}`,"ok")}catch(e){setStatus("เชื่อมต่อ Apps Script ไม่สำเร็จ",String(e&&e.message||e),"error")}finally{$("refreshBtn").disabled=false}}
   window.addEventListener("beforeinstallprompt", event => {
     event.preventDefault();
