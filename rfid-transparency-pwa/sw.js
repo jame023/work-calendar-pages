@@ -1,4 +1,5 @@
-const CACHE="rfid-audit-mobile-v4";
+const CACHE_PREFIX="rfid-audit-mobile-";
+const CACHE=CACHE_PREFIX+"v5";
 const ASSETS=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install",event=>{
@@ -9,7 +10,7 @@ self.addEventListener("install",event=>{
 self.addEventListener("activate",event=>{
   event.waitUntil(
     caches.keys().then(keys=>Promise.all(
-      keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))
+      keys.filter(key=>key.startsWith(CACHE_PREFIX)&&key!==CACHE).map(key=>caches.delete(key))
     ))
   );
   self.clients.claim();
