@@ -42,6 +42,7 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
 <header><div class="head"><div class="badge">RFID</div><div><h1>ตรวจสอบ<br>การสแกนบัตร</h1><div class="sub">เวลาสแกนจริง · Audit · Hash Chain</div></div><div class="header-actions"><button class="install" id="installBtn">ติดตั้งแอป</button><button class="settings" id="settingsBtn">ตั้งค่า</button></div></div></header>
 <main>
 <section class="card"><div class="status-title" id="statusTitle">กำลังตรวจสอบหลักฐาน…</div><div class="muted" id="statusText">หน้าจออ่านอย่างเดียว</div></section>
+<section class="card"><div class="status-title" style="font-size:20px">แจ้งเตือนเข้า–ออกงาน</div><p class="muted" id="pushStatus" role="status" aria-live="polite">กำลังตรวจสอบการแจ้งเตือน…</p><div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap"><button class="primary" id="enablePush" disabled>เปิดรับแจ้งเตือน</button><button class="secondary" id="disablePush" hidden>ปิดรับแจ้งเตือน</button><button class="secondary" id="testPush" hidden>ทดสอบแจ้งเตือน</button></div></section>
 <section class="card filters">
 <label>วันที่<input type="date" id="dateInput"></label>
 <label>พนักงาน<input id="employeeInput" list="employeeList" placeholder="ทุกคน"><datalist id="employeeList"></datalist></label>
@@ -236,7 +237,8 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
   $("closeInstall").addEventListener("click", () => $("installDialog").close());
   refreshInstallButton();
 
-  $("dateInput").value=today();
+  const linkedDate = (window.location?.search || "").match(/(?:^\?|&)date=(\d{4}-\d{2}-\d{2})(?:&|$)/);
+  $("dateInput").value=linkedDate ? linkedDate[1] : today();
   $("refreshBtn").addEventListener("click",refresh);
   $("settingsBtn").addEventListener("click",()=>{$("urlInput").value=state.url;$("settingsDialog").showModal()});
   $("cancelSettings").addEventListener("click",()=>$("settingsDialog").close());
@@ -254,4 +256,5 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
   refresh();
 })();
 </script>
+<script src="./push.js" defer></script>
 </body></html>

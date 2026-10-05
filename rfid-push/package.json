@@ -1,0 +1,9 @@
+{
+  "name": "rfid-attendance-push",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test test/*.test.js" },
+  "dependencies": { "web-push": "3.6.7" },
+  "devDependencies": { "@electric-sql/pglite": "0.5.8", "deno": "2.9.6" }
+}
