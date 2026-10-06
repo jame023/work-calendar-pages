@@ -613,6 +613,8 @@
       let bridgeLiffId = "";
       let requestNumber = 0;
       let requestWindowTimer = null;
+      let requestWindowRefresh = null;
+      let requestWindowLastSyncWall = 0;
       let notificationReturnFocus = null;
       let actionModalResolver = null;
       let actionModalReturnFocus = null;
@@ -640,6 +642,11 @@
 
       window.addEventListener("message", receiveBridgeMessage);
       window.addEventListener("load", initialize);
+      window.addEventListener("pageshow", refreshRequestWindowOnResume);
+      window.addEventListener("focus", refreshRequestWindowOnResume);
+      document.addEventListener("visibilitychange", function() {
+        if (!document.hidden) refreshRequestWindowOnResume();
+      });
       elements.leaveForm.addEventListener("submit", submitLeave);
       elements.leaveStartDate.addEventListener("change", renderLeaveDateRows);
       elements.leaveEndDate.addEventListener("change", renderLeaveDateRows);
@@ -724,6 +731,10 @@
           state.canDecideLeave = result.profile.canDecideLeave === true;
           state.month = result.month;
           state.requestWindow = result.requestWindow || null;
+          if (state.requestWindow) {
+            state.requestWindow.receivedAtPerf = performance.now();
+            requestWindowLastSyncWall = Date.now();
+          }
           state.calendar = result.calendar || [];
           state.ownRequests = result.ownRequests || [];
           state.pendingRequests = result.pendingRequests || [];
@@ -765,9 +776,8 @@
           return total + periodAmount(item.period);
         }, 0);
         if (!dates.length || totalDays <= 0) {
-          showStatus("กรุณาเลือกช่วงลาอย่างน้อย 1 วัน", "error");
           const firstPeriodSelect = elements.leaveDateList.querySelector("select");
-          if (firstPeriodSelect) firstPeriodSelect.focus();
+          showStatus("กรุณาเลือกช่วงลาอย่างน้อย 1 วัน", "error", firstPeriodSelect);
           return;
         }
         const input = {
@@ -901,6 +911,8 @@
           });
           if (notification.status === "error") {
             notificationErrors.push("แจ้งพนักงานไม่สำเร็จ: " + notification.error);
+          } else if (notification.status === "skipped_no_line") {
+            fallbackWarnings.push("พนักงานไม่มี LINE จึงไม่ได้รับข้อความแจ้งผล");
           } else if (notification.delivery === "text-fallback") {
             fallbackWarnings.push(
               "Dashboard สำหรับพนักงานส่งไม่สำเร็จ ระบบส่ง Text แทน: " +
@@ -920,16 +932,19 @@
               "บันทึกผลแล้ว แต่" + notificationErrors.join(" และ "),
               "error"
             );
+          } else if (fallbackWarnings.length) {
+            showStatus(
+              "บันทึกผลแล้ว" +
+                (usedEmailFallback
+                  ? "\nLINE โควต้าเต็ม ระบบส่ง Email แจ้งแทนเรียบร้อย"
+                  : "") +
+                "\n\n" + fallbackWarnings.join("\n"),
+              "warning"
+            );
           } else if (usedEmailFallback) {
             showStatus(
               "บันทึกผลเรียบร้อยแล้ว\nLINE โควต้าเต็ม ระบบส่ง Email แจ้งแทนเรียบร้อย",
               "success"
-            );
-          } else if (fallbackWarnings.length) {
-            showStatus(
-              "บันทึกผลแล้ว แต่มีการใช้ Text fallback\n\n" +
-              fallbackWarnings.join("\n"),
-              "warning"
             );
           } else {
             showStatus(
@@ -1491,16 +1506,39 @@
         );
       }
 
+      async function refreshRequestWindowOnResume() {
+        if (!state.idToken || !state.requestWindow || requestWindowRefresh ||
+            Date.now() - requestWindowLastSyncWall < 5000) return;
+        requestWindowRefresh = callBackend("getLeaveRequestWindow", {}).then(function(result) {
+          result.receivedAtPerf = performance.now();
+          state.requestWindow = result;
+          requestWindowLastSyncWall = Date.now();
+          updateRequestWindowFromClientClock();
+        }).catch(function(error) {
+          showStatus("ตรวจเวลารับคำขอไม่สำเร็จ: " + messageOf(error), "warning");
+        }).finally(function() {
+          requestWindowRefresh = null;
+        });
+        return requestWindowRefresh;
+      }
+
       function updateRequestWindowFromClientClock() {
         if (!state.requestWindow) return;
-        const current = getBangkokRequestWindowState();
+        if (typeof state.requestWindow.serverEpochMs !== "number" ||
+            typeof state.requestWindow.receivedAtPerf !== "number") {
+          state.requestWindow.clientIsOpen = state.requestWindow.isOpen;
+          renderRequestWindow();
+          return;
+        }
+        const elapsed = Math.max(0, performance.now() - state.requestWindow.receivedAtPerf);
+        const current = getBangkokRequestWindowState(state.requestWindow.serverEpochMs + elapsed);
         if (!current) return;
         state.requestWindow.clientIsOpen = current.isOpen;
         state.requestWindow.clientTime = current.time;
         renderRequestWindow();
       }
 
-      function getBangkokRequestWindowState() {
+      function getBangkokRequestWindowState(epochMs) {
         try {
           const parts = new Intl.DateTimeFormat("en-GB", {
             timeZone:"Asia/Bangkok",
@@ -1508,7 +1546,7 @@
             minute:"2-digit",
             second:"2-digit",
             hour12:false
-          }).formatToParts(new Date()).reduce(function(result, part) {
+          }).formatToParts(new Date(epochMs)).reduce(function(result, part) {
             result[part.type] = part.value;
             return result;
           }, {});
@@ -1894,7 +1932,7 @@
           String(now.getDate()).padStart(2, "0");
       }
 
-      function showStatus(message, type) {
+      function showStatus(message, type, returnFocus) {
         elements.statusBox.textContent = message;
         elements.statusBox.className = "sr-only";
         const notificationType = type === "success" || type === "warning" || type === "error"
@@ -1905,7 +1943,7 @@
           message:message,
           type:notificationType,
           title:"",
-          returnFocus:document.activeElement
+          returnFocus:returnFocus || document.activeElement
         };
         if (state.busy || elements.notificationModal.classList.contains("show")) {
           state.pendingNotifications.push(notification);

@@ -210,9 +210,35 @@
           </form></div>
         </section>
         <section class="card leave-panel" id="leavePanel" hidden>
+          <button class="primary" id="openLeaveCreate" type="button">+ สร้างคำขอลาแทนพนักงาน</button>
           <div class="panel-head"><h2>การลา</h2><div class="search"><input id="leaveSearch" aria-label="ค้นหาคำขอลา" placeholder="ค้นชื่อ Request ID หรือประเภท"><button class="primary" id="leaveSearchButton" type="button">ค้นหา</button></div></div>
           <div class="form-grid" style="margin-top:12px"><label>เดือน<input id="leaveMonth" type="month"></label><label>สถานะ<select id="leaveStatus"><option value="">ทุกสถานะ</option><option>รออนุมัติ</option><option>อนุมัติ</option><option>ปฏิเสธ</option><option>ยกเลิก</option></select></label></div>
           <div class="calendar-days" id="leaveCalendar" aria-label="ปฏิทินการลา"></div>
+          <div class="editor-card" id="leaveCreateEditor" hidden>
+            <form class="dialog-body" id="leaveCreateForm">
+              <h2>สร้างคำขอลาแทนพนักงาน</h2>
+              <div class="search"><input id="proxyEmployeeSearch" aria-label="ค้นหาพนักงาน Active" placeholder="ค้นชื่อหรือรหัสพนักงาน"><button class="secondary" id="proxySearchButton" type="button">ค้นหา</button></div>
+              <label>พนักงาน Active<select id="proxyEmployee" required><option value="">เลือกพนักงาน</option></select></label>
+              <p class="employee-meta" id="proxyEmployeeDetails"></p>
+              <div class="form-grid">
+                <label>ประเภทการลา<select id="proxyType"><option>ลากิจ</option><option>ลาป่วย</option></select></label>
+                <label>วันเริ่มลา<input id="proxyStart" type="date" required></label>
+                <label>วันสิ้นสุด<input id="proxyEnd" type="date" required></label>
+              </div>
+              <div class="form-grid" id="proxyDates"></div>
+              <p id="proxyTotal" role="status">จำนวนวันรวม: 0 วัน</p>
+              <label>เหตุผลการลา<textarea id="proxyLeaveReason" required maxlength="500" rows="3"></textarea></label>
+              <label>รูปประกอบ / ใบรับรองแพทย์ (สูงสุด 5 รูป รูปละ 1 MB)<input id="proxyImages" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
+              <label>เหตุผลที่ Admin บันทึกแทน<textarea id="proxyReason" required minlength="3" maxlength="300" rows="3" placeholder="พนักงานไม่มีโทรศัพท์ใช้งาน"></textarea></label>
+              <div class="preview-box" id="proxyPreview" hidden></div>
+              <label id="proxyConfirmationWrap" hidden>พิมพ์คำว่า ยืนยัน<input id="proxyConfirmation" autocomplete="off"></label>
+              <div class="dialog-actions">
+                <button class="secondary" id="closeLeaveCreate" type="button">ปิดฟอร์ม</button>
+                <button class="secondary" id="previewLeaveCreate" type="button">Preview</button>
+                <button class="primary" id="applyLeaveCreate" type="button" disabled>บันทึกคำขอลา</button>
+              </div>
+            </form>
+          </div>
           <div class="attendance-list" id="leaveList"></div>
           <div class="editor-card" id="leaveEditor" hidden><form class="dialog-body" id="leaveForm">
             <h2 id="leaveTitle">จัดการคำขอลา</h2>
@@ -273,6 +299,13 @@
       let attendancePlan = null;
       let selectedLeave = null;
       let leavePlan = null;
+      let proxyPlan = null;
+      let proxyPayload = null;
+      let proxyRevision = 0;
+      let proxySearchRevision = 0;
+      let proxySubmitting = false;
+      let proxyEmployees = [];
+      let proxyRequestId = "";
       let calendarData = null;
       let calendarPlan = null;
       let selectedProduction=null,productionPlan=null;
@@ -293,6 +326,27 @@
       document.getElementById("previewAttendance").addEventListener("click", previewAttendanceEdit);
       document.getElementById("applyAttendance").addEventListener("click", applyAttendanceEdit);
       document.getElementById("leaveSearchButton").addEventListener("click", loadLeaveRequests);
+      document.getElementById("openLeaveCreate").addEventListener("click", openLeaveCreate);
+      document.getElementById("closeLeaveCreate").addEventListener("click", closeLeaveCreate);
+      document.getElementById("proxySearchButton").addEventListener("click", loadProxyEmployees);
+      document.getElementById("previewLeaveCreate").addEventListener("click", previewLeaveCreate);
+      document.getElementById("applyLeaveCreate").addEventListener("click", applyLeaveCreate);
+      document.getElementById("leaveCreateForm").addEventListener("submit", function(event) { event.preventDefault(); });
+      document.getElementById("leaveCreateForm").addEventListener("input", function(event) {
+        if (event.target.id === "proxyConfirmation") { updateProxyApply(); return; }
+        invalidateProxyPreview();
+        if (["proxyStart", "proxyEnd"].includes(event.target.id)) renderProxyDates();
+        if (event.target.closest("#proxyDates")) updateProxyTotal();
+      });
+      document.getElementById("leaveCreateForm").addEventListener("change", function(event) {
+        if (event.target.id !== "proxyConfirmation") invalidateProxyPreview();
+        if (event.target.id === "proxyEmployee") {
+          const employee = proxyEmployees.find(function(item) { return item.employeeCode === event.target.value; });
+          document.getElementById("proxyEmployeeDetails").textContent = employee ?
+            employee.employeeName + " · " + employee.employeeCode + " · " + (employee.primaryWorkGroup || employee.workGroups) : "";
+        }
+        if (event.target.closest("#proxyDates")) updateProxyTotal();
+      });
       document.getElementById("leaveStatus").addEventListener("change", loadLeaveRequests);
       document.getElementById("leaveMonth").addEventListener("change", loadLeaveRequests);
       document.getElementById("leaveAction").addEventListener("change", updateLeaveActionFields);
@@ -416,11 +470,16 @@
             source:FRONTEND_SOURCE, nonce:bridgeNonce, id:id, action:action,
             idToken:idToken, payload:payload
           }, bridgeOrigin);
-          setTimeout(function() { if (pending.has(id)) { pending.delete(id); reject(new Error("backend ตอบกลับช้าเกินไป")); } }, 20000);
+          const timeoutMs = ["previewAdminLeaveRequestCreate", "applyAdminLeaveRequestCreate"]
+            .includes(action) ? 120000 : 20000;
+          setTimeout(function() { if (pending.has(id)) { pending.delete(id); reject(new Error("backend ตอบกลับช้าเกินไป")); } }, timeoutMs);
         }).finally(function(){activeRequests=Math.max(0,activeRequests-1);updateBusyState();});
       }
 
       function previewBackend(action,payload){
+        if (["previewAdminLeaveRequestCreate", "applyAdminLeaveRequestCreate"].includes(action)) {
+          return Promise.reject(new Error("การสร้างคำขอลาต้องเชื่อม backend จริง"));
+        }
         const sampleEmployee={recordId:"preview-employee",employeeName:"สมชาย ใจดี",employeeCode:"EMP-0012",role:"employee",active:true,admin:false,workGroups:"ผลิต, สกรีน",primaryWorkGroup:"ผลิต"};
         if(action==="getAdminEmployees")return Promise.resolve([sampleEmployee]);
         if(action==="previewAdminEmployeeUpdate"){
@@ -720,7 +779,8 @@
             const row=document.createElement("article"); row.className="attendance-row";
             const name=document.createElement("strong"); name.textContent=item.employeeName;
             const date=document.createElement("span"); date.className="employee-meta"; date.textContent=formatLeaveDateRange(item);
-            const meta=document.createElement("span"); meta.className="employee-meta"; meta.textContent=item.type+" · "+item.days+" วัน · "+item.status;
+            const meta=document.createElement("span"); meta.className="employee-meta"; meta.textContent=item.type+" · "+item.days+" วัน · "+item.status+
+              (item.requestChannel === "ADMIN_PROXY" ? " · Admin บันทึกแทน" : "");
             const edit=document.createElement("button"); edit.type="button"; edit.className="secondary"; edit.textContent="จัดการ";
             edit.addEventListener("click",function(){ openLeaveEditor(item); }); row.append(name,date,meta,edit); return row;
           }));
@@ -729,10 +789,179 @@
 
       function renderLeaveCalendar(items,month){const calendar=document.getElementById("leaveCalendar");const cells=["อา","จ","อ","พ","พฤ","ศ","ส"].map(function(label){const head=document.createElement("div");head.className="calendar-weekday";head.textContent=label;return head;});const firstDay=new Date(month+"-01T00:00:00").getDay();for(let index=0;index<firstDay;index+=1){const blank=document.createElement("div");blank.className="calendar-blank";cells.push(blank);}const parts=month.split("-").map(Number),count=new Date(parts[0],parts[1],0).getDate();for(let day=1;day<=count;day+=1){const date=month+"-"+String(day).padStart(2,"0");const cell=document.createElement("div");cell.className="leave-calendar-day";const number=document.createElement("strong");number.textContent=String(day);cell.append(number);items.filter(function(item){return (item.leaveDates||[]).indexOf(date)>=0;}).forEach(function(item){const entry=document.createElement("button");entry.type="button";entry.className="leave-entry";entry.dataset.status=item.status;entry.textContent=item.employeeName+" · "+item.type;entry.title=item.employeeName+" · "+item.type+" · "+item.status;entry.addEventListener("click",function(){openLeaveEditor(item);});cell.append(entry);});cells.push(cell);}calendar.replaceChildren(...cells);}
 
+      function invalidateProxyPreview() {
+        proxyRevision += 1;
+        proxyPlan = null;
+        proxyPayload = null;
+        // Preserve the idempotency key for retries until a new form is opened.
+        document.getElementById("proxyPreview").hidden = true;
+        document.getElementById("proxyConfirmationWrap").hidden = true;
+        document.getElementById("proxyConfirmation").value = "";
+        updateProxyApply();
+      }
+
+      function updateProxyApply() {
+        document.getElementById("applyLeaveCreate").disabled = proxySubmitting || !proxyPlan ||
+          document.getElementById("proxyConfirmation").value.trim() !== "ยืนยัน";
+      }
+
+      async function openLeaveCreate() {
+        document.getElementById("leaveCreateForm").reset();
+        proxyRequestId = createRequestId();
+        invalidateProxyPreview();
+        document.getElementById("proxyDates").replaceChildren();
+        document.getElementById("proxyEmployeeDetails").textContent = "";
+        updateProxyTotal();
+        document.getElementById("leaveCreateEditor").hidden = false;
+        await loadProxyEmployees();
+        document.getElementById("leaveCreateEditor").scrollIntoView({ behavior:"smooth", block:"start" });
+      }
+
+      function closeLeaveCreate() {
+        if (proxySubmitting) return;
+        invalidateProxyPreview();
+        document.getElementById("leaveCreateEditor").hidden = true;
+      }
+
+      async function loadProxyEmployees() {
+        const revision = ++proxySearchRevision;
+        invalidateProxyPreview();
+        try {
+          const employees = await callBackend("getAdminEmployees", { query:document.getElementById("proxyEmployeeSearch").value });
+          if (revision !== proxySearchRevision) return;
+          proxyEmployees = employees.filter(function(employee) {
+            return employee.active && employee.role === "employee" && employee.employeeCode;
+          });
+          const options = [new Option("เลือกพนักงาน", "")];
+          proxyEmployees.forEach(function(employee) {
+            options.push(new Option(employee.employeeName + " · " + employee.employeeCode + " · " +
+              (employee.primaryWorkGroup || employee.workGroups), employee.employeeCode));
+          });
+          document.getElementById("proxyEmployee").replaceChildren(...options);
+          document.getElementById("proxyEmployeeDetails").textContent = "";
+        } catch (error) { showError(error); }
+      }
+
+      function renderProxyDates() {
+        const box = document.getElementById("proxyDates");
+        const previous = new Map(Array.from(box.querySelectorAll("select"), function(select) {
+          return [select.dataset.date, select.value];
+        }));
+        box.replaceChildren();
+        const start = document.getElementById("proxyStart").value;
+        const end = document.getElementById("proxyEnd").value;
+        const first = new Date(start + "T00:00:00Z");
+        const last = new Date(end + "T00:00:00Z");
+        const count = (last - first) / 86400000 + 1;
+        if (!start || !end || !Number.isInteger(count) || count < 1 || count > 366) {
+          updateProxyTotal();
+          return;
+        }
+        const labels = { full:"เต็มวัน", morning:"ครึ่งวันเช้า", afternoon:"ครึ่งวันบ่าย", none:"ไม่ลา" };
+        for (let index = 0; index < count; index += 1) {
+          const date = new Date(first.getTime() + index * 86400000).toISOString().slice(0, 10);
+          const label = document.createElement("label");
+          label.textContent = date;
+          const select = document.createElement("select");
+          select.dataset.date = date;
+          select.setAttribute("aria-label", "ช่วงลา " + date);
+          Object.entries(labels).forEach(function(entry) { select.add(new Option(entry[1], entry[0])); });
+          select.value = previous.get(date) || "full";
+          label.append(select);
+          box.append(label);
+        }
+        updateProxyTotal();
+      }
+
+      function proxyDatesDraft() {
+        return Array.from(document.querySelectorAll("#proxyDates select"), function(select) {
+          return { date:select.dataset.date, period:select.value };
+        });
+      }
+
+      function updateProxyTotal() {
+        const total = proxyDatesDraft().reduce(function(sum, item) {
+          return sum + (item.period === "full" ? 1 : item.period === "none" ? 0 : 0.5);
+        }, 0);
+        document.getElementById("proxyTotal").textContent = "จำนวนวันรวม: " + total +
+          " วัน · Preview จะคำนวณตามวันทำงานและวันหยุดจริง";
+      }
+
+      async function readProxyImages() {
+        const files = Array.from(document.getElementById("proxyImages").files || []);
+        if (files.length > 5 || files.some(function(file) {
+          return file.size > 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type);
+        })) throw new Error("แนบ JPG, PNG หรือ WebP สูงสุด 5 รูป รูปละไม่เกิน 1 MB");
+        return Promise.all(files.map(function(file) {
+          return new Promise(function(resolve, reject) {
+            const reader = new FileReader();
+            reader.onerror = function() { reject(new Error("อ่านรูปประกอบไม่สำเร็จ")); };
+            reader.onload = function() {
+              resolve({ name:file.name, mimeType:file.type, base64:String(reader.result).split(",")[1] });
+            };
+            reader.readAsDataURL(file);
+          });
+        }));
+      }
+
+      async function previewLeaveCreate() {
+        if (proxySubmitting || !document.getElementById("leaveCreateForm").reportValidity()) return;
+        invalidateProxyPreview();
+        const revision = proxyRevision;
+        try {
+          const payload = {
+            employeeCode:document.getElementById("proxyEmployee").value, requestId:proxyRequestId,
+            startDate:document.getElementById("proxyStart").value,
+            endDate:document.getElementById("proxyEnd").value,
+            type:document.getElementById("proxyType").value, dates:proxyDatesDraft(),
+            reason:document.getElementById("proxyLeaveReason").value,
+            proxyReason:document.getElementById("proxyReason").value,
+            images:await readProxyImages()
+          };
+          if (revision !== proxyRevision) return;
+          const plan = await callBackend("previewAdminLeaveRequestCreate", payload);
+          if (revision !== proxyRevision) return;
+          proxyPayload = payload;
+          proxyPlan = plan;
+          const leave = plan.leave;
+          document.getElementById("proxyPreview").textContent =
+            "Admin บันทึกแทน · " + plan.employee.employeeName + " · " + plan.employee.employeeCode +
+            " · " + plan.employee.workGroup + "\n" + leave.type + " · " + leave.days + " วัน\n" +
+            leave.leaveItems.map(function(item) { return item.date + " · " + item.label; }).join("\n") +
+            "\nเหตุผลการลา: " + leave.reason + "\nเหตุผลที่บันทึกแทน: " + leave.proxyReason +
+            "\nรูปแนบ: " + leave.imageCount + " รูป\nสถานะหลังบันทึก: รออนุมัติ";
+          document.getElementById("proxyTotal").textContent = "จำนวนวันลาตามปฏิทินทำงาน: " + leave.days + " วัน";
+          document.getElementById("proxyPreview").hidden = false;
+          document.getElementById("proxyConfirmationWrap").hidden = false;
+          updateProxyApply();
+        } catch (error) { showError(error); }
+      }
+
+      async function applyLeaveCreate() {
+        if (!proxyPlan || proxySubmitting || document.getElementById("proxyConfirmation").value.trim() !== "ยืนยัน") return;
+        proxySubmitting = true;
+        updateProxyApply();
+        try {
+          const result = await callBackend("applyAdminLeaveRequestCreate", Object.assign({}, proxyPayload, {
+            previewToken:proxyPlan.previewToken,
+            confirmation:document.getElementById("proxyConfirmation").value
+          }));
+          invalidateProxyPreview();
+          document.getElementById("leaveCreateEditor").hidden = true;
+          setStatus((result.duplicate ? "คำขอนี้บันทึกไว้แล้ว" : "สร้างคำขอลารออนุมัติและ Audit แล้ว") +
+            " · " + result.requestId + " · แจ้งผู้บริหาร: " +
+            (result.managerNotification ? result.managerNotification.status : "ตรวจสถานะในระบบการลา"), false);
+          await loadLeaveRequests();
+        } catch (error) { showError(error); }
+        finally { proxySubmitting = false; updateProxyApply(); }
+      }
+
       function openLeaveEditor(item) {
         selectedLeave=item; leavePlan=null;
         document.getElementById("leaveTitle").textContent="จัดการคำขอลา · "+item.employeeName;
-        document.getElementById("leaveDetails").textContent=summarizeLeave(item);
+        document.getElementById("leaveDetails").textContent=summarizeLeave(item) +
+          (item.requestChannel === "ADMIN_PROXY" ? "\nAdmin บันทึกแทน · " + item.requestedBy +
+            "\nเหตุผลที่บันทึกแทน: " + item.proxyReason : "");
         const action=document.getElementById("leaveAction");
         action.value=item.status === "รออนุมัติ" ? "APPROVE" : "CANCEL";
         Array.from(action.options).forEach(function(option) {
