@@ -233,10 +233,10 @@ input:hover, select:hover { border-color: #aab6c6; }
 .events-card { padding-bottom: 10px; }
 .events-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e7e9ee; }
 .events-heading svg { width: 20px; height: 20px; color: var(--brand); }
-.late-legend { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; padding: 5px 9px; border: 1px solid #f0c3be; border-radius: 999px; color: #8f322b; background: #fff6f4; font-size: 12px; font-weight: 680; }
-.late-legend::before { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #c8453c; content: ""; }
-.late-filter { min-height: 38px; padding: 6px 12px; border: 1px solid #d8dee8; border-radius: 999px; color: #40516a; background: #fff; font-size: 12px; font-weight: 740; }
-.late-filter:hover:not(:disabled), .late-filter[aria-pressed="true"] { border-color: #cf655d; color: #9c3028; background: #fff2f0; }
+.late-filter { margin-left: auto; min-height: 38px; padding: 6px 12px; border: 1px solid #d8dee8; border-radius: 999px; color: #40516a; background: #fff; font-size: 12px; font-weight: 740; }
+.late-filter:hover:not(:disabled) { border-color: #aab6c6; background: #f7f8fa; }
+.late-filter[aria-pressed="true"] { border-color: var(--brand); color: #fff; background: var(--brand); box-shadow: 0 4px 10px rgb(41 69 108 / 18%); }
+.late-filter[aria-pressed="true"]:hover:not(:disabled) { border-color: #1e3555; background: #1e3555; }
 .late-filter:disabled { opacity: .58; }
 #eventsList { margin-top: 3px !important; }
 .event { padding: 17px 0; border-top: 1px solid #e7e9ee; }
@@ -251,7 +251,7 @@ input:hover, select:hover { border-color: #aab6c6; }
 .attendance-times .time-label > span:first-child { margin: 0; color: var(--muted); font-size: 12px; }
 .attendance-times .late-badge { display: inline-flex; flex: 0 0 auto; align-items: center; padding: 2px 7px; border-radius: 999px; color: #9c3028; background: #fbe0dc; font-size: 11px; font-weight: 780; line-height: 1.45; }
 .attendance-times b { font-size: 17px; font-variant-numeric: tabular-nums; font-weight: 740; overflow-wrap: anywhere; }
-.attendance-times .late-time b { color: #9c3028; }
+.attendance-times .late-time b, .attendance-times .late-time .time-label > span:first-child { color: #b42318; }
 .pill { padding: 4px 9px; border-radius: 999px; background: #f2f4f7; font-size: 13px; }
 .hash { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; word-break: break-all; }
 
@@ -344,7 +344,6 @@ dialog::backdrop { background: rgb(13 23 39 / 58%); backdrop-filter: blur(3px); 
   .attendance-times { gap: 8px; }
   .attendance-times > div { padding: 10px; }
   .attendance-times b { font-size: 16px; }
-  .late-legend { margin-left: 0; }
   .modal { padding: 21px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -412,7 +411,7 @@ dialog::backdrop { background: rgb(13 23 39 / 58%); backdrop-filter: blur(3px); 
   <p class="chain-help">ตรวจสอบความต่อเนื่องของหลักฐานการสแกน</p>
 </section>
 <section class="card events-card" aria-labelledby="eventsHeading">
-  <div class="events-heading"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13h3m2 0h3m-8 3h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><h2 class="events-title" id="eventsHeading">หลักฐานการสแกน</h2><span class="late-legend">มาสายหลัง 08:00:00</span><button class="late-filter" id="lateOnlyBtn" type="button" aria-pressed="false" disabled>กรองรายการเฉพาะคนมาสาย</button></div>
+  <div class="events-heading"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13h3m2 0h3m-8 3h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><h2 class="events-title" id="eventsHeading">หลักฐานการสแกน</h2><button class="late-filter" id="lateOnlyBtn" type="button" aria-pressed="false" disabled>กรองรายการเฉพาะคนมาสาย</button></div>
   <div id="eventsList" class="muted">ยังไม่มีข้อมูล</div>
 </section>
 </main>
