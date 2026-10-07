@@ -230,10 +230,11 @@ input:hover, select:hover { border-color: #aab6c6; }
 .dot.bad { background: #db514b; box-shadow: 0 0 0 4px #fcebe9; }
 .chain-help { margin: 0; color: var(--muted); font-size: 12px; text-align: right; }
 
-.events-card { padding-bottom: 10px; }
+.events-card { padding-bottom: 10px; font-size: 16px; }
+.events-title { font-size: 24px; }
 .events-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e7e9ee; }
 .events-heading svg { width: 20px; height: 20px; color: var(--brand); }
-.late-filter { margin-left: auto; min-height: 38px; padding: 6px 12px; border: 1px solid #d8dee8; border-radius: 999px; color: #40516a; background: #fff; font-size: 12px; font-weight: 740; }
+.late-filter { margin-left: auto; min-height: 38px; padding: 6px 12px; border: 1px solid #d8dee8; border-radius: 999px; color: #40516a; background: #fff; font-size: 14px; font-weight: 740; }
 .late-filter:hover:not(:disabled) { border-color: #aab6c6; background: #f7f8fa; }
 .late-filter[aria-pressed="true"] { border-color: #b42318; color: #fff; background: #b42318; box-shadow: 0 4px 10px rgb(180 35 24 / 18%); }
 .late-filter[aria-pressed="true"]:hover:not(:disabled) { border-color: #912018; background: #912018; }
@@ -241,16 +242,16 @@ input:hover, select:hover { border-color: #aab6c6; }
 #eventsList { margin-top: 3px !important; }
 .event { padding: 17px 0; border-top: 1px solid #e7e9ee; }
 .event:first-child { border-top: 0; }
-.event > b { display: block; color: #263b58; font-size: 16px; font-weight: 750; }
-.event > .muted { margin-top: 3px; font-size: 12px; }
+.event > b { display: block; color: #263b58; font-size: 20px; font-weight: 750; }
+.event > .muted { margin-top: 4px; font-size: 15px; }
 .attendance-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0 0; color: var(--ink); }
 .attendance-times > div { min-width: 0; padding: 11px 12px; border: 1px solid #e5e5e1; border-radius: 12px; background: #fafaf8; }
 .attendance-times > .late-time { border-color: #e7aaa4; background: #fff3f1; }
-.attendance-times .time-label { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.attendance-times .time-label { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .attendance-times span, .attendance-times b { display: block; }
-.attendance-times .time-label > span:first-child { margin: 0; color: var(--muted); font-size: 12px; }
-.attendance-times .late-badge { display: inline-flex; flex: 0 0 auto; align-items: center; padding: 2px 7px; border-radius: 999px; color: #9c3028; background: #fbe0dc; font-size: 11px; font-weight: 780; line-height: 1.45; }
-.attendance-times b { font-size: 17px; font-variant-numeric: tabular-nums; font-weight: 740; overflow-wrap: anywhere; }
+.attendance-times .time-label > span:first-child { margin: 0; color: var(--muted); font-size: 15px; }
+.attendance-times .late-badge { display: inline-flex; flex: 0 0 auto; align-items: center; padding: 2px 7px; border-radius: 999px; color: #9c3028; background: #fbe0dc; font-size: 13px; font-weight: 780; line-height: 1.45; }
+.attendance-times b { font-size: 24px; font-variant-numeric: tabular-nums; font-weight: 740; overflow-wrap: anywhere; }
 .attendance-times .late-time b, .attendance-times .late-time .time-label > span:first-child { color: #b42318; }
 .pill { padding: 4px 9px; border-radius: 999px; background: #f2f4f7; font-size: 13px; }
 .hash { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; word-break: break-all; }
@@ -343,7 +344,7 @@ dialog::backdrop { background: rgb(13 23 39 / 58%); backdrop-filter: blur(3px); 
   .filter-heading, .refresh { grid-column: 1; }
   .attendance-times { gap: 8px; }
   .attendance-times > div { padding: 10px; }
-  .attendance-times b { font-size: 16px; }
+  .attendance-times b { font-size: 22px; }
   .modal { padding: 21px; }
 }
 @media (prefers-reduced-motion: reduce) {
