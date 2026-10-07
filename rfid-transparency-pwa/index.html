@@ -181,6 +181,11 @@ main { width: min(100% - 40px, 880px); margin: 0 auto; padding: 26px 0 56px; }
 .primary:disabled { border-color: #9ba9bc; color: #f8f9fb; background: #9ba9bc; box-shadow: none; }
 .secondary { border: 1px solid #d5dce5; color: #40516a; background: white; }
 .secondary:hover { border-color: #aab6c6; background: #f7f8fa; }
+.push-actions button { border: 1px solid #d5dce5; color: #40516a; background: white; box-shadow: none; }
+.push-actions button:hover { border-color: #aab6c6; background: #f7f8fa; }
+.push-actions button[data-selected="true"] { border-color: var(--brand); color: white; background: var(--brand); box-shadow: 0 5px 13px rgb(41 69 108 / 18%); }
+.push-actions button[data-selected="true"]:hover { border-color: #1e3555; background: #1e3555; }
+.push-actions button:disabled { opacity: .6; }
 .public-note { display: flex; align-items: flex-start; gap: 8px; margin: 17px 0 0; padding-top: 14px; border-top: 1px solid #e9e4d8; color: #687385; font-size: 13px; line-height: 1.6; }
 .public-note svg { width: 17px; height: 17px; flex: 0 0 auto; margin-top: 1px; color: #947638; }
 
@@ -791,5 +796,5 @@ dialog::backdrop { background: rgb(13 23 39 / 58%); backdrop-filter: blur(3px); 
   refresh();
 })();
 </script>
-<script src="./push.js?v=9" defer></script>
+<script src="./push.js?v=10" defer></script>
 </body></html>

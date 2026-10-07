@@ -26,11 +26,23 @@
     step('enrollmentStep', enabled ? 'done' : permission === 'denied' ? 'blocked' : 'pending',
       enabled ? 'เปิดรับบนเครื่องนี้แล้ว' : permission === 'denied' ? 'รอเปิดสิทธิ์แจ้งเตือน' : 'รอเปิดรับบนเครื่องนี้');
   }
+  const actionIds = ['enablePush', 'disablePush', 'testPush'];
+  let selectedAction = 'enablePush';
+  function selectAction(id) {
+    selectedAction = id;
+    for (const actionId of actionIds) {
+      $(actionId).dataset.selected = String(actionId === selectedAction);
+    }
+  }
   function controls(enabled) {
     const canReceive = !!enabled && verifiedEnrollment && !!subscription && installed() && permissionState() === 'granted';
     $('enablePush').hidden = canReceive; $('enablePush').disabled = busy || !config || !installed() || permissionState() === 'denied';
     $('disablePush').hidden = !subscription; $('disablePush').disabled = busy;
     $('testPush').hidden = !canReceive; $('testPush').disabled = busy;
+    if (!busy && $(selectedAction).hidden) {
+      selectedAction = canReceive ? 'testPush' : 'enablePush';
+    }
+    selectAction(selectedAction);
     seenPermission = permissionState();
     updateSteps(canReceive);
   }
@@ -132,6 +144,7 @@
     if (!installed()) { config = null; controls(false); status(INSTALL_REQUIRED_TEXT); return; }
     if (permissionState() === 'denied') { controls(false); status(PERMISSION_DENIED_TEXT); return; }
     if (!sourceMatches()) { status('การแจ้งเตือนใช้กับระบบ RFID กลางเท่านั้น กรุณาตรวจการตั้งค่า'); return; }
+    selectAction('enablePush');
     // Request directly in the click gesture; iOS requires this user interaction.
     const permission = Notification.permission === 'granted' ? Promise.resolve('granted') : Notification.requestPermission();
     const finishLoading = beginLoading('กำลังเปิดรับแจ้งเตือนบนอุปกรณ์นี้');
@@ -161,6 +174,7 @@
   });
   $('disablePush').addEventListener('click', async () => {
     if (busy) return;
+    selectAction('disablePush');
     initialization += 1;
     const wasVerified = verifiedEnrollment;
     const finishLoading = beginLoading('กำลังปิดรับแจ้งเตือนบนอุปกรณ์นี้');
@@ -178,6 +192,7 @@
   });
   $('testPush').addEventListener('click', async () => {
     if (busy || !subscription || !verifiedEnrollment || permissionState() !== 'granted') return;
+    selectAction('testPush');
     const finishLoading = beginLoading('กำลังส่งการแจ้งเตือนทดสอบ');
     busy = true; controls(true);
     try {

@@ -44,6 +44,25 @@ async function page(options={}) {
 
 test('PWA permission and registration behavior',async t=>{
   await t.test('No automatic permission prompt; explicit gesture happens before network request',async()=>{const p=await page();assert(!p.calls.includes('permission'));await p.node('enablePush').click();const i=p.calls.indexOf('permission');const network=p.calls.findIndex((c,j)=>j>i&&c.url?.endsWith('/subscribe'));assert(i>=0&&network>i);assert(p.node('enablePush').hidden);assert(!p.node('testPush').hidden);assert.equal(p.storage.get('rfidPushDeviceToken').length,43);});
+  await t.test('Action highlight follows each accepted click without changing enrollment',async()=>{
+    const p=await page({existing:true,token:true,enabled:true});
+    await p.node('testPush').click();
+    assert.equal(p.node('testPush').dataset.selected,'true');
+    assert.equal(p.node('disablePush').dataset.selected,'false');
+    assert(p.active());
+    const stopping=p.node('disablePush').click();
+    assert.equal(p.node('disablePush').dataset.selected,'true');
+    assert.equal(p.node('testPush').dataset.selected,'false');
+    await stopping;
+    assert(!p.active());
+    assert.equal(p.node('enablePush').dataset.selected,'true');
+    const starting=p.node('enablePush').click();
+    assert.equal(p.node('enablePush').dataset.selected,'true');
+    assert.equal(p.node('disablePush').dataset.selected,'false');
+    await starting;
+    assert(p.active());
+    assert.equal(p.node('testPush').dataset.selected,'true');
+  });
   await t.test('Denied and dismissed permissions do not register a device',async()=>{for(const key of ['denied','dismiss']){const p=await page({[key]:true});await p.node('enablePush').click();assert(!p.calls.some(c=>c.url?.endsWith('/subscribe')));assert(!p.active());assert(p.node('pushStatus').textContent.includes('ยังไม่ได้อนุญาต'));}});
   await t.test('Android and iOS require opening the installed Home Screen app',async()=>{for(const ios of [false,true]){const browser=await page({ios,installed:false});assert(browser.node('enablePush').disabled);assert(browser.node('pushStatus').textContent.includes('หน้าจอโฮม'));await browser.node('enablePush').click();assert(!browser.calls.includes('permission'));assert(!browser.calls.some(c=>c.url?.endsWith('/config')));browser.handlers.get('window:appinstalled')();assert(browser.node('pushStatus').textContent.includes('เปิดแอปจากไอคอน'));const app=await page({ios,installed:true});assert(!app.node('enablePush').disabled);}const unsupported=await page({unsupported:true});assert(unsupported.node('enablePush').disabled);});
   await t.test('Local file preview cannot offer notification enrollment',async()=>{const p=await page({file:true,installed:false});assert(p.node('enablePush').disabled);assert(p.node('pushStatus').textContent.includes('ไฟล์ตัวอย่าง'));assert.equal(p.calls.length,0);});
@@ -64,10 +83,10 @@ test('Service worker push, click, and cache behavior',async t=>{
   const handlers=new Map(), shown=[],opened=[],messages=[],deleted=[],assets=[];
   const scope='https://jame023.github.io/work-calendar-pages/rfid-transparency-pwa/';
   const clients=[{url:scope,postMessage:data=>messages.push(data),async navigate(url){opened.push(url);return this},async focus(){opened.push('focus')}},{url:'https://jame023.github.io/another-app/',postMessage(){throw Error('wrong app')}}];
-  const context=vm.createContext({URL,fetch:async()=>Response.json({ok:true}),self:{location:{origin:'https://jame023.github.io'},registration:{scope,async showNotification(title,options){shown.push({title,options})}},addEventListener:(name,fn)=>handlers.set(name,fn),skipWaiting(){},clients:{claim(){},async matchAll(){return clients},async openWindow(url){opened.push(url)}}},caches:{async open(name){return{async addAll(list){assets.push(name,...list)},async put(){}}},async keys(){return['rfid-audit-mobile-v6','rfid-audit-mobile-v7','rfid-audit-mobile-v8','rfid-audit-mobile-v9','unrelated-cache']},async delete(key){deleted.push(key)}}});
+  const context=vm.createContext({URL,fetch:async()=>Response.json({ok:true}),self:{location:{origin:'https://jame023.github.io'},registration:{scope,async showNotification(title,options){shown.push({title,options})}},addEventListener:(name,fn)=>handlers.set(name,fn),skipWaiting(){},clients:{claim(){},async matchAll(){return clients},async openWindow(url){opened.push(url)}}},caches:{async open(name){return{async addAll(list){assets.push(name,...list)},async put(){}}},async keys(){return['rfid-audit-mobile-v6','rfid-audit-mobile-v7','rfid-audit-mobile-v8','rfid-audit-mobile-v9','rfid-audit-mobile-v10','unrelated-cache']},async delete(key){deleted.push(key)}}});
   new vm.Script(worker).runInContext(context);
   const dispatch=async(name,values)=>{let pending;handlers.get(name)({...values,waitUntil(p){pending=p}});await pending};
-  await t.test('Install includes push script; activation deletes only earlier RFID caches',async()=>{await dispatch('install',{});assert(assets.includes('./push.js'));assert(assets.includes('rfid-audit-mobile-v9'));await dispatch('activate',{});assert.deepEqual(deleted,['rfid-audit-mobile-v6','rfid-audit-mobile-v7','rfid-audit-mobile-v8']);});
+  await t.test('Install includes push script; activation deletes only earlier RFID caches',async()=>{await dispatch('install',{});assert(assets.includes('./push.js'));assert(assets.includes('./push.js?v=10'));assert(assets.includes('rfid-audit-mobile-v10'));await dispatch('activate',{});assert.deepEqual(deleted,['rfid-audit-mobile-v6','rfid-audit-mobile-v7','rfid-audit-mobile-v8','rfid-audit-mobile-v9']);});
   await t.test('Active worker confirms its push capability through the caller message port',()=>{const replies=[];handlers.get('message')({data:{type:'RFID_PUSH_CAPABILITY'},ports:[{postMessage:data=>replies.push(data)}]});assert.equal(replies[0].type,'RFID_PUSH_CAPABILITY');assert.equal(replies[0].version,1);});
   const payload={version:1,eventId:'same-id',date:'2026-10-02',title:'คนทดสอบ · เลิกงาน',body:'02/10/2026 เวลา 16:15:55',url:'https://evil.example/'};
   await t.test('Each push displays a native notification; retry uses same tag without re-alert',async()=>{for(let i=0;i<2;i++)await dispatch('push',{data:{json:()=>payload}});assert.equal(shown.length,2);assert.equal(shown[0].options.tag,shown[1].options.tag);assert.equal(shown[1].options.renotify,false);assert.equal(shown[0].options.data.url,scope+'?date=2026-10-02');assert.equal(messages.length,2);});
@@ -82,6 +101,6 @@ test('Attendance renderer highlights late check-ins, hides duplicates, and prese
   const normalized=get(html).replace(/  const linkedDate =[^\n]+\n  \$\("dateInput"\)\.value=linkedDate \? linkedDate\[1\] : today\(\);/,'  $("dateInput").value=today();');
   // Inline-script baseline covers attendance, freshness, loading, install guidance, and local filters.
   assert.equal(createHash('sha256').update(normalized).digest('hex'),'b4515d5627456f9820f49110891df26f94676f40bd7fc0a8e993545c6409eeae');
-  assert(html.includes('<script src="./push.js?v=9" defer></script>'));assert.equal(config.url,'https://gzlbkabmxncznsporgxp.supabase.co/functions/v1/rfid-push');
+  assert(html.includes('<script src="./push.js?v=10" defer></script>'));assert.equal(config.url,'https://gzlbkabmxncznsporgxp.supabase.co/functions/v1/rfid-push');
   const claims=JSON.parse(Buffer.from(config.key.split('.')[1],'base64url').toString());assert.equal(claims.role,'anon');
 });
