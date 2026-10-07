@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#17253d">
 <meta name="application-name" content="RFID ตรวจเวลางาน">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,54 +13,447 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <style>
-:root{font-family:system-ui,-apple-system,"Noto Sans Thai",sans-serif;color:#172033;background:#eef3f6}
-*{box-sizing:border-box}body{margin:0;background:#eef3f6}
-header{background:linear-gradient(135deg,#115e59,#0f766e);color:white;padding:24px 20px 28px}
-.head{max-width:960px;margin:auto;display:flex;align-items:center;gap:18px}.badge{background:white;color:#0f766e;font-weight:800;border-radius:18px;padding:16px}
-h1{margin:0;font-size:30px;line-height:1.2}.sub{opacity:.9;margin-top:8px}button,input,select{font:inherit}
-.header-actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-.settings,.install{min-width:120px;padding:14px 18px;border:1px solid #ffffff55;border-radius:18px;font-weight:700}
-.settings{background:transparent;color:white}
-.install{background:white;color:#0f766e;border-color:white}
-.install[hidden]{display:none}
-main{max-width:960px;margin:auto;padding:20px}.card{background:white;border:1px solid #d7e0e5;border-radius:22px;padding:22px;margin-bottom:20px}
-.status-title{font-size:24px;font-weight:800}.muted{color:#667085}.error{color:#b42318}.ok{color:#067647}
-.filters{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{font-weight:700}
-input,select{width:100%;margin-top:8px;padding:14px;border:1px solid #d0d5dd;border-radius:14px;background:white}
-.refresh{grid-column:1/-1;padding:16px;border:0;border-radius:14px;background:#0f766e;color:white;font-weight:800}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:16px}.stat{background:white;border:1px solid #d7e0e5;border-radius:22px;padding:20px}.stat b{display:block;font-size:34px;margin-top:6px}
-.chain{display:flex;align-items:center;gap:10px;font-weight:800}.dot{width:11px;height:11px;border-radius:50%;background:#98a2b3}.dot.good{background:#12b76a}.dot.bad{background:#f04438}
-.event{border-top:1px solid #eaecf0;padding:16px 0}.event:first-child{border-top:0}.event-head{display:flex;justify-content:space-between;gap:10px}
-.attendance-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:10px 0;color:#172033}.attendance-times span,.attendance-times b{display:block}.attendance-times b{font-size:18px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.pill{padding:4px 9px;border-radius:999px;background:#f2f4f7;font-size:13px}.hash{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;word-break:break-all;color:#667085}
-dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backdrop{background:#0008}.modal{padding:22px}.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
-.secondary,.primary{padding:11px 16px;border-radius:12px;font-weight:700}.secondary{background:white;border:1px solid #d0d5dd}.primary{border:0;background:#0f766e;color:white}
-@media(max-width:600px){h1{font-size:28px}.head{align-items:flex-start}.header-actions{flex-direction:column}.settings,.install{min-width:106px;padding:12px}.filters{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}}
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, "Noto Sans Thai", sans-serif;
+  color: #1d2939;
+  background: #f6f7f9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #1d2939;
+  --muted: #667085;
+  --brand: #29456c;
+  --line: #e2e6ec;
+  --surface: #ffffff;
+  --shadow: 0 12px 32px rgb(16 24 40 / 6%);
+}
+
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; background: #f6f7f9; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button:active:not(:disabled) { transform: translateY(1px) scale(.985); }
+button:active:not(:disabled) svg { transform: scale(.92); }
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid #b8852e;
+  outline-offset: 3px;
+}
+
+.site-header {
+  position: relative;
+  overflow: hidden;
+  padding: max(24px, env(safe-area-inset-top)) 24px 38px;
+  color: #fffdf8;
+  background: linear-gradient(118deg, #17253d 0%, #223653 58%, #304a70 100%);
+}
+.site-header::after {
+  position: absolute;
+  top: -150px;
+  right: max(4%, calc((100vw - 1080px) / 2));
+  width: 360px;
+  height: 360px;
+  border: 1px solid rgb(231 203 143 / 18%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 42px rgb(231 203 143 / 4%), 0 0 0 84px rgb(255 255 255 / 2%);
+  content: "";
+  pointer-events: none;
+}
+.head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: min(100%, 1040px);
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto;
+}
+.brand-mark {
+  display: grid;
+  width: 68px;
+  height: 68px;
+  flex: 0 0 68px;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  border: 1px solid rgb(231 203 143 / 28%);
+  border-radius: 21px;
+  color: #f1dca9;
+  background: rgb(255 255 255 / 8%);
+  backdrop-filter: blur(8px);
+}
+.brand-mark svg { width: 30px; height: 24px; }
+.brand-mark span { font-size: 12px; font-weight: 850; letter-spacing: .12em; }
+.brand-copy { min-width: 0; }
+h1 { margin: 2px 0 4px; font-size: clamp(25px, 3vw, 34px); font-weight: 780; letter-spacing: -.035em; line-height: 1.2; }
+.sub { margin: 0; color: rgb(255 253 248 / 78%); font-size: 14px; }
+.header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-left: auto; }
+.header-actions button, .primary, .secondary, .refresh {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 14px;
+  font-weight: 730;
+  transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.header-actions button { padding: 0 16px; }
+.header-actions svg, .refresh svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.install { border: 1px solid #fffdf8; color: #29456c; background: #fffdf8; box-shadow: 0 3px 10px rgb(3 10 23 / 18%); }
+.install:hover { background: #f5ecd8; }
+.settings { border: 1px solid rgb(255 255 255 / 28%); color: #fffdf8; background: rgb(255 255 255 / 7%); }
+.settings:hover { border-color: rgb(255 255 255 / 58%); background: rgb(255 255 255 / 14%); }
+.install[hidden] { display: none; }
+
+main { width: min(100% - 40px, 880px); margin: 0 auto; padding: 26px 0 56px; }
+.card {
+  margin: 0 0 16px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.section-kicker, .section-head, .push-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.eyebrow { margin: 0 0 5px; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .045em; }
+.read-only-badge, .device-badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid #e6dfcd;
+  border-radius: 999px;
+  color: #625735;
+  background: #f8f5ec;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.status-title { margin-top: 12px; color: var(--ink); font-size: 23px; font-weight: 790; letter-spacing: -.02em; line-height: 1.35; }
+.muted { color: var(--muted); }
+.connection-card #statusText { margin-top: 4px; font-size: 14px; line-height: 1.55; }
+.connection-card #statusText.ok { color: #187250; }
+.connection-card #statusText.error { color: #b42318; }
+.freshness { margin-top: 14px; padding: 10px 12px; border: 1px solid #dce5ef; border-radius: 12px; color: #40516a; background: #f5f8fc; font-size: 13px; font-weight: 660; line-height: 1.55; }
+.freshness[data-state="stale"] { border-color: #edb8b2; color: #9c3028; background: #fff2f0; }
+
+.push-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+  border-color: #e8dfcb;
+  background: linear-gradient(112deg, #fff 0%, #faf7ef 100%);
+}
+.push-card::before { position: absolute; inset: 0 auto 0 0; width: 4px; background: #c2a15c; content: ""; }
+.push-top { justify-content: flex-start; }
+.push-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  place-items: center;
+  border-radius: 15px;
+  color: #80652b;
+  background: #f4eedf;
+}
+.push-icon svg { width: 23px; height: 23px; }
+.push-copy { min-width: 0; }
+.push-copy h2, .section-head h2, .stats-title, .events-title { margin: 0; color: var(--ink); font-size: 20px; font-weight: 780; letter-spacing: -.02em; line-height: 1.35; }
+.push-copy .eyebrow { margin-bottom: 2px; }
+.device-badge { margin-left: auto; color: #695a32; background: #f7f1e2; }
+.push-description { max-width: 690px; margin: 17px 0 9px; color: #475467; font-size: 15px; line-height: 1.75; }
+.install-note { margin: 0; padding: 10px 12px; border-radius: 12px; color: #625b4d; background: #f5f1e7; font-size: 13px; line-height: 1.65; }
+.setup-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.setup-steps li { display: flex; min-width: 0; align-items: flex-start; gap: 7px; padding: 10px; border: 1px solid #e1e5eb; border-radius: 12px; color: #667085; background: #fff; font-size: 12px; font-weight: 700; line-height: 1.4; }
+.setup-steps li::before { display: grid; width: 19px; height: 19px; flex: 0 0 19px; place-items: center; border-radius: 50%; color: #fff; background: #98a2b3; content: "·"; font-size: 18px; line-height: 1; }
+.setup-steps li[data-state="done"] { border-color: #b9dccb; color: #176545; background: #f1faf5; }
+.setup-steps li[data-state="done"]::before { background: #18865d; content: "✓"; font-size: 12px; }
+.setup-steps li[data-state="blocked"] { border-color: #edb8b2; color: #9c3028; background: #fff3f1; }
+.setup-steps li[data-state="blocked"]::before { background: #bd4238; content: "!"; font-size: 12px; }
+#pushStatus { margin: 13px 0 0; font-size: 14px; line-height: 1.6; }
+.push-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+.primary, .secondary { padding: 0 17px; }
+.primary { border: 1px solid var(--brand); color: white; background: var(--brand); box-shadow: 0 5px 13px rgb(41 69 108 / 18%); }
+.primary:hover { border-color: #1e3555; background: #1e3555; box-shadow: 0 7px 17px rgb(41 69 108 / 23%); }
+.primary:disabled { border-color: #9ba9bc; color: #f8f9fb; background: #9ba9bc; box-shadow: none; }
+.secondary { border: 1px solid #d5dce5; color: #40516a; background: white; }
+.secondary:hover { border-color: #aab6c6; background: #f7f8fa; }
+.public-note { display: flex; align-items: flex-start; gap: 8px; margin: 17px 0 0; padding-top: 14px; border-top: 1px solid #e9e4d8; color: #687385; font-size: 13px; line-height: 1.6; }
+.public-note svg { width: 17px; height: 17px; flex: 0 0 auto; margin-top: 1px; color: #947638; }
+
+.filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 16px; }
+.filter-heading { grid-column: 1 / -1; justify-content: flex-start; margin-bottom: 1px; }
+.section-head h2 { font-size: 19px; }
+label { display: block; min-width: 0; color: #344054; font-size: 14px; font-weight: 700; }
+input, select {
+  display: block;
+  width: 100%;
+  min-height: 50px;
+  margin-top: 7px;
+  padding: 0 14px;
+  border: 1px solid #d0d5dd;
+  border-radius: 13px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 3%);
+}
+input::placeholder { color: #98a2b3; }
+input:hover, select:hover { border-color: #aab6c6; }
+.refresh { grid-column: 1 / -1; width: 100%; border: 0; color: white; background: var(--brand); }
+.refresh[aria-busy="true"] { cursor: progress; }
+.refresh:hover { background: #1e3555; }
+.refresh:disabled { color: #f2f4f7; background: #7a8da8; }
+@keyframes refresh-spin { to { transform: rotate(360deg); } }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 19px; }
+.stats-title { grid-column: 1 / -1; margin: 1px 0 1px; font-size: 17px; }
+.stat { min-width: 0; padding: 17px 18px 16px; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: 0 5px 16px rgb(22 54 49 / 4%); }
+.stat-label { display: block; color: var(--muted); font-size: 13px; font-weight: 650; line-height: 1.4; }
+.stat b { display: block; margin-top: 8px; color: var(--ink); font-size: clamp(27px, 4vw, 34px); font-variant-numeric: tabular-nums; font-weight: 790; line-height: 1.05; }
+.stat-checkin b { color: #187454; }
+.stat-checkout b { color: #246a82; }
+
+.chain-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; background: #fcfcfb; box-shadow: none; }
+.chain-copy { min-width: 0; }
+.chain-copy .eyebrow { margin-bottom: 7px; }
+.chain { display: flex; align-items: center; gap: 9px; color: #344054; font-size: 15px; font-weight: 730; line-height: 1.5; }
+.dot { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 50%; background: #98a2b3; }
+.dot.good { background: #18a06a; box-shadow: 0 0 0 4px #e2f4eb; }
+.dot.bad { background: #db514b; box-shadow: 0 0 0 4px #fcebe9; }
+.chain-help { margin: 0; color: var(--muted); font-size: 12px; text-align: right; }
+
+.events-card { padding-bottom: 10px; }
+.events-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #e7e9ee; }
+.events-heading svg { width: 20px; height: 20px; color: var(--brand); }
+.late-legend { display: inline-flex; align-items: center; gap: 7px; margin-left: auto; padding: 5px 9px; border: 1px solid #f0c3be; border-radius: 999px; color: #8f322b; background: #fff6f4; font-size: 12px; font-weight: 680; }
+.late-legend::before { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #c8453c; content: ""; }
+.late-filter { min-height: 38px; padding: 6px 12px; border: 1px solid #d8dee8; border-radius: 999px; color: #40516a; background: #fff; font-size: 12px; font-weight: 740; }
+.late-filter:hover:not(:disabled), .late-filter[aria-pressed="true"] { border-color: #cf655d; color: #9c3028; background: #fff2f0; }
+.late-filter:disabled { opacity: .58; }
+#eventsList { margin-top: 3px !important; }
+.event { padding: 17px 0; border-top: 1px solid #e7e9ee; }
+.event:first-child { border-top: 0; }
+.event > b { display: block; color: #263b58; font-size: 16px; font-weight: 750; }
+.event > .muted { margin-top: 3px; font-size: 12px; }
+.attendance-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0 0; color: var(--ink); }
+.attendance-times > div { min-width: 0; padding: 11px 12px; border: 1px solid #e5e5e1; border-radius: 12px; background: #fafaf8; }
+.attendance-times > .late-time { border-color: #e7aaa4; background: #fff3f1; }
+.attendance-times .time-label { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.attendance-times span, .attendance-times b { display: block; }
+.attendance-times .time-label > span:first-child { margin: 0; color: var(--muted); font-size: 12px; }
+.attendance-times .late-badge { display: inline-flex; flex: 0 0 auto; align-items: center; padding: 2px 7px; border-radius: 999px; color: #9c3028; background: #fbe0dc; font-size: 11px; font-weight: 780; line-height: 1.45; }
+.attendance-times b { font-size: 17px; font-variant-numeric: tabular-nums; font-weight: 740; overflow-wrap: anywhere; }
+.attendance-times .late-time b { color: #9c3028; }
+.pill { padding: 4px 9px; border-radius: 999px; background: #f2f4f7; font-size: 13px; }
+.hash { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; word-break: break-all; }
+
+dialog { width: min(500px, calc(100vw - 32px)); padding: 0; border: 1px solid #dce1e8; border-radius: 22px; color: var(--ink); box-shadow: 0 24px 80px rgb(13 23 39 / 25%); }
+dialog::backdrop { background: rgb(13 23 39 / 58%); backdrop-filter: blur(3px); }
+.modal { padding: 25px; }
+.modal h2 { margin: 0 0 14px; color: var(--ink); font-size: 21px; line-height: 1.4; }
+.modal p, .modal #installHelp { color: #596579; font-size: 15px; line-height: 1.8; }
+.modal #installHelp b { display: inline-block; padding: 1px 7px; border-radius: 7px; color: #6d5522; background: #f7f0df; font-weight: 720; }
+.modal input { margin-top: 14px; }
+.modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; margin-top: 19px; }
+.loading-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(13 23 39 / 44%);
+  backdrop-filter: blur(3px);
+  animation: loading-fade-in .16s ease both;
+}
+.loading-overlay[hidden] { display: none; }
+.loading-popup {
+  display: flex;
+  width: min(100%, 360px);
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px;
+  border: 1px solid #eadfca;
+  border-radius: 20px;
+  background: #fffdf8;
+  box-shadow: 0 20px 60px rgb(13 23 39 / 24%);
+}
+.loading-spinner {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border: 4px solid #e9e1d0;
+  border-top-color: #29456c;
+  border-right-color: #c2a15c;
+  border-radius: 50%;
+  animation: refresh-spin .8s linear infinite;
+}
+.loading-copy { min-width: 0; }
+.loading-copy strong { display: block; color: var(--ink); font-size: 17px; font-weight: 760; }
+.loading-copy span { display: block; margin-top: 3px; color: #687385; font-size: 13px; line-height: 1.5; }
+@keyframes loading-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 720px) {
+  .site-header { padding-right: 20px; padding-bottom: 30px; padding-left: 20px; }
+  .head { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .brand-mark { width: 56px; height: 56px; flex-basis: 56px; border-radius: 17px; }
+  .brand-mark svg { width: 25px; height: 20px; }
+  h1 { font-size: 27px; }
+  .sub { max-width: 330px; font-size: 13px; }
+  .header-actions { width: 100%; justify-content: flex-start; margin: 7px 0 0; }
+  .header-actions button { min-height: 46px; }
+  main { width: min(100% - 32px, 600px); padding-top: 19px; }
+  .card { padding: 19px; border-radius: 19px; }
+  .push-card { padding: 20px; }
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .stat { padding: 13px 10px; border-radius: 16px; }
+  .stat-label { font-size: 12px; }
+  .stat b { font-size: clamp(23px, 7vw, 30px); }
+  .chain-card { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .chain-help { text-align: left; }
+}
+@media (max-width: 430px) {
+  .site-header { padding-right: 16px; padding-left: 16px; }
+  main { width: calc(100% - 24px); }
+  .brand-copy { padding-top: 1px; }
+  h1 { font-size: 25px; }
+  .sub { max-width: 230px; font-size: 12px; }
+  .header-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .header-actions button { padding: 0 10px; font-size: 14px; }
+  .card, .push-card { padding: 17px; }
+  .stat { padding: 12px 8px; }
+  .stat-label { font-size: 11px; }
+  .stat b { font-size: 24px; }
+  .push-icon { width: 42px; height: 42px; flex-basis: 42px; border-radius: 13px; }
+  .push-copy h2 { font-size: 18px; }
+  .device-badge { display: none; }
+  .push-description { margin-top: 14px; font-size: 14px; }
+  .install-note { font-size: 12px; }
+  .setup-steps { grid-template-columns: 1fr; gap: 6px; }
+  .setup-steps li { align-items: center; }
+  .filters { grid-template-columns: 1fr; gap: 13px; }
+  .filter-heading, .refresh { grid-column: 1; }
+  .attendance-times { gap: 8px; }
+  .attendance-times > div { padding: 10px; }
+  .attendance-times b { font-size: 16px; }
+  .late-legend { margin-left: 0; }
+  .modal { padding: 21px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  .loading-spinner, .loading-overlay { animation: none; }
+}
 </style>
 </head>
 <body>
-<header><div class="head"><div class="badge">RFID</div><div><h1>ตรวจสอบ<br>การสแกนบัตร</h1><div class="sub">เวลาสแกนจริง · Audit · Hash Chain</div></div><div class="header-actions"><button class="install" id="installBtn">ติดตั้งแอป</button><button class="settings" id="settingsBtn">ตั้งค่า</button></div></div></header>
+<header class="site-header">
+  <div class="head">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 32 24" fill="none"><path d="M7 4.5a16 16 0 0 0 0 15M12 7.5a10 10 0 0 0 0 9M17 10.5a4 4 0 0 0 0 3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="23" cy="12" r="3" fill="currentColor"/></svg>
+      <span>RFID</span>
+    </div>
+    <div class="brand-copy">
+      <h1>ตรวจเวลางาน</h1>
+      <p class="sub">ดูรายการสแกนและตรวจสอบเวลาเข้า–ออก</p>
+    </div>
+    <div class="header-actions">
+      <button class="install" id="installBtn"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ติดตั้งแอป</span></button>
+      <button class="settings" id="settingsBtn"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" stroke="currentColor" stroke-width="1.8"/><path d="m19.4 15 .1.1a1.8 1.8 0 1 1-2.5 2.5l-.1-.1a1.8 1.8 0 0 0-3 .9v.2a1.8 1.8 0 1 1-3.6 0v-.2a1.8 1.8 0 0 0-3-.9l-.1.1a1.8 1.8 0 1 1-2.5-2.5l.1-.1a1.8 1.8 0 0 0-.9-3h-.2a1.8 1.8 0 1 1 0-3.6h.2a1.8 1.8 0 0 0 .9-3l-.1-.1a1.8 1.8 0 1 1 2.5-2.5l.1.1a1.8 1.8 0 0 0 3-.9v-.2a1.8 1.8 0 1 1 3.6 0v.2a1.8 1.8 0 0 0 3 .9l.1-.1a1.8 1.8 0 1 1 2.5 2.5l-.1.1a1.8 1.8 0 0 0 .9 3h.2a1.8 1.8 0 1 1 0 3.6h-.2a1.8 1.8 0 0 0-.9 3Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ตั้งค่า</span></button>
+    </div>
+  </div>
+</header>
 <main>
-<section class="card"><div class="status-title" id="statusTitle">กำลังตรวจสอบหลักฐาน…</div><div class="muted" id="statusText">หน้าจออ่านอย่างเดียว</div></section>
-<section class="card"><div class="status-title" style="font-size:20px">แจ้งเตือนเข้า–ออกงาน</div><p class="muted" id="pushStatus" role="status" aria-live="polite">กำลังตรวจสอบการแจ้งเตือน…</p><div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap"><button class="primary" id="enablePush" disabled>เปิดรับแจ้งเตือน</button><button class="secondary" id="disablePush" hidden>ปิดรับแจ้งเตือน</button><button class="secondary" id="testPush" hidden>ทดสอบแจ้งเตือน</button></div></section>
-<section class="card filters">
-<label>วันที่<input type="date" id="dateInput"></label>
-<label>พนักงาน<input id="employeeInput" list="employeeList" placeholder="ทุกคน"><datalist id="employeeList"></datalist></label>
-<label>ผลสแกน<select id="resultInput"><option value="all">ทั้งหมด</option><option value="checkin">เข้างาน</option><option value="checkout">เลิกงาน</option><option value="duplicate">สแกนซ้ำ</option><option value="unknown">ไม่พบชื่อ</option></select></label>
-<button class="refresh" id="refreshBtn">รีเฟรช</button>
+<section class="card connection-card" aria-labelledby="statusTitle">
+  <div class="section-kicker"><p class="eyebrow">สถานะระบบ</p><span class="read-only-badge">อ่านข้อมูลอย่างเดียว</span></div>
+  <div class="status-title" id="statusTitle" aria-live="polite">กำลังตรวจสอบหลักฐาน…</div>
+  <div class="muted" id="statusText">หน้าจออ่านอย่างเดียว</div>
+  <div class="freshness" id="dataFreshness" data-state="initial" role="status" aria-live="polite">ยังไม่มีข้อมูลที่โหลดสำเร็จ</div>
 </section>
-<section class="stats"><div class="stat"><span class="muted">Event วันนี้</span><b id="eventsCount">0</b></div><div class="stat"><span class="muted">เข้างาน</span><b id="checkinCount">0</b></div><div class="stat"><span class="muted">เลิกงาน</span><b id="checkoutCount">0</b></div><div class="stat"><span class="muted">สแกนซ้ำ</span><b id="duplicateCount">0</b></div></section>
-<section class="card" style="margin-top:20px">หน้าจอสำหรับดูข้อมูลการสแกนเท่านั้น</section>
-<section class="card"><div class="chain"><span class="dot" id="chainDot"></span><span id="chainText">ยังไม่ได้ตรวจ Hash Chain</span></div></section>
-<section class="card"><div class="status-title" style="font-size:20px">หลักฐานการสแกน</div><div id="eventsList" class="muted" style="margin-top:12px">ยังไม่มีข้อมูล</div></section>
+<section class="card push-card" aria-labelledby="pushHeading">
+  <div class="push-top">
+    <div class="push-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="push-copy"><p class="eyebrow">รับการแจ้งเตือน</p><h2 id="pushHeading">เข้า–ออกงานบนเครื่องนี้</h2></div>
+    <span class="device-badge">สมัครแยกแต่ละเครื่อง</span>
+  </div>
+  <p class="push-description">ติดตั้งแอปบนอุปกรณ์นี้และเปิดจากไอคอนก่อน จึงกดเปิดรับเพื่อรับแจ้งชื่อ วันที่ และเวลาเข้า–ออกของทุกคน ใครมีลิงก์ก็ดูข้อมูลและสมัครรับได้ ไม่ต้องเข้าสู่ระบบ</p>
+  <p class="install-note">Android · iPhone/iPad: แตะ “ติดตั้งแอป” → เพิ่มไปยังหน้าจอโฮม → เปิดจากไอคอน → กด “เปิดรับแจ้งเตือน”</p>
+  <ol class="setup-steps" aria-label="ขั้นตอนรับแจ้งเตือน">
+    <li id="installStep" data-state="pending">ติดตั้งและเปิดจากไอคอน</li>
+    <li id="permissionStep" data-state="pending">อนุญาตแจ้งเตือน</li>
+    <li id="enrollmentStep" data-state="pending">เปิดรับบนเครื่องนี้</li>
+  </ol>
+  <p class="muted" id="pushStatus" role="status" aria-live="polite">กำลังตรวจสอบการแจ้งเตือน…</p>
+  <div class="push-actions"><button class="primary" id="enablePush" disabled>เปิดรับแจ้งเตือน</button><button class="secondary" id="disablePush" hidden>ปิดรับแจ้งเตือน</button><button class="secondary" id="testPush" hidden>ทดสอบแจ้งเตือน</button></div>
+  <p class="public-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4.5 6v5.2c0 4.7 3.2 8 7.5 9.8 4.3-1.8 7.5-5.1 7.5-9.8V6L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ทุกคนที่มีลิงก์เปิดดูข้อมูลได้ เมื่อติดตั้งแอปและเปิดจากไอคอนแล้ว จึงสมัครรับแจ้งเตือนบนอุปกรณ์ของตนได้</span></p>
+</section>
+<section class="card filters" aria-label="ค้นหารายการสแกน">
+  <div class="section-head filter-heading"><div><p class="eyebrow">ค้นหารายการ</p><h2>เลือกข้อมูลที่ต้องการดู</h2></div></div>
+  <label>วันที่<input type="date" id="dateInput"></label>
+  <label>พนักงาน<input id="employeeInput" list="employeeList" placeholder="ทุกคน"><datalist id="employeeList"></datalist></label>
+  <label>ผลการสแกน<select id="resultInput"><option value="all">ทั้งหมด</option><option value="checkin">เข้างาน</option><option value="checkout">เลิกงาน</option><option value="unknown">ไม่พบชื่อ</option></select></label>
+  <button class="refresh" id="refreshBtn"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.1 9a6.5 6.5 0 0 1 10.8-2L20 12M4 12l3.1 5a6.5 6.5 0 0 0 10.8-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>รีเฟรชข้อมูล</span></button>
+</section>
+<section class="stats" aria-label="สรุปจำนวนรายการ">
+  <h2 class="stats-title">ยอดรวมตามวันที่ พนักงาน และผลการสแกน</h2>
+  <div class="stat"><span class="stat-label">รายการสแกน</span><b id="eventsCount">0</b></div>
+  <div class="stat stat-checkin"><span class="stat-label">เข้างาน</span><b id="checkinCount">0</b></div>
+  <div class="stat stat-checkout"><span class="stat-label">เลิกงาน</span><b id="checkoutCount">0</b></div>
+</section>
+<section class="card chain-card" aria-label="ผลตรวจสอบ Hash Chain">
+  <div class="chain-copy"><p class="eyebrow">การตรวจสอบความถูกต้อง</p><div class="chain"><span class="dot" id="chainDot"></span><span id="chainText">ยังไม่ได้ตรวจ Hash Chain</span></div></div>
+  <p class="chain-help">ตรวจสอบความต่อเนื่องของหลักฐานการสแกน</p>
+</section>
+<section class="card events-card" aria-labelledby="eventsHeading">
+  <div class="events-heading"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 13h3m2 0h3m-8 3h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><h2 class="events-title" id="eventsHeading">หลักฐานการสแกน</h2><span class="late-legend">มาสายหลัง 08:00:00</span><button class="late-filter" id="lateOnlyBtn" type="button" aria-pressed="false" disabled>กรองรายการเฉพาะคนมาสาย</button></div>
+  <div id="eventsList" class="muted">ยังไม่มีข้อมูล</div>
+</section>
 </main>
-<dialog id="installDialog"><div class="modal"><h2>ติดตั้งแอปบนโทรศัพท์</h2><div id="installHelp" class="muted"></div><div class="modal-actions"><button class="primary" id="closeInstall">เข้าใจแล้ว</button></div></div></dialog>
-<dialog id="settingsDialog"><div class="modal"><h2>ตั้งค่า Apps Script</h2><p class="muted">ระบบจะใช้ URL กลางอัตโนมัติ หากต้องแก้ไขให้วาง Web App URL ที่ลงท้ายด้วย <b>/exec</b></p><input id="urlInput" placeholder="https://script.google.com/macros/s/.../exec"><div class="modal-actions"><button class="secondary" id="cancelSettings">ยกเลิก</button><button class="primary" id="saveSettings">บันทึก</button></div></div></dialog>
+<dialog id="installDialog" aria-labelledby="installHeading"><div class="modal"><h2 id="installHeading">ติดตั้งและเปิดแอป</h2><div id="installHelp" class="muted"></div><div class="modal-actions"><button class="primary" id="closeInstall">เข้าใจแล้ว</button></div></div></dialog>
+<dialog id="settingsDialog" aria-labelledby="settingsHeading"><div class="modal"><h2 id="settingsHeading">ตั้งค่า Apps Script</h2><p class="muted">ระบบใช้ URL กลางอัตโนมัติ หากต้องแก้ไข ให้วาง Web App URL ที่ลงท้ายด้วย <b>/exec</b></p><input id="urlInput" aria-label="Apps Script Web App URL" placeholder="https://script.google.com/macros/s/.../exec"><div class="modal-actions"><button class="secondary" id="cancelSettings">ยกเลิก</button><button class="primary" id="saveSettings">บันทึก</button></div></div></dialog>
+<div class="loading-overlay" id="loadingOverlay" hidden role="status" aria-live="polite" aria-atomic="true" aria-busy="true">
+  <div class="loading-popup"><span class="loading-spinner" aria-hidden="true"></span><div class="loading-copy"><strong>กำลังดำเนินการ</strong><span id="loadingText">กำลังเชื่อมต่อ...</span></div></div>
+</div>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
   const API_STORAGE_KEY = "rfidAppsScriptUrl";
   const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyfgiTQWi9UHw0zVvdi3BOHL9lbSvBzwEg_IYkj8Xmobhj7rLpw_dpR_DpCgCv21xSn/exec";
+  const loadingTasks = new Map();
+  let loadingTaskId = 0;
+  let loadingStartedAt = 0;
+  let loadingRevision = 0;
+
+  window.beginRfidLoadingState = label => {
+    const overlay = $("loadingOverlay");
+    const text = $("loadingText");
+    if (!overlay || !text) return async () => {};
+    loadingRevision += 1;
+    if (!loadingTasks.size) loadingStartedAt = performance.now();
+    const id = ++loadingTaskId;
+    loadingTasks.set(id, String(label || "กำลังเชื่อมต่อ..."));
+    text.textContent = loadingTasks.size > 1
+      ? "กำลังโหลดข้อมูลและตรวจสอบระบบแจ้งเตือน"
+      : loadingTasks.get(id);
+    overlay.hidden = false;
+    let released = false;
+    return async () => {
+      if (released) return;
+      released = true;
+      loadingTasks.delete(id);
+      if (loadingTasks.size) {
+        text.textContent = loadingTasks.size > 1
+          ? "กำลังโหลดข้อมูลและตรวจสอบระบบแจ้งเตือน"
+          : loadingTasks.values().next().value;
+        return;
+      }
+      const closingRevision = ++loadingRevision;
+      const remaining = Math.max(0, 420 - (performance.now() - loadingStartedAt));
+      if (remaining) await new Promise(resolve => setTimeout(resolve, remaining));
+      if (closingRevision === loadingRevision && !loadingTasks.size) overlay.hidden = true;
+    };
+  };
 
   function canonicalApiUrl(value) {
     let v = String(value || "").trim();
@@ -73,9 +466,18 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
   const state = { url: storedApiUrl || DEFAULT_API_URL };
   localStorage.setItem(API_STORAGE_KEY, state.url);
   let deferredInstallPrompt = null;
+  let installedThisSession = false;
+  let lastSuccessfulData = null;
+  let lastSuccessfulQuery = null;
+  let lastSuccessfulUrl = "";
+  let lastSuccessfulAt = null;
+  let lastRefreshFailed = false;
+  let lastRefreshStartedAt = 0;
+  const FOREGROUND_REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 
   function isIos() {
-    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   }
 
   function isStandalone() {
@@ -87,24 +489,51 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
     const button = $("installBtn");
     if (!button) return;
     button.hidden = isStandalone();
+    button.querySelector("span").textContent = installedThisSession ? "เปิดจากไอคอน" : "ติดตั้งแอป";
   }
 
   function showInstallHelp() {
     const help = $("installHelp");
-    if (isIos()) {
+    if (window.location.protocol === "file:") {
+      help.textContent = "หน้านี้เป็นไฟล์ตัวอย่าง หากต้องการติดตั้งและรับแจ้งเตือน ให้เปิดลิงก์แอปบนเว็บไซต์ก่อน";
+    } else if (installedThisSession) {
+      help.innerHTML = "ติดตั้งแล้ว ให้เปิดแอปจากไอคอนบนหน้าจอโฮม จากนั้นกด <b>เปิดรับแจ้งเตือน</b> ในแอป";
+    } else if (isIos()) {
       help.innerHTML =
         "บน iPhone/iPad ให้เปิดหน้านี้ด้วย Safari แล้วกดปุ่ม <b>แชร์</b> → " +
-        "<b>เพิ่มไปยังหน้าจอโฮม</b> → <b>เพิ่ม</b>";
+        "<b>เพิ่มไปยังหน้าจอโฮม</b> → <b>เพิ่ม</b> จากนั้นเปิดจากไอคอนบนหน้าจอโฮม แล้วกด <b>เปิดรับแจ้งเตือน</b>";
     } else {
       help.innerHTML =
         "ถ้าเบราว์เซอร์ยังไม่แสดงหน้าต่างติดตั้ง ให้เปิดเมนูเบราว์เซอร์แล้วเลือก " +
-        "<b>ติดตั้งแอป</b> หรือ <b>เพิ่มไปยังหน้าจอหลัก</b>";
+        "<b>ติดตั้งแอป</b> หรือ <b>เพิ่มไปยังหน้าจอหลัก</b> จากนั้นเปิดจากไอคอนบนหน้าจอโฮม แล้วกด <b>เปิดรับแจ้งเตือน</b>";
     }
     $("installDialog").showModal();
   }
 
-  function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
+  function today(){
+    const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Bangkok",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+    const value=type=>parts.find(part=>part.type===type).value;
+    return `${value("year")}-${value("month")}-${value("day")}`;
+  }
   function setStatus(a,b,c){$("statusTitle").textContent=a;$("statusText").textContent=b||"";$("statusText").className=c||"muted";}
+  function currentQuery(){return {api:"rfid-public",date:$("dateInput").value||today(),name:$("employeeInput").value.trim(),result:$("resultInput").value};}
+  function loadedTime(){return new Intl.DateTimeFormat("th-TH",{timeZone:"Asia/Bangkok",dateStyle:"medium",timeStyle:"medium"}).format(lastSuccessfulAt);}
+  function updateFreshness(){
+    const badge=$("dataFreshness");
+    if(!lastSuccessfulAt){
+      badge.dataset.state=lastRefreshFailed?"stale":"initial";
+      badge.textContent=lastRefreshFailed?"เชื่อมต่อไม่สำเร็จ · ยังไม่มีข้อมูลที่โหลดสำเร็จ":"ยังไม่มีข้อมูลที่โหลดสำเร็จ";
+      return;
+    }
+    const stamp=loadedTime();
+    const queryChanged=JSON.stringify(currentQuery())!==JSON.stringify(lastSuccessfulQuery)||state.url!==lastSuccessfulUrl;
+    badge.dataset.state=lastRefreshFailed||queryChanged?"stale":"fresh";
+    badge.textContent=lastRefreshFailed
+      ? `เชื่อมต่อไม่สำเร็จ · กำลังแสดงข้อมูลเก่าที่โหลดสำเร็จเมื่อ ${stamp} (เวลาไทย)`
+      : queryChanged
+        ? `ตัวกรองเปลี่ยนแล้ว · กำลังแสดงข้อมูลที่โหลดเมื่อ ${stamp} (เวลาไทย) กดรีเฟรชเพื่ออัปเดต`
+        : `โหลดข้อมูลสำเร็จล่าสุด ${stamp} (เวลาไทย)`;
+  }
   function validUrl(v){return Boolean(canonicalApiUrl(v));}
   function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
   function shortHash(v){return v?v.slice(0,12)+"…"+v.slice(-8):"-";}
@@ -143,18 +572,28 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
       }
     }
   }
-  function renderAttendanceCards(data) {
+  function renderAttendanceCards(data, query) {
     const filters = data.filters || {};
     const attendance = data.attendance || {};
-    const date = String(filters.date || attendance.startDate || $("dateInput").value || "");
-    const result = filters.result || $("resultInput").value || "all";
+    const date = String(filters.date || attendance.startDate || query.date || "");
+    const result = filters.result || query.result || "all";
     const groups = [];
     const namedGroups = new Map();
+    const lateCheckin = row => {
+      const match = String(row.checkin || "").trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      if (!match) return false;
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+      const seconds = Number(match[3] || 0);
+      if (hours > 23 || minutes > 59 || seconds > 59) return false;
+      return hours * 3600 + minutes * 60 + seconds > 8 * 3600;
+    };
     const nameOf = row => {
       const name = String(row.name ?? "");
       return name.trim() ? name : "ยังไม่มีชื่อ";
     };
     const unknown = row => row.unknown === true || nameOf(row).trim() === "ยังไม่มีชื่อ" || row.result === "ไม่พบชื่อ";
+    const duplicate = row => row.duplicate === true || ["ซ้ำ", "สแกนซ้ำ", "duplicate", "duplicate_scan"].includes(String(row.result || "").trim().toLowerCase());
     const keyOf = (name, day) => JSON.stringify([name, day]);
     const timesOf = value => value == null || value === "" ? [] : [String(value)];
 
@@ -170,7 +609,7 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
       return namedGroups.get(key);
     }
 
-    const scans = (data.rows || []).map(row => {
+    const scans = (data.rows || []).filter(row => !duplicate(row)).map(row => {
       const stamp = String(row.scanTime || row.serverReceivedTime || "-");
       const match = stamp.match(/^(\d{4}-\d{2}-\d{2})[ T](.+)$/);
       return { name: nameOf(row), date: match ? match[1] : date, time: match ? match[2] : stamp,
@@ -186,7 +625,12 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
         if (result !== "all" && !selected.has(keyOf(name, day))) return;
         const group = namedGroup(name, day);
         // Keep each stored pair together, even when names are shared by multiple records.
-        group.pairs.push({ checkin: timesOf(row.checkin), checkout: timesOf(row.checkout) });
+        group.pairs.push({
+          checkin: timesOf(row.checkin),
+          checkout: timesOf(row.checkout),
+          late: lateCheckin(row),
+          lateDuration: row.lateDuration || ""
+        });
         group.official = true;
       });
     }
@@ -201,16 +645,83 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
     });
 
     const showTimes = values => values.length ? values.map(esc).join("<br>") : "—";
-    return groups.length ? groups.map(group => {
-      const pairs = group.pairs.length ? group.pairs : [{ checkin: group.checkin, checkout: group.checkout }];
+    const lateOnly = $("lateOnlyBtn").getAttribute("aria-pressed") === "true";
+    const visibleGroups = lateOnly ? groups.filter(group =>
+      group.pairs.some(pair => pair.late) ||
+      (!group.official && group.checkin.some(checkin => lateCheckin({ checkin })))
+    ) : groups;
+    return visibleGroups.length ? visibleGroups.map(group => {
+      const pairs = group.pairs.length ? group.pairs : [{
+        checkin: group.checkin,
+        checkout: group.checkout,
+        late: group.checkin.some(checkin => lateCheckin({ checkin }))
+      }];
       return `<article class="event"><b>${esc(group.name)}</b><div class="muted">${esc(group.date)}</div>` +
-        pairs.map(pair => `<div class="attendance-times"><div><span class="muted">เวลาเข้า</span><b>${showTimes(pair.checkin)}</b></div><div><span class="muted">เวลาออก</span><b>${showTimes(pair.checkout)}</b></div></div>`).join("") +
+        pairs.map(pair => {
+        const lateBadge = pair.late
+          ? `<span class="late-badge">มาสาย${pair.lateDuration ? ` · ${esc(pair.lateDuration)}` : ""}</span>`
+          : "";
+        return `<div class="attendance-times"><div class="${pair.late ? "late-time" : ""}"><div class="time-label"><span>เวลาเข้า</span>${lateBadge}</div><b>${showTimes(pair.checkin)}</b></div><div><div class="time-label"><span>เวลาออก</span></div><b>${showTimes(pair.checkout)}</b></div></div>`;
+      }).join("") +
         (group.scans.length ? `<div class="muted">สแกน: ${group.scans.map(esc).join(", ")}</div>` : "") + `</article>`;
-    }).join("") : '<div class="muted">ไม่พบ Event ตามตัวกรอง</div>';
+    }).join("") : `<div class="muted">${lateOnly ? "ไม่พบคนมาสายตามตัวกรอง" : "ไม่พบรายการตามตัวกรอง"}</div>`;
   }
 
-  function render(data){const t=data.totals||{};$("eventsCount").textContent=t.events||0;$("checkinCount").textContent=t.checkin||0;$("checkoutCount").textContent=t.checkout||0;$("duplicateCount").textContent=t.duplicate||0;const c=data.chain||{};$("chainDot").className="dot "+(c.ok?"good":"bad");$("chainText").textContent=c.ok?`Hash Chain ถูกต้อง (${c.checked||0} รายการ)`:`พบ Hash Chain ผิดปกติ ${c.invalid||0} รายการ`;$("employeeList").innerHTML="";(data.employees||[]).forEach(n=>{const o=document.createElement("option");o.value=n;$("employeeList").appendChild(o)});$("eventsList").innerHTML=renderAttendanceCards(data);}
-  async function refresh(){if(!state.url){setStatus("ยังไม่ได้ตั้งค่า","กด “ตั้งค่า” แล้วใส่ Apps Script Web App URL","error");return}setStatus("กำลังตรวจสอบหลักฐาน…","หน้าจออ่านอย่างเดียว","muted");$("refreshBtn").disabled=true;try{const data=await requestApi(state.url,{api:"rfid-public",date:$("dateInput").value||today(),name:$("employeeInput").value.trim(),result:$("resultInput").value});if(!data||data.ok!==true)throw new Error(data&&data.error||"Apps Script ส่งข้อมูลไม่ถูกต้อง");render(data);setStatus("เชื่อมต่อสำเร็จ",`ตรวจล่าสุด ${new Date().toLocaleTimeString("th-TH")}`,"ok")}catch(e){setStatus("เชื่อมต่อ Apps Script ไม่สำเร็จ",String(e&&e.message||e),"error")}finally{$("refreshBtn").disabled=false}}
+  function render(data, query){
+    const totals=data.totals||{};
+    const duplicateCount=query.result==="all"?(Number(totals.duplicate)||0):0;
+    $("eventsCount").textContent=Math.max(0,(Number(totals.events)||0)-duplicateCount);
+    $("checkinCount").textContent=totals.checkin||0;
+    $("checkoutCount").textContent=totals.checkout||0;
+    const chain=data.chain||{};
+    $("chainDot").className="dot "+(chain.ok?"good":"bad");
+    $("chainText").textContent=chain.ok?`Hash Chain ถูกต้อง (${chain.checked||0} รายการ)`:`พบ Hash Chain ผิดปกติ ${chain.invalid||0} รายการ`;
+    $("employeeList").innerHTML="";
+    (data.employees||[]).forEach(name=>{const option=document.createElement("option");option.value=name;$("employeeList").appendChild(option)});
+    $("eventsList").innerHTML=renderAttendanceCards(data,query);
+  }
+  async function refresh(){
+    const button=$("refreshBtn");
+    if(button.disabled)return;
+    if(!state.url){
+      lastRefreshFailed=true;
+      setStatus("ยังไม่ได้ตั้งค่า","กด “ตั้งค่า” แล้วใส่ Apps Script Web App URL","error");
+      updateFreshness();
+      return;
+    }
+    const query=currentQuery();
+    const sourceUrl=state.url;
+    const label=button.querySelector("span");
+    const finishLoading=window.beginRfidLoadingState("กำลังเชื่อมต่อและโหลดข้อมูลเวลาเข้า–ออก");
+    lastRefreshStartedAt=Date.now();
+    setStatus("กำลังตรวจสอบหลักฐาน…","หน้าจออ่านอย่างเดียว","muted");
+    button.disabled=true;
+    button.setAttribute("aria-busy","true");
+    if(label)label.textContent="กำลังรีเฟรช…";
+    try{
+      const data=await requestApi(sourceUrl,query);
+      if(!data||data.ok!==true)throw new Error(data&&data.error||"Apps Script ส่งข้อมูลไม่ถูกต้อง");
+      lastSuccessfulData=data;
+      lastSuccessfulQuery=query;
+      lastSuccessfulUrl=sourceUrl;
+      lastSuccessfulAt=new Date();
+      lastRefreshFailed=false;
+      $("lateOnlyBtn").disabled=false;
+      render(data,query);
+      updateFreshness();
+      setStatus("เชื่อมต่อสำเร็จ","ข้อมูลเวลาเข้า–ออกพร้อมใช้งาน","ok");
+    }catch(e){
+      lastRefreshFailed=true;
+      updateFreshness();
+      setStatus("เชื่อมต่อ Apps Script ไม่สำเร็จ",String(e&&e.message||e),"error");
+    }finally{
+      await finishLoading();
+      button.disabled=false;
+      button.removeAttribute("aria-busy");
+      if(label)label.textContent="รีเฟรชข้อมูล";
+      if(followToday&&$("dateInput").value!==today())refreshOnReturn();
+    }
+  }
   window.addEventListener("beforeinstallprompt", event => {
     event.preventDefault();
     deferredInstallPrompt = event;
@@ -219,6 +730,7 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
 
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
+    installedThisSession = true;
     refreshInstallButton();
   });
 
@@ -239,7 +751,28 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
 
   const linkedDate = (window.location?.search || "").match(/(?:^\?|&)date=(\d{4}-\d{2}-\d{2})(?:&|$)/);
   $("dateInput").value=linkedDate ? linkedDate[1] : today();
+  let followToday=!linkedDate;
+  $("dateInput").addEventListener("change",()=>{followToday=$("dateInput").value===today();updateFreshness()});
+  $("employeeInput").addEventListener("input",updateFreshness);
+  $("resultInput").addEventListener("change",updateFreshness);
+  $("lateOnlyBtn").addEventListener("click",()=>{
+    if(!lastSuccessfulData)return;
+    const button=$("lateOnlyBtn");
+    button.setAttribute("aria-pressed",button.getAttribute("aria-pressed")==="true"?"false":"true");
+    $("eventsList").innerHTML=renderAttendanceCards(lastSuccessfulData,lastSuccessfulQuery);
+  });
   $("refreshBtn").addEventListener("click",refresh);
+  function refreshOnReturn(){
+    if(document.visibilityState!=="visible"||$("refreshBtn").disabled)return;
+    let dateRolled=false;
+    if(followToday&&$("dateInput").value!==today()){$("dateInput").value=today();dateRolled=true;updateFreshness()}
+    if($("dateInput").value!==today())return;
+    if(!dateRolled&&Date.now()-lastRefreshStartedAt<FOREGROUND_REFRESH_INTERVAL_MS)return;
+    refresh();
+  }
+  document.addEventListener("visibilitychange",refreshOnReturn);
+  window.addEventListener("pageshow",event=>{if(event.persisted)refreshOnReturn()});
+  window.addEventListener("focus",refreshOnReturn);
   $("settingsBtn").addEventListener("click",()=>{$("urlInput").value=state.url;$("settingsDialog").showModal()});
   $("cancelSettings").addEventListener("click",()=>$("settingsDialog").close());
   $("saveSettings").addEventListener("click",()=>{
@@ -247,6 +780,7 @@ dialog{border:0;border-radius:20px;padding:0;width:min(560px,92vw)}dialog::backd
     if(!validUrl(v)){alert("URL ต้องเป็น Apps Script Web App และลงท้ายด้วย /exec");return}
     state.url=v;
     localStorage.setItem(API_STORAGE_KEY,v);
+    updateFreshness();
     $("settingsDialog").close();
     refresh();
   });
