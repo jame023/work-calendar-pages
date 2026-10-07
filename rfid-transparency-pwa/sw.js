@@ -1,5 +1,5 @@
 const CACHE_PREFIX="rfid-audit-mobile-";
-const CACHE=CACHE_PREFIX+"v11";
+const CACHE=CACHE_PREFIX+"v12";
 const ASSETS=["./","./index.html","./push.js","./push.js?v=10","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install",event=>{
