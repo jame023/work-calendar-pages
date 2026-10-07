@@ -1,6 +1,6 @@
 const CACHE_PREFIX="rfid-audit-mobile-";
-const CACHE=CACHE_PREFIX+"v8";
-const ASSETS=["./","./index.html","./push.js","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
+const CACHE=CACHE_PREFIX+"v9";
+const ASSETS=["./","./index.html","./push.js","./push.js?v=9","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 
 self.addEventListener("install",event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));
