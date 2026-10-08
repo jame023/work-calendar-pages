@@ -174,6 +174,7 @@ main { width: min(100% - 40px, 880px); margin: 0 auto; padding: 26px 0 56px; }
 .setup-steps li[data-state="blocked"] { border-color: #edb8b2; color: #9c3028; background: #fff3f1; }
 .setup-steps li[data-state="blocked"]::before { background: #bd4238; content: "!"; font-size: 12px; }
 #pushStatus { margin: 13px 0 0; font-size: 14px; line-height: 1.6; }
+.push-card[data-compact="true"] .push-actions { margin-top: 0; }
 .push-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
 .primary, .secondary { padding: 0 17px; }
 .primary { border: 1px solid var(--brand); color: white; background: var(--brand); box-shadow: 0 5px 13px rgb(41 69 108 / 18%); }
@@ -377,7 +378,8 @@ dialog::backdrop { background: rgb(13 23 39 / 58%); backdrop-filter: blur(3px); 
   <div class="muted" id="statusText">หน้าจออ่านอย่างเดียว</div>
   <div class="freshness" id="dataFreshness" data-state="initial" role="status" aria-live="polite">ยังไม่มีข้อมูลที่โหลดสำเร็จ</div>
 </section>
-<section class="card push-card" aria-labelledby="pushHeading">
+<section class="card push-card" id="pushCard" aria-label="รับการแจ้งเตือน">
+  <div id="pushDetails">
   <div class="push-top">
     <div class="push-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <div class="push-copy"><p class="eyebrow">รับการแจ้งเตือน</p><h2 id="pushHeading">เข้า–ออกงานบนเครื่องนี้</h2></div>
@@ -390,9 +392,11 @@ dialog::backdrop { background: rgb(13 23 39 / 58%); backdrop-filter: blur(3px); 
     <li id="permissionStep" data-state="pending">อนุญาตแจ้งเตือน</li>
     <li id="enrollmentStep" data-state="pending">เปิดรับบนเครื่องนี้</li>
   </ol>
+  </div>
   <p class="muted" id="pushStatus" role="status" aria-live="polite">กำลังตรวจสอบการแจ้งเตือน…</p>
+
   <div class="push-actions"><button class="primary" id="enablePush" disabled>เปิดรับแจ้งเตือน</button><button class="secondary" id="disablePush" hidden>ปิดรับแจ้งเตือน</button><button class="secondary" id="testPush" hidden>ทดสอบแจ้งเตือน</button></div>
-  <p class="public-note"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4.5 6v5.2c0 4.7 3.2 8 7.5 9.8 4.3-1.8 7.5-5.1 7.5-9.8V6L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ทุกคนที่มีลิงก์เปิดดูข้อมูลได้ เมื่อติดตั้งแอปและเปิดจากไอคอนแล้ว จึงสมัครรับแจ้งเตือนบนอุปกรณ์ของตนได้</span></p>
+  <p class="public-note" id="pushPublicNote"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4.5 6v5.2c0 4.7 3.2 8 7.5 9.8 4.3-1.8 7.5-5.1 7.5-9.8V6L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>ทุกคนที่มีลิงก์เปิดดูข้อมูลได้ เมื่อติดตั้งแอปและเปิดจากไอคอนแล้ว จึงสมัครรับแจ้งเตือนบนอุปกรณ์ของตนได้</span></p>
 </section>
 <section class="card filters" aria-label="ค้นหารายการสแกน">
   <div class="section-head filter-heading"><div><p class="eyebrow">ค้นหารายการ</p><h2>เลือกข้อมูลที่ต้องการดู</h2></div></div>
@@ -796,5 +800,5 @@ dialog::backdrop { background: rgb(13 23 39 / 58%); backdrop-filter: blur(3px); 
   refresh();
 })();
 </script>
-<script src="./push.js?v=10" defer></script>
+<script src="./push.js?v=14" defer></script>
 </body></html>

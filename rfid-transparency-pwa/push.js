@@ -28,6 +28,7 @@
   }
   const actionIds = ['enablePush', 'disablePush', 'testPush'];
   let selectedAction = 'enablePush';
+  let optOutFailed = false;
   function selectAction(id) {
     selectedAction = id;
     for (const actionId of actionIds) {
@@ -38,9 +39,13 @@
     const canReceive = !!enabled && verifiedEnrollment && !!subscription && installed() && permissionState() === 'granted';
     $('enablePush').hidden = canReceive; $('enablePush').disabled = busy || !config || !installed() || permissionState() === 'denied';
     $('disablePush').hidden = !subscription; $('disablePush').disabled = busy;
-    $('testPush').hidden = !canReceive; $('testPush').disabled = busy;
+    $('testPush').hidden = true; $('testPush').disabled = true;
+    $('pushDetails').hidden = canReceive;
+    $('pushStatus').hidden = canReceive && !optOutFailed;
+    $('pushPublicNote').hidden = canReceive;
+    $('pushCard').dataset.compact = String(canReceive);
     if (!busy && $(selectedAction).hidden) {
-      selectedAction = canReceive ? 'testPush' : 'enablePush';
+      selectedAction = canReceive ? 'disablePush' : 'enablePush';
     }
     selectAction(selectedAction);
     seenPermission = permissionState();
@@ -144,6 +149,7 @@
     if (!installed()) { config = null; controls(false); status(INSTALL_REQUIRED_TEXT); return; }
     if (permissionState() === 'denied') { controls(false); status(PERMISSION_DENIED_TEXT); return; }
     if (!sourceMatches()) { status('การแจ้งเตือนใช้กับระบบ RFID กลางเท่านั้น กรุณาตรวจการตั้งค่า'); return; }
+    optOutFailed = false;
     selectAction('enablePush');
     // Request directly in the click gesture; iOS requires this user interaction.
     const permission = Notification.permission === 'granted' ? Promise.resolve('granted') : Notification.requestPermission();
@@ -174,6 +180,7 @@
   });
   $('disablePush').addEventListener('click', async () => {
     if (busy) return;
+    optOutFailed = false;
     selectAction('disablePush');
     initialization += 1;
     const wasVerified = verifiedEnrollment;
@@ -187,11 +194,11 @@
       try { await api('unsubscribe', body); } catch (_) { /* Provider returns 410 after local unsubscribe; later polling deactivates the endpoint. */ }
       verifiedEnrollment = false;
       status('ปิดรับแจ้งเตือนบนมือถือเครื่องนี้แล้ว'); controls(false);
-    } catch (error) { verifiedEnrollment = wasVerified; status(errors(error)); controls(wasVerified); }
+    } catch (error) { optOutFailed = true; verifiedEnrollment = wasVerified; status(errors(error)); controls(wasVerified); }
     finally { busy = false; controls(verifiedEnrollment); await finishLoading(); }
   });
   $('testPush').addEventListener('click', async () => {
-    if (busy || !subscription || !verifiedEnrollment || permissionState() !== 'granted') return;
+    if ($('testPush').hidden || busy || !subscription || !verifiedEnrollment || permissionState() !== 'granted') return;
     selectAction('testPush');
     const finishLoading = beginLoading('กำลังส่งการแจ้งเตือนทดสอบ');
     busy = true; controls(true);

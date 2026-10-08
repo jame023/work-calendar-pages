@@ -18,14 +18,14 @@ async function page(options={}) {
   const isInstalled=options.installed!==false;
   let finishStatus;const pausedStatus=new Promise(resolve=>finishStatus=resolve);
   let finishConfig,configCalls=0;const pausedConfig=new Promise(resolve=>finishConfig=resolve);
-  let active=options.existing?{endpoint:'https://fcm.googleapis.com/fcm/send/test',keys:{p256dh:point.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')},toJSON(){return {endpoint:this.endpoint,keys:this.keys}},async unsubscribe(){calls.push('unsubscribe');active=null;return true}}:null;
+  let active=options.existing?{endpoint:'https://fcm.googleapis.com/fcm/send/test',keys:{p256dh:point.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')},toJSON(){return {endpoint:this.endpoint,keys:this.keys}},async unsubscribe(){calls.push('unsubscribe');if(options.unsubscribeFail)throw new Error('unsubscribe_failed');active=null;return true}}:null;
   if(options.token)storage.set('rfidPushDeviceToken',randomBytes(32).toString('base64url'));
   storage.set('rfidAppsScriptUrl',options.different?'https://script.google.com/macros/s/different/exec':source);
   const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,disabled:false,dataset:{},textContent:'',value:'2026-10-03',addEventListener(type,fn){this[type]=fn;},click(){if(!this.disabled)return this['click-handler']?.();}});return nodes.get(id);};
   // Give click handlers normal DOM semantics while tests explicitly invoke user gestures.
   const get=id=>{const n=node(id);n.addEventListener=(type,fn)=>{n[type+'-handler']=fn;};return n;};
   const Notification={permission:options.denied?'denied':options.enabled?'granted':'default',requestPermission(){calls.push('permission');this.permission=options.dismiss?'default':options.denied?'denied':'granted';return Promise.resolve(this.permission);}};
-  const navigator={userAgent:options.ios?'iPhone Safari':'Android Chrome',standalone:isInstalled,serviceWorker:{ready:Promise.resolve({active:{postMessage(data,ports){if(!options.legacyWorker)ports[0].postMessage({type:'RFID_PUSH_CAPABILITY',version:1})}},pushManager:{async getSubscription(){return active},async subscribe(args){calls.push({subscribe:args});active={endpoint:'https://fcm.googleapis.com/fcm/send/test',keys:{p256dh:point.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')},toJSON(){return {endpoint:this.endpoint,keys:this.keys}},async unsubscribe(){calls.push('unsubscribe');active=null;return true}};return active;}}}),addEventListener(type,fn){handlers.set(type,fn)}}};
+  const navigator={userAgent:options.ios?'iPhone Safari':'Android Chrome',standalone:isInstalled,serviceWorker:{ready:Promise.resolve({active:{postMessage(data,ports){if(!options.legacyWorker)ports[0].postMessage({type:'RFID_PUSH_CAPABILITY',version:1})}},pushManager:{async getSubscription(){return active},async subscribe(args){calls.push({subscribe:args});active={endpoint:'https://fcm.googleapis.com/fcm/send/test',keys:{p256dh:point.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')},toJSON(){return {endpoint:this.endpoint,keys:this.keys}},async unsubscribe(){calls.push('unsubscribe');if(options.unsubscribeFail)throw new Error('unsubscribe_failed');active=null;return true}};return active;}}}),addEventListener(type,fn){handlers.set(type,fn)}}};
   const window={PushManager:function(){},Notification,isSecureContext:true,location:{protocol:options.file?'file:':'https:'},addEventListener(type,fn){handlers.set('window:'+type,fn)}};
   if(options.unsupported)delete window.PushManager;
   const context=vm.createContext({window,navigator,Notification,document:{getElementById:get},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},
@@ -43,31 +43,44 @@ async function page(options={}) {
 }
 
 test('PWA permission and registration behavior',async t=>{
-  await t.test('No automatic permission prompt; explicit gesture happens before network request',async()=>{const p=await page();assert(!p.calls.includes('permission'));await p.node('enablePush').click();const i=p.calls.indexOf('permission');const network=p.calls.findIndex((c,j)=>j>i&&c.url?.endsWith('/subscribe'));assert(i>=0&&network>i);assert(p.node('enablePush').hidden);assert(!p.node('testPush').hidden);assert.equal(p.storage.get('rfidPushDeviceToken').length,43);});
+  await t.test('No automatic permission prompt; explicit gesture happens before network request',async()=>{const p=await page();assert(!p.calls.includes('permission'));await p.node('enablePush').click();const i=p.calls.indexOf('permission');const network=p.calls.findIndex((c,j)=>j>i&&c.url?.endsWith('/subscribe'));assert(i>=0&&network>i);assert(p.node('enablePush').hidden);assert(p.node('testPush').hidden);assert.equal(p.storage.get('rfidPushDeviceToken').length,43);});
   await t.test('Action highlight follows each accepted click without changing enrollment',async()=>{
     const p=await page({existing:true,token:true,enabled:true});
-    await p.node('testPush').click();
-    assert.equal(p.node('testPush').dataset.selected,'true');
-    assert.equal(p.node('disablePush').dataset.selected,'false');
+    assert(p.node('pushDetails').hidden);
+    assert(p.node('pushPublicNote').hidden);
+    assert.equal(p.node('disablePush').dataset.selected,'true');
     assert(p.active());
     const stopping=p.node('disablePush').click();
     assert.equal(p.node('disablePush').dataset.selected,'true');
     assert.equal(p.node('testPush').dataset.selected,'false');
     await stopping;
     assert(!p.active());
+    assert(!p.node('pushDetails').hidden);
+    assert(!p.node('pushPublicNote').hidden);
     assert.equal(p.node('enablePush').dataset.selected,'true');
     const starting=p.node('enablePush').click();
     assert.equal(p.node('enablePush').dataset.selected,'true');
     assert.equal(p.node('disablePush').dataset.selected,'false');
     await starting;
     assert(p.active());
-    assert.equal(p.node('testPush').dataset.selected,'true');
+    assert.equal(p.node('disablePush').dataset.selected,'true');
+    assert(p.node('pushDetails').hidden);
+  });
+  await t.test('Failed opt-out keeps the active enrollment and its error visible',async()=>{
+    const p=await page({existing:true,token:true,enabled:true,unsubscribeFail:true});
+    assert(p.node('pushStatus').hidden);
+    await p.node('disablePush').click();
+    assert(p.active());
+    assert(!p.node('pushStatus').hidden);
+    assert(p.node('pushStatus').textContent.includes('ลองใหม่'));
+    assert(p.node('pushDetails').hidden);
+    assert(!p.node('disablePush').hidden);
   });
   await t.test('Denied and dismissed permissions do not register a device',async()=>{for(const key of ['denied','dismiss']){const p=await page({[key]:true});await p.node('enablePush').click();assert(!p.calls.some(c=>c.url?.endsWith('/subscribe')));assert(!p.active());assert(p.node('pushStatus').textContent.includes('ยังไม่ได้อนุญาต'));}});
   await t.test('Android and iOS require opening the installed Home Screen app',async()=>{for(const ios of [false,true]){const browser=await page({ios,installed:false});assert(browser.node('enablePush').disabled);assert(browser.node('pushStatus').textContent.includes('หน้าจอโฮม'));await browser.node('enablePush').click();assert(!browser.calls.includes('permission'));assert(!browser.calls.some(c=>c.url?.endsWith('/config')));browser.handlers.get('window:appinstalled')();assert(browser.node('pushStatus').textContent.includes('เปิดแอปจากไอคอน'));const app=await page({ios,installed:true});assert(!app.node('enablePush').disabled);}const unsupported=await page({unsupported:true});assert(unsupported.node('enablePush').disabled);});
   await t.test('Local file preview cannot offer notification enrollment',async()=>{const p=await page({file:true,installed:false});assert(p.node('enablePush').disabled);assert(p.node('pushStatus').textContent.includes('ไฟล์ตัวอย่าง'));assert.equal(p.calls.length,0);});
   await t.test('Failed enrollment rolls back browser subscription and never claims enabled',async()=>{const p=await page({registerFail:true});await p.node('enablePush').click();assert(p.calls.includes('unsubscribe'));assert(!p.active());assert(!p.node('enablePush').hidden);assert(p.node('testPush').hidden);});
-  await t.test('Existing enabled enrollment is reused; page load only checks status',async()=>{const p=await page({existing:true,token:true,enabled:true});assert(p.node('enablePush').hidden);assert(!p.calls.includes('permission'));assert(!p.calls.some(c=>c.subscribe||c.url?.endsWith('/subscribe')));await p.node('testPush').click();assert(p.calls.some(c=>c.url?.endsWith('/test')));});
+  await t.test('Existing enabled enrollment is reused; page load only checks status',async()=>{const p=await page({existing:true,token:true,enabled:true});assert(p.node('enablePush').hidden);assert(!p.calls.includes('permission'));assert(!p.calls.some(c=>c.subscribe||c.url?.endsWith('/subscribe')));await p.node('testPush').click();assert(!p.calls.some(c=>c.url?.endsWith('/test')));assert(p.node('pushDetails').hidden);});
   await t.test('Revoked permission is not reported as enabled despite old server registration',async()=>{const p=await page({existing:true,token:true,enabled:true,denied:true});assert(!p.node('enablePush').hidden);assert(p.node('testPush').hidden);assert(!p.calls.includes('permission'));});
   await t.test('Ownership errors leave a local opt-out path',async()=>{const p=await page({existing:true,token:true,ownerFail:true});assert(!p.node('disablePush').hidden);await p.node('disablePush').click();assert(!p.active());assert(p.node('pushStatus').textContent.includes('ปิดรับ'));});
   await t.test('Local opt-out works even if backend cannot be reached',async()=>{const p=await page({existing:true,token:true,offline:true});assert(!p.node('disablePush').hidden);await p.node('disablePush').click();assert(!p.active());assert(p.node('pushStatus').textContent.includes('ปิดรับ'));});
@@ -83,10 +96,10 @@ test('Service worker push, click, and cache behavior',async t=>{
   const handlers=new Map(), shown=[],opened=[],messages=[],deleted=[],assets=[];
   const scope='https://jame023.github.io/work-calendar-pages/rfid-transparency-pwa/';
   const clients=[{url:scope,postMessage:data=>messages.push(data),async navigate(url){opened.push(url);return this},async focus(){opened.push('focus')}},{url:'https://jame023.github.io/another-app/',postMessage(){throw Error('wrong app')}}];
-  const context=vm.createContext({URL,fetch:async()=>Response.json({ok:true}),self:{location:{origin:'https://jame023.github.io'},registration:{scope,async showNotification(title,options){shown.push({title,options})}},addEventListener:(name,fn)=>handlers.set(name,fn),skipWaiting(){},clients:{claim(){},async matchAll(){return clients},async openWindow(url){opened.push(url)}}},caches:{async open(name){return{async addAll(list){assets.push(name,...list)},async put(){}}},async keys(){return['rfid-audit-mobile-v6','rfid-audit-mobile-v7','rfid-audit-mobile-v8','rfid-audit-mobile-v9','rfid-audit-mobile-v10','rfid-audit-mobile-v11','rfid-audit-mobile-v12','rfid-audit-mobile-v13','unrelated-cache']},async delete(key){deleted.push(key)}}});
+  const context=vm.createContext({URL,fetch:async()=>Response.json({ok:true}),self:{location:{origin:'https://jame023.github.io'},registration:{scope,async showNotification(title,options){shown.push({title,options})}},addEventListener:(name,fn)=>handlers.set(name,fn),skipWaiting(){},clients:{claim(){},async matchAll(){return clients},async openWindow(url){opened.push(url)}}},caches:{async open(name){return{async addAll(list){assets.push(name,...list)},async put(){}}},async keys(){return['rfid-audit-mobile-v6','rfid-audit-mobile-v7','rfid-audit-mobile-v8','rfid-audit-mobile-v9','rfid-audit-mobile-v10','rfid-audit-mobile-v11','rfid-audit-mobile-v12','rfid-audit-mobile-v13','rfid-audit-mobile-v14','unrelated-cache']},async delete(key){deleted.push(key)}}});
   new vm.Script(worker).runInContext(context);
   const dispatch=async(name,values)=>{let pending;handlers.get(name)({...values,waitUntil(p){pending=p}});await pending};
-  await t.test('Install includes push script; activation deletes only earlier RFID caches',async()=>{await dispatch('install',{});assert(assets.includes('./push.js'));assert(assets.includes('./push.js?v=10'));assert(assets.includes('rfid-audit-mobile-v13'));await dispatch('activate',{});assert.deepEqual(deleted,['rfid-audit-mobile-v6','rfid-audit-mobile-v7','rfid-audit-mobile-v8','rfid-audit-mobile-v9','rfid-audit-mobile-v10','rfid-audit-mobile-v11','rfid-audit-mobile-v12']);});
+  await t.test('Install includes push script; activation deletes only earlier RFID caches',async()=>{await dispatch('install',{});assert(assets.includes('./push.js'));assert(assets.includes('./push.js?v=14'));assert(assets.includes('rfid-audit-mobile-v14'));await dispatch('activate',{});assert.deepEqual(deleted,['rfid-audit-mobile-v6','rfid-audit-mobile-v7','rfid-audit-mobile-v8','rfid-audit-mobile-v9','rfid-audit-mobile-v10','rfid-audit-mobile-v11','rfid-audit-mobile-v12','rfid-audit-mobile-v13']);});
   await t.test('Active worker confirms its push capability through the caller message port',()=>{const replies=[];handlers.get('message')({data:{type:'RFID_PUSH_CAPABILITY'},ports:[{postMessage:data=>replies.push(data)}]});assert.equal(replies[0].type,'RFID_PUSH_CAPABILITY');assert.equal(replies[0].version,1);});
   const payload={version:1,eventId:'same-id',date:'2026-10-02',title:'คนทดสอบ · เลิกงาน',body:'02/10/2026 เวลา 16:15:55',url:'https://evil.example/'};
   await t.test('Each push displays a native notification; retry uses same tag without re-alert',async()=>{for(let i=0;i<2;i++)await dispatch('push',{data:{json:()=>payload}});assert.equal(shown.length,2);assert.equal(shown[0].options.tag,shown[1].options.tag);assert.equal(shown[1].options.renotify,false);assert.equal(shown[0].options.data.url,scope+'?date=2026-10-02');assert.equal(messages.length,2);});
@@ -101,6 +114,6 @@ test('Attendance renderer highlights late check-ins, hides duplicates, and prese
   const normalized=get(html).replace(/  const linkedDate =[^\n]+\n  \$\("dateInput"\)\.value=linkedDate \? linkedDate\[1\] : today\(\);/,'  $("dateInput").value=today();');
   // Inline-script baseline covers attendance, freshness, loading, install guidance, and local filters.
   assert.equal(createHash('sha256').update(normalized).digest('hex'),'b4515d5627456f9820f49110891df26f94676f40bd7fc0a8e993545c6409eeae');
-  assert(html.includes('<script src="./push.js?v=10" defer></script>'));assert.equal(config.url,'https://gzlbkabmxncznsporgxp.supabase.co/functions/v1/rfid-push');
+  assert(html.includes('<script src="./push.js?v=14" defer></script>'));assert.equal(config.url,'https://gzlbkabmxncznsporgxp.supabase.co/functions/v1/rfid-push');
   const claims=JSON.parse(Buffer.from(config.key.split('.')[1],'base64url').toString());assert.equal(claims.role,'anon');
 });
