@@ -853,7 +853,7 @@
         const first = new Date(start + "T00:00:00Z");
         const last = new Date(end + "T00:00:00Z");
         const count = (last - first) / 86400000 + 1;
-        if (!start || !end || !Number.isInteger(count) || count < 1 || count > 366) {
+        if (!start || !end || !Number.isInteger(count) || count < 1) {
           updateProxyTotal();
           return;
         }
@@ -884,7 +884,7 @@
           return sum + (item.period === "full" ? 1 : item.period === "none" ? 0 : 0.5);
         }, 0);
         document.getElementById("proxyTotal").textContent = "จำนวนวันรวม: " + total +
-          " วัน · Preview จะคำนวณตามวันทำงานและวันหยุดจริง";
+          " วัน · คำขอแอดมินบันทึกทุกวันที่เลือก โดยไม่ใช้กฎวันทำงานหรือโควตา";
       }
 
       async function readProxyImages() {
